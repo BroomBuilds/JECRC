@@ -69,7 +69,11 @@ export default function ScrollTour({ captions = [], className = "" }: Props) {
     let loadedCount = 0;
     let current = 0;
     let inflight = 0;
-    const CONCURRENCY = 8;
+    // Higher than the local-network-tuned 8: over a real connection every
+    // request pays RTT that localhost doesn't, so more in-flight requests
+    // hides that latency instead of eating it serially. HTTP/2 (any real
+    // host/CDN) multiplexes this fine on one connection.
+    const CONCURRENCY = 16;
 
     // Load in passes of decreasing stride, so the whole timeline is covered
     // coarsely almost immediately and then fills in — rather than the first
