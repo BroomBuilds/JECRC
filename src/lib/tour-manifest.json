@@ -1,6 +1,6 @@
 {
-  "count": 400,
-  "fps": 13,
+  "count": 922,
+  "fps": 30,
   "duration": 30.733333,
   "format": "webp",
   "pad": 4,
@@ -19,5 +19,5 @@
       "dir": "640"
     }
   ],
-  "builtFrom": "C:\\Users\\varun\\Downloads\\jecrc\\jecrc\\jecrc\\JECRC.mp4"
+  "builtFrom": "C:\\Users\\varun\\OneDrive\\Desktop\\s20\\broombuilds\\client-drafts\\jecrc\\jecrc\\jecrc\\JECRC.mp4"
 }
