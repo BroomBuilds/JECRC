@@ -54,7 +54,7 @@ function UtilityLink({ item }: { item: NavItem }) {
     <a
       href={item.href}
       {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="u-underline whitespace-nowrap text-[13px] font-medium text-white/90 transition-colors duration-300 hover:text-white 2xl:text-[15px]"
+      className="u-underline whitespace-nowrap text-[13px] font-semibold tracking-[-0.01em] text-white/90 transition-colors duration-300 hover:text-white 2xl:text-[15px]"
     >
       {item.label}
     </a>
@@ -66,7 +66,7 @@ function PrimaryLink({ item }: { item: NavItem }) {
     <a
       href={item.href}
       {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="u-underline whitespace-nowrap text-[13px] font-semibold text-chrome-ink transition-colors duration-300 hover:text-crimson 2xl:text-[15px]"
+      className="u-underline whitespace-nowrap text-[13px] font-bold tracking-[-0.015em] text-ink transition-colors duration-300 hover:text-crimson 2xl:text-[15px]"
     >
       {item.label}
     </a>
@@ -143,7 +143,7 @@ export default function Navbar() {
       </div>
 
       {/* ---- white primary strip ---- */}
-      <div className="bg-chrome shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+      <div className="bg-paper shadow-[0_1px_0_rgba(0,0,0,0.06)]">
         {/* Mobile row: lockup left, menu right, no centre column. */}
         <div className={`${BAR_MOBILE} h-[62px] lg:hidden`}>
           <a href="#top" aria-label="JECRC, back to top">
@@ -167,13 +167,13 @@ export default function Navbar() {
           >
             <span
               className={cn(
-                "block h-0.5 w-6 rounded-full bg-chrome-ink-strong transition-transform duration-400 ease-out-expo",
+                "block h-0.5 w-6 rounded-full bg-ink transition-transform duration-400 ease-out-expo",
                 open && "translate-y-1 rotate-45"
               )}
             />
             <span
               className={cn(
-                "block h-0.5 w-6 rounded-full bg-chrome-ink-strong transition-transform duration-400 ease-out-expo",
+                "block h-0.5 w-6 rounded-full bg-ink transition-transform duration-400 ease-out-expo",
                 open && "-translate-y-1 -rotate-45"
               )}
             />
@@ -206,7 +206,7 @@ export default function Navbar() {
         <a
           href="#top"
           aria-label="JECRC, back to top"
-          className="pointer-events-auto flex h-[122px] w-[268px] items-start justify-center bg-chrome px-4 pt-2.5 drop-shadow-[0_12px_20px_rgba(0,0,0,0.14)]"
+          className="pointer-events-auto flex h-[122px] w-[268px] items-start justify-center bg-paper px-4 pt-2.5 drop-shadow-[0_12px_20px_rgba(0,0,0,0.14)]"
           style={{ clipPath: SHIELD_CLIP }}
         >
           <Image
@@ -225,7 +225,7 @@ export default function Navbar() {
         id="mobile-nav"
         inert={!open}
         className={cn(
-          "overflow-hidden bg-chrome transition-[max-height,opacity] duration-[700ms] ease-out-expo lg:hidden",
+          "overflow-hidden bg-paper transition-[max-height,opacity] duration-[700ms] ease-out-expo lg:hidden",
           open ? "max-h-[85svh] opacity-100" : "max-h-0 opacity-0"
         )}
       >
@@ -241,7 +241,7 @@ export default function Navbar() {
               href={item.href}
               {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               onClick={() => setOpen(false)}
-              className="border-b border-black/5 py-3.5 text-[15px] font-semibold text-chrome-ink transition-colors duration-300 hover:text-crimson"
+              className="border-b border-black/5 py-3.5 text-[15px] font-semibold text-ink transition-colors duration-300 hover:text-crimson"
             >
               {item.label}
             </a>
@@ -256,7 +256,7 @@ export default function Navbar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${s.label}, opens in a new tab`}
-                    className="block text-chrome-ink transition-colors duration-300 hover:text-crimson"
+                    className="block text-ink transition-colors duration-300 hover:text-crimson"
                   >
                     <Icon className="h-5 w-5" />
                   </a>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Montserrat } from "next/font/google";
+import { Archivo, Newsreader } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/layout/SmoothScroll";
 import Reveal from "@/components/layout/Reveal";
@@ -7,22 +7,28 @@ import { BRAND, SITE_URL } from "@/lib/content/site";
 import { jsonLd } from "@/lib/seo/schema";
 
 /**
- * Montserrat is the interface face on jecrcuniversity.edu.in, sampled from the
- * live navbar, so the chrome here matches the rest of the estate exactly. Only
- * the four weights actually used are requested.
+ * The pair.
+ *
+ * Archivo is the grotesque: navigation, eyebrows, buttons, the majors list,
+ * every figure. It is the closest open face to the Aktiv Grotesk that carries
+ * arts.vcu.edu, and unlike most free grotesques it has a genuine 800, which is
+ * what the display sizes need.
+ *
+ * Newsreader is the editorial voice, standing in for Mercury: sturdy rather
+ * than fashionable, and it holds up at both 20px and 90px. Both are variable,
+ * so the weight range costs one file each.
  */
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
-/** The editorial voice. One weight, roman and italic, is all this needs. */
-const instrument = Instrument_Serif({
-  variable: "--font-instrument",
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["300", "400", "500"],
   style: ["normal", "italic"],
   display: "swap",
 });
@@ -93,8 +99,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#08080a",
-  colorScheme: "dark",
+  themeColor: "#ffffff",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -102,7 +108,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-IN" className={`${montserrat.variable} ${instrument.variable}`}>
+    <html lang="en-IN" className={`${archivo.variable} ${newsreader.variable}`}>
       <head>
         {/* The tour's first frames are the largest paint on the page and are
             fetched by script, so the connection is warmed before React runs. */}

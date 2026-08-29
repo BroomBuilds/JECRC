@@ -23,7 +23,7 @@ export const UTILITY_RIGHT: NavItem[] = [
 export const PRIMARY_LEFT: NavItem[] = [
   { label: "Admissions", href: "#admissions" },
   { label: "Campuses", href: "#campuses" },
-  { label: "Programmes", href: "#programmes" },
+  { label: "Programmes", href: "#schools" },
   { label: "Placements", href: "#outcomes" },
 ];
 
@@ -44,7 +44,7 @@ export const MOBILE_NAV: NavItem[] = [
 
 export const FOOTER_NAV = {
   study: [
-    { label: "Programmes", href: "#programmes" },
+    { label: "Programmes", href: "#schools" },
     { label: "Admissions", href: "#admissions" },
     { label: "Scholarships", href: "https://jecrcuniversity.edu.in/scholarship/", external: true },
     { label: "Fee structure", href: "https://jecrcuncr.edu.in/fee-structure", external: true },

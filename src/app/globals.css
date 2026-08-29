@@ -1,56 +1,55 @@
 @import "tailwindcss";
 
 /* ==================================================================
-   JECRC design system
-   ------------------------------------------------------------------
-   Brand chrome is taken verbatim from jecrcuniversity.edu.in: the red
-   is #DE1819 and the interface face is Montserrat, both sampled from
-   the live site. Everything below that line is ours: a dark, filmic
-   ground so the scroll tour is the brightest thing on the page, with
-   Instrument Serif carrying the editorial voice.
+   JECRC design system, light
+
+   Paper ground, black type, JECRC red as the one accent. Two bands
+   invert to true black on purpose: the majors list and the footer.
+   That is the arrangement on arts.vcu.edu, and the contrast is what
+   makes those two bands land.
+
+   Type is a pair. Archivo, a grotesque, carries every piece of
+   interface: navigation, eyebrows, buttons, the majors list, stats.
+   Newsreader, a sturdy text serif, carries the editorial voice:
+   headlines and the long statements. Nothing else is introduced.
    ================================================================== */
 
 @theme {
   /* --- ground ------------------------------------------------ */
-  --color-ink: #08080a;
-  --color-void: #0c0c0f;
-  --color-surface: #131317;
-  --color-raised: #1b1b21;
-  --color-line: #232329;
+  --color-paper: #ffffff;
+  --color-bone: #f6f4f1;
+  --color-linen: #ece8e3;
+  --color-rule: #dcd8d2;
 
-  /* --- ink on ground ----------------------------------------- */
-  --color-paper: #f7f5f2;
-  --color-mist: #9c9a97;
-  --color-dim: #6b6a68;
+  /* --- inverted bands ---------------------------------------- */
+  --color-obsidian: #000000;
+  --color-carbon: #101012;
 
-  /* --- brand, sampled from the live site --------------------- */
+  /* --- ink --------------------------------------------------- */
+  --color-ink: #0a0a0b;
+  --color-graphite: #4a4a4e;
+  --color-quiet: #74747a;
+
+  /* --- brand, sampled from jecrcuniversity.edu.in ------------ */
   --color-crimson: #de1819;
   --color-crimson-lit: #ff3a30;
   --color-crimson-deep: #a10f10;
-  --color-ember: #f0a595;
-
-  /* --- brand chrome, light surfaces -------------------------- */
-  --color-chrome: #ffffff;
-  --color-chrome-ink: #33373d;
-  --color-chrome-ink-strong: #292929;
+  --color-blush: #fdecec;
 
   /* --- type -------------------------------------------------- */
-  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-instrument), ui-serif, Georgia, serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 
   /* --- motion ------------------------------------------------ */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
-
-  /* --- layout ------------------------------------------------ */
-  --spacing-gutter: 1.25rem;
 }
 
 :root {
-  color-scheme: dark;
-  /* One knob for the whole page's horizontal rhythm. */
-  --shell: 1560px;
-  --pad: 1.25rem;
+  color-scheme: light;
+  /* One knob for the page's horizontal rhythm. */
+  --shell: 1600px;
+  --pad: 1.5rem;
 }
 
 @media (min-width: 768px) {
@@ -77,11 +76,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  font-size: 1.0625rem;
+  line-height: 1.65;
   font-weight: 400;
   overflow-x: clip;
 }
@@ -93,7 +92,7 @@ img, svg, video { display: block; max-width: 100%; }
 ::selection { background: var(--color-crimson); color: #fff; }
 
 :focus-visible {
-  outline: 2px solid var(--color-crimson-lit);
+  outline: 2px solid var(--color-crimson);
   outline-offset: 3px;
   border-radius: 2px;
 }
@@ -105,38 +104,59 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ------------------------------------------------------------------
    Type helpers
+
+   Sizes are clamped rather than stepped through breakpoints. A
+   headline that grows continuously never lands at an awkward size
+   between two breakpoints, which is where most responsive type goes
+   wrong.
    ------------------------------------------------------------------ */
 
 /* The small caps line that opens most blocks. */
-.u-label {
+.u-eyebrow {
   font-family: var(--font-sans);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.28em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   line-height: 1.4;
 }
-@media (min-width: 768px) { .u-label { font-size: 0.6875rem; } }
 
-.u-display {
-  font-family: var(--font-display);
+/* The grotesque, at display size. Tracking tightens as it grows. */
+.u-grotesk {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+
+.u-grotesk-black {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+}
+
+/* The editorial voice. */
+.u-serif {
+  font-family: var(--font-serif);
   font-weight: 400;
-  line-height: 0.98;
+  line-height: 1.14;
   letter-spacing: -0.015em;
 }
 
-.u-display-italic {
-  font-family: var(--font-display);
+.u-serif-italic {
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
 }
 
-/* Numbers that have to line up in a row of stats. */
+/* Numbers that have to line up across a row of stats. */
 .u-figure {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
+  font-weight: 500;
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.02em;
-  line-height: 0.9;
+  letter-spacing: -0.04em;
+  line-height: 0.88;
 }
 
 .u-shell {
@@ -146,24 +166,20 @@ html.lenis, html.lenis body { height: auto; }
   padding-inline: var(--pad);
 }
 
-.u-hairline {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-crimson), transparent);
-}
-
 /* ------------------------------------------------------------------
    Scroll reveal
-   Rect-driven (see components/layout/Reveal.tsx) rather than an
+
+   Rect-driven (components/layout/Reveal.tsx) rather than an
    IntersectionObserver, so a fast flick or a hash jump can never leave
    an element stuck at opacity 0.
    ------------------------------------------------------------------ */
 
 [data-reveal] {
   opacity: 0;
-  transform: translate3d(0, 28px, 0);
+  transform: translate3d(0, 24px, 0);
   transition:
-    opacity 1s var(--ease-out-expo),
-    transform 1s var(--ease-out-expo);
+    opacity 0.9s var(--ease-out-expo),
+    transform 0.9s var(--ease-out-expo);
   transition-delay: var(--reveal-delay, 0ms);
   will-change: opacity, transform;
 }
@@ -177,7 +193,7 @@ html.lenis, html.lenis body { height: auto; }
   opacity: 1;
   transform: none;
   clip-path: inset(0 0 102% 0);
-  transition: clip-path 1.25s var(--ease-out-expo);
+  transition: clip-path 1.2s var(--ease-out-expo);
   transition-delay: var(--reveal-delay, 0ms);
 }
 [data-reveal="mask"].is-in { clip-path: inset(0 0 -2% 0); }
@@ -186,24 +202,10 @@ html.lenis, html.lenis body { height: auto; }
   opacity: 1;
   transform: none;
   clip-path: inset(0 100% 0 0);
-  transition: clip-path 1.4s var(--ease-out-expo);
+  transition: clip-path 1.3s var(--ease-out-expo);
   transition-delay: var(--reveal-delay, 0ms);
 }
 [data-reveal="wipe"].is-in { clip-path: inset(0 0 0 0); }
-
-/* ------------------------------------------------------------------
-   Texture
-   ------------------------------------------------------------------ */
-
-.u-grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.045;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* ------------------------------------------------------------------
    Links
@@ -214,25 +216,56 @@ html.lenis, html.lenis body { height: auto; }
   background-size: 0% 1px;
   background-repeat: no-repeat;
   background-position: 0 100%;
-  transition: background-size 0.5s var(--ease-out-expo);
+  transition: background-size 0.45s var(--ease-out-expo);
 }
 .u-underline:hover,
 .u-underline:focus-visible { background-size: 100% 1px; }
 
-/* Reverse: starts underlined, retracts from the right. */
-.u-underline-out {
-  background-image: linear-gradient(currentColor, currentColor);
-  background-size: 100% 1px;
-  background-repeat: no-repeat;
-  background-position: 100% 100%;
-  transition: background-size 0.5s var(--ease-out-expo);
+/* ------------------------------------------------------------------
+   Pill button, the shape used across arts.vcu.edu and adopted here
+   ------------------------------------------------------------------ */
+
+.u-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  padding: 0.9rem 1.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  transition:
+    background-color 0.35s var(--ease-out-expo),
+    color 0.35s var(--ease-out-expo),
+    border-color 0.35s var(--ease-out-expo);
 }
-.u-underline-out:hover { background-size: 0% 1px; }
+
+/* ------------------------------------------------------------------
+   Majors list
+
+   The dim-everything-but-the-active-row effect is a pointer affordance.
+   On a touch device there is no hover, so every row would sit at 0.2
+   forever and the whole list would read as disabled. Gate it on the
+   pointer instead of on JavaScript, so the fallback needs no state.
+   ------------------------------------------------------------------ */
+
+@media (hover: hover) and (pointer: fine) {
+  [data-majors-row] {
+    opacity: 0.2;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+  [data-majors-row][data-active="true"] { opacity: 1; }
+}
 
 /* ------------------------------------------------------------------
    Marquee
-   Duplicated track, translated by exactly half its width, so the seam
-   is never visible and the loop needs no JavaScript.
+
+   Two copies of the track, translated by exactly half its width, so
+   the loop has no visible seam and needs no JavaScript.
    ------------------------------------------------------------------ */
 
 @keyframes u-marquee {
@@ -246,16 +279,6 @@ html.lenis, html.lenis body { height: auto; }
   animation: u-marquee var(--marquee-duration, 48s) linear infinite;
 }
 .u-marquee:hover .u-marquee-track { animation-play-state: paused; }
-
-/* ------------------------------------------------------------------
-   Navbar entrance
-   The bar is absent until the scroll tour finishes, then drops in.
-   ------------------------------------------------------------------ */
-
-@keyframes u-nav-drop {
-  from { transform: translate3d(0, -100%, 0); }
-  to { transform: translate3d(0, 0, 0); }
-}
 
 /* ------------------------------------------------------------------
    Reduced motion
