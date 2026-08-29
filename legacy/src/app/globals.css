@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Royal Palace design system, re-skinned in JECRC's brand colours.
+   Gold → crimson, plum → maroon, ivory → paper.
+   ------------------------------------------------------------------ */
+
+@theme {
+  --color-ink: #0b0808;
+  --color-maroon: #2a0d0c;
+  --color-maroon-deep: #1a0807;
+  --color-paper: #f5f1ea;
+  --color-cream: #e8e0d3;
+  --color-sand: #cdbfad;
+  --color-crimson: #cd201f;      /* JECRC red */
+  --color-crimson-soft: #e05a4c;
+  --color-crimson-pale: #f3b3a6;
+  --color-brick: #915229;        /* JECRC brown */
+
+  --font-display: var(--font-display);
+  --font-script: var(--font-script);
+  --font-sans: var(--font-sans-ui);
+
+  --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root { color-scheme: dark; }
+
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+::selection { background: var(--color-crimson); color: #fff; }
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ---- Type helpers ---- */
+.label {
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+@media (min-width: 768px) { .label { font-size: 0.6875rem; } }
+
+.display { font-family: var(--font-display); font-weight: 300; letter-spacing: 0.01em; line-height: 1.02; }
+
+/* The accent face. Cormorant italic by default — swap --font-script to the
+   Pinyon Script variable in layout.tsx for the original copperplate. */
+.script { font-family: var(--font-script); font-style: italic; font-weight: 400; }
+
+.rule { height: 1px; background: linear-gradient(90deg, transparent, var(--color-crimson), transparent); }
+
+/* ---- Scroll reveal ---- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 1.15s var(--ease-luxe), transform 1.15s var(--ease-luxe);
+  transition-delay: var(--d, 0ms);
+}
+[data-reveal].is-in { opacity: 1; transform: none; }
+
+[data-reveal="mask"] { opacity: 1; transform: none; clip-path: inset(0 0 105% 0); transition: clip-path 1.4s var(--ease-luxe); transition-delay: var(--d, 0ms); }
+[data-reveal="mask"].is-in { clip-path: inset(0 0 -5% 0); }
+
+[data-reveal="wipe"] { opacity: 1; transform: none; clip-path: inset(0 100% 0 0); transition: clip-path 1.6s var(--ease-luxe); transition-delay: var(--d, 0ms); }
+[data-reveal="wipe"].is-in { clip-path: inset(0 0 0 0); }
+
+/* ---- Ghost / layered heading ---- */
+.ghost-stack { position: relative; display: inline-block; }
+.ghost-stack .ghost {
+  position: absolute; inset: 0;
+  color: transparent;
+  -webkit-text-stroke: 0.5px color-mix(in oklab, var(--color-crimson) 45%, transparent);
+  transform: translateY(0.14em) scale(1.012);
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-luxe), transform 1.4s var(--ease-luxe);
+  pointer-events: none;
+}
+.is-in .ghost, .ghost-stack.is-in .ghost { opacity: 0.7; transform: translateY(0.28em) scale(1.03); }
+
+/* ---- Grain ---- */
+.grain::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size 0.6s var(--ease-luxe);
+}
+.link-underline:hover { background-size: 100% 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1 !important; transform: none !important; clip-path: none !important; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

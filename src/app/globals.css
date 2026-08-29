@@ -1,113 +1,279 @@
 @import "tailwindcss";
 
-/* ------------------------------------------------------------------
-   Royal Palace design system, re-skinned in JECRC's brand colours.
-   Gold → crimson, plum → maroon, ivory → paper.
-   ------------------------------------------------------------------ */
+/* ==================================================================
+   JECRC design system
+   ------------------------------------------------------------------
+   Brand chrome is taken verbatim from jecrcuniversity.edu.in: the red
+   is #DE1819 and the interface face is Montserrat, both sampled from
+   the live site. Everything below that line is ours: a dark, filmic
+   ground so the scroll tour is the brightest thing on the page, with
+   Instrument Serif carrying the editorial voice.
+   ================================================================== */
 
 @theme {
-  --color-ink: #0b0808;
-  --color-maroon: #2a0d0c;
-  --color-maroon-deep: #1a0807;
-  --color-paper: #f5f1ea;
-  --color-cream: #e8e0d3;
-  --color-sand: #cdbfad;
-  --color-crimson: #cd201f;      /* JECRC red */
-  --color-crimson-soft: #e05a4c;
-  --color-crimson-pale: #f3b3a6;
-  --color-brick: #915229;        /* JECRC brown */
+  /* --- ground ------------------------------------------------ */
+  --color-ink: #08080a;
+  --color-void: #0c0c0f;
+  --color-surface: #131317;
+  --color-raised: #1b1b21;
+  --color-line: #232329;
 
-  --font-display: var(--font-display);
-  --font-script: var(--font-script);
-  --font-sans: var(--font-sans-ui);
+  /* --- ink on ground ----------------------------------------- */
+  --color-paper: #f7f5f2;
+  --color-mist: #9c9a97;
+  --color-dim: #6b6a68;
 
-  --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+  /* --- brand, sampled from the live site --------------------- */
+  --color-crimson: #de1819;
+  --color-crimson-lit: #ff3a30;
+  --color-crimson-deep: #a10f10;
+  --color-ember: #f0a595;
+
+  /* --- brand chrome, light surfaces -------------------------- */
+  --color-chrome: #ffffff;
+  --color-chrome-ink: #33373d;
+  --color-chrome-ink-strong: #292929;
+
+  /* --- type -------------------------------------------------- */
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-instrument), ui-serif, Georgia, serif;
+
+  /* --- motion ------------------------------------------------ */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+
+  /* --- layout ------------------------------------------------ */
+  --spacing-gutter: 1.25rem;
 }
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+  /* One knob for the whole page's horizontal rhythm. */
+  --shell: 1560px;
+  --pad: 1.25rem;
+}
 
-html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+@media (min-width: 768px) {
+  :root { --pad: 2.5rem; }
+}
+@media (min-width: 1280px) {
+  :root { --pad: 4rem; }
+}
+
+/* ------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
 
 body {
+  margin: 0;
   background: var(--color-ink);
   color: var(--color-paper);
   font-family: var(--font-sans);
-  overflow-x: hidden;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  font-weight: 400;
+  overflow-x: clip;
 }
+
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+img, svg, video { display: block; max-width: 100%; }
 
 ::selection { background: var(--color-crimson); color: #fff; }
 
-/* Lenis */
+:focus-visible {
+  outline: 2px solid var(--color-crimson-lit);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Lenis owns the scroll position; let it. */
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: hidden; }
 
-/* ---- Type helpers ---- */
-.label {
+/* ------------------------------------------------------------------
+   Type helpers
+   ------------------------------------------------------------------ */
+
+/* The small caps line that opens most blocks. */
+.u-label {
   font-family: var(--font-sans);
   font-size: 0.625rem;
-  letter-spacing: 0.34em;
+  font-weight: 600;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
+  line-height: 1.4;
+}
+@media (min-width: 768px) { .u-label { font-size: 0.6875rem; } }
+
+.u-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.015em;
+}
+
+.u-display-italic {
+  font-family: var(--font-display);
+  font-style: italic;
   font-weight: 400;
 }
-@media (min-width: 768px) { .label { font-size: 0.6875rem; } }
 
-.display { font-family: var(--font-display); font-weight: 300; letter-spacing: 0.01em; line-height: 1.02; }
+/* Numbers that have to line up in a row of stats. */
+.u-figure {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+}
 
-/* The accent face. Cormorant italic by default — swap --font-script to the
-   Pinyon Script variable in layout.tsx for the original copperplate. */
-.script { font-family: var(--font-script); font-style: italic; font-weight: 400; }
+.u-shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
 
-.rule { height: 1px; background: linear-gradient(90deg, transparent, var(--color-crimson), transparent); }
+.u-hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-crimson), transparent);
+}
 
-/* ---- Scroll reveal ---- */
+/* ------------------------------------------------------------------
+   Scroll reveal
+   Rect-driven (see components/layout/Reveal.tsx) rather than an
+   IntersectionObserver, so a fast flick or a hash jump can never leave
+   an element stuck at opacity 0.
+   ------------------------------------------------------------------ */
+
 [data-reveal] {
   opacity: 0;
-  transform: translateY(26px);
-  transition: opacity 1.15s var(--ease-luxe), transform 1.15s var(--ease-luxe);
-  transition-delay: var(--d, 0ms);
+  transform: translate3d(0, 28px, 0);
+  transition:
+    opacity 1s var(--ease-out-expo),
+    transform 1s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
 }
-[data-reveal].is-in { opacity: 1; transform: none; }
+[data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
 
-[data-reveal="mask"] { opacity: 1; transform: none; clip-path: inset(0 0 105% 0); transition: clip-path 1.4s var(--ease-luxe); transition-delay: var(--d, 0ms); }
-[data-reveal="mask"].is-in { clip-path: inset(0 0 -5% 0); }
+[data-reveal="mask"] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 102% 0);
+  transition: clip-path 1.25s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="mask"].is-in { clip-path: inset(0 0 -2% 0); }
 
-[data-reveal="wipe"] { opacity: 1; transform: none; clip-path: inset(0 100% 0 0); transition: clip-path 1.6s var(--ease-luxe); transition-delay: var(--d, 0ms); }
+[data-reveal="wipe"] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.4s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
 [data-reveal="wipe"].is-in { clip-path: inset(0 0 0 0); }
 
-/* ---- Ghost / layered heading ---- */
-.ghost-stack { position: relative; display: inline-block; }
-.ghost-stack .ghost {
-  position: absolute; inset: 0;
-  color: transparent;
-  -webkit-text-stroke: 0.5px color-mix(in oklab, var(--color-crimson) 45%, transparent);
-  transform: translateY(0.14em) scale(1.012);
-  opacity: 0;
-  transition: opacity 1.4s var(--ease-luxe), transform 1.4s var(--ease-luxe);
-  pointer-events: none;
-}
-.is-in .ghost, .ghost-stack.is-in .ghost { opacity: 0.7; transform: translateY(0.28em) scale(1.03); }
+/* ------------------------------------------------------------------
+   Texture
+   ------------------------------------------------------------------ */
 
-/* ---- Grain ---- */
-.grain::after {
+.u-grain::after {
   content: "";
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.045;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-.link-underline {
+/* ------------------------------------------------------------------
+   Links
+   ------------------------------------------------------------------ */
+
+.u-underline {
   background-image: linear-gradient(currentColor, currentColor);
   background-size: 0% 1px;
   background-repeat: no-repeat;
   background-position: 0 100%;
-  transition: background-size 0.6s var(--ease-luxe);
+  transition: background-size 0.5s var(--ease-out-expo);
 }
-.link-underline:hover { background-size: 100% 1px; }
+.u-underline:hover,
+.u-underline:focus-visible { background-size: 100% 1px; }
+
+/* Reverse: starts underlined, retracts from the right. */
+.u-underline-out {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: 100% 100%;
+  transition: background-size 0.5s var(--ease-out-expo);
+}
+.u-underline-out:hover { background-size: 0% 1px; }
+
+/* ------------------------------------------------------------------
+   Marquee
+   Duplicated track, translated by exactly half its width, so the seam
+   is never visible and the loop needs no JavaScript.
+   ------------------------------------------------------------------ */
+
+@keyframes u-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.u-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: u-marquee var(--marquee-duration, 48s) linear infinite;
+}
+.u-marquee:hover .u-marquee-track { animation-play-state: paused; }
+
+/* ------------------------------------------------------------------
+   Navbar entrance
+   The bar is absent until the scroll tour finishes, then drops in.
+   ------------------------------------------------------------------ */
+
+@keyframes u-nav-drop {
+  from { transform: translate3d(0, -100%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1 !important; transform: none !important; clip-path: none !important; }
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+  .u-marquee-track { animation: none; transform: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

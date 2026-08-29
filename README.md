@@ -1,142 +1,141 @@
-# JECRC University — Build Your World
+# JECRC, Build Your World
 
-The Royal Palace design system and its full animation set, rebuilt for JECRC University:
-JECRC's brand colours, JECRC's content, and a hero you scrub with the scroll wheel.
+One landing page fronting all three JECRC institutions: JECRC University in Jaipur,
+JECRC University's NCR campus in Alwar, and JECRC Foundation.
 
-**Stack:** Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · Lenis · no scroll-animation library
+It opens on a scroll-driven film with no navigation at all. When the film plays out, the
+navbar from [jecrcuniversity.edu.in](https://jecrcuniversity.edu.in/) drops in, rebuilt
+rather than screenshotted: the same red utility strip over a white primary strip, the same
+crest hanging through a notch between them, the same Montserrat at the same weights, the
+same `#DE1819`.
 
-> ### ⚠️ Two things to swap before this ships
-> 1. **The tour footage is a placeholder.** `public/media/tour` currently holds a 30-second
->    stand-in built from royalty-free aerial campus clips. Drop in the real film with one command —
->    see below.
-> 2. **The school-card photographs are stock.** Replace `public/media/school-*.jpg` and
->    `facility-library.jpg` with real JECRC photography. Everything else on the page is dressed
->    from stills of the film itself, so it re-skins automatically when you swap the video.
-
----
-
-## Run it
-
-```bash
+```
 npm install
 npm run dev          # http://localhost:3000
-npm run build && npm run start
+npm run build        # static, four routes
 ```
 
 ---
 
-## Changing the video — one command
+## Structure
 
-```bash
-npm run tour:build -- ./JECRC.mp4
+```
+src/
+  app/               layout, page, globals.css, robots.ts, sitemap.ts, not-found
+  components/
+    layout/          Navbar, Footer, SmoothScroll, Reveal
+    sections/        one file per band of the page, in page order
+    ui/              Section/Eyebrow/SectionHeading, ApplyMenu, Icons
+  lib/
+    content/         every word and URL on the page
+    seo/             the JSON-LD graph
+    hooks/           useTourComplete
+    utils/           cn
+public/
+  brand/             the lockup, and the keyed white version of it
+  media/tour/        922 WebP frames at two widths, plus the poster
+  media/stills/      frames lifted from the film, used to dress the sections
+  llms.txt           the page's facts as plain text, for answer engines
+  _headers           Cloudflare's copy of the cache and security headers
+legacy/              the previous build, frozen. Not compiled. Delete when signed off.
 ```
 
-That single command:
-
-- explodes the film into a numbered frame sequence at two widths (`public/media/tour/…`),
-- pulls eight **stills** out of it into `public/media/stills/` — which is where the Legacy
-  background, the Interlude plate, the Campus Life rows and two of the three Facilities cards
-  get their imagery, so the whole page re-dresses itself from the new film,
-- writes a poster frame,
-- and refreshes `src/lib/tour-manifest.json`, the only thing the tour component reads.
-
-Nothing else in the codebase needs touching.
-
-Useful options:
-
-```bash
-npm run tour:build -- ./JECRC.mp4 --start 0 --end 30 --fps 12       # trim + finer scrub
-npm run tour:build -- ./JECRC.mp4 --widths 1600,900 --quality 62    # production quality
-npm run tour:build -- ./JECRC.mp4 --stills 12                       # more section imagery
-
-#   --fps <n>        frames per second of video      default 10
-#   --start <sec>    trim from                       default 0
-#   --end <sec>      trim to                         default end of file
-#   --widths <list>  output widths, comma separated  default 1600,900
-#   --quality <n>    WebP quality 0-100              default 58
-#   --format <fmt>   webp | jpg                      default webp
-#   --stills <n>     stills for the rest of the page default 8
-#   --max <n>        hard cap on frame count         default 400
-```
-
-**Then retime the captions.** `TOUR_CAPTIONS` in `src/lib/content.ts`; each carries
-`at: [fadeIn, fadeOut]` as fractions of the tour, which are also fractions of the film.
-A beat at 0:07 of a 0:30 cut is `7/30 = 0.23`.
-
-Scroll length is `TOUR_VH` in `src/components/ScrollTour.tsx` (currently `900`).
+**All copy lives in `src/lib/content/`.** Nothing is hardcoded in a component, so a content
+change never means reading JSX. The files are `site`, `universities`, `navigation`,
+`tour`, `programmes`, `outcomes`, `alumni`, `ambassador`, `announcement`, `faq`.
 
 ---
 
-## What's on the page
+## Common edits
 
-Same structure and the same animations as the Royal Palace build, one for one:
+| To change | Edit |
+| --- | --- |
+| Any headline, stat or link | the matching file in `src/lib/content/` |
+| The film's beats and their timing | `content/tour.ts` (fractions of the scroll, 0 to 1) |
+| How long the film takes to scrub | `TOUR_VH` in `sections/ScrollTour.tsx` |
+| The coming-soon banner, or removing it | `content/announcement.ts`, set `live: false` |
+| Colour, type scale, motion | the `@theme` block at the top of `app/globals.css` |
+| The film itself | `npm run tour:build <video>`, see `TOUR.md` |
 
-| Section | Animation |
-|---|---|
-| **Hero — the tour** | The film, scrubbed by scroll. Crest, wordmark and rule-and-tagline lockup fade through it; captions cross-fade at fixed beats; a hairline playhead tracks progress. |
-| **The University** | Parallax still behind an ivory panel; headline wipes up from a clipped baseline with a ghost copy offset behind it; accent line in crimson italic; stats reveal in sequence. |
-| **Interlude** | Full-bleed plate at 13% parallax, two-tone headline. |
-| **Schools** | Sticky showcase — five schools cross-dissolve as you scroll, the active image slowly de-zooms through its segment, index chips and a progress rail track position. |
-| **Campus Life** | Alternating rows; images wipe in left-to-right, headings mask up with ghost text. |
-| **Facilities** | Staggered card reveals, slow image scale on hover. |
-| **Visit** | Hand-drawn SVG map of Jaipur with the campus pinned at Sitapura — no map tiles, no API key — over the address, admissions CTAs and a getting-here table. |
-| **Footer** | Crest, address set in the accent face, link columns, socials, giant ghost monogram. |
+### Adding named alumni
 
-Reveals are rect-based rather than `IntersectionObserver`, so nothing is ever skipped on a
-fast scroll or a deep-link jump. Everything degrades under `prefers-reduced-motion: reduce`.
+`content/alumni.ts` exports `ALUMNI_PROFILES`, currently empty. Fill it and the Alumni
+section grows a card grid; leave it empty and the section shows the network figures alone.
+No component change either way. Named graduates need consent and licensed photographs, so
+nothing is invented there.
 
----
+### Adding the ambassador portrait
 
-## Where things live
+`content/ambassador.ts` has `portrait: undefined`. Point it at a licensed image in
+`public/brand/` and the section swaps the placeholder frame for it. Do not substitute a
+press photograph.
 
-| I want to change… | File |
-|---|---|
-| All copy — nav, stats, schools, captions, footer | `src/lib/content.ts` |
-| Which image is used where | `src/lib/assets.ts` |
-| Brand colours, type, reveal timing | `src/app/globals.css` (`@theme` block) |
-| The tour engine | `src/components/ScrollTour.tsx` |
-| The video → frames pipeline | `scripts/build-tour.mjs` |
-| The crest | `src/components/Crest.tsx` |
-| The illustrated map | `src/components/MapSection.tsx` |
-| Section order | `src/app/page.tsx` |
+### Regenerating the white lockup
 
-### Brand
-
-```
-crimson        #cd201f   JECRC red — the gold of the original
-crimson-soft   #e05a4c   accent italic on dark
-crimson-pale   #f3b3a6   eyebrow labels, links on dark
-brick          #915229   JECRC brown, available as a secondary
-ink            #0b0808   page black
-maroon         #2a0d0c   footer
-maroon-deep    #1a0807   facilities
-paper          #f5f1ea   light sections
-cream          #e8e0d3   map parchment
-sand           #cdbfad   body text on dark
-```
-
-Type: **Cormorant Garamond** (display), **Jost** (uppercase labels). The Royal Palace used
-Pinyon Script for the accent words; here `.script` maps to Cormorant *italic* instead — the
-same two-tone headline device in a register that suits a university. **Pinyon Script is still
-loaded**: to go back to the copperplate, change one line in `src/app/layout.tsx`:
-
-```diff
-- style={{ ["--font-script" as string]: "var(--font-display)" }}
-+ style={{ ["--font-script" as string]: "var(--font-pinyon)" }}
-```
-
-### Where the facts come from
-
-32 acres, 26,000+ students, 11,900+ placements over five years, 10,000+ alumni, 27 years of
-academic legacy, and the eleven schools are from jecrcuniversity.edu.in. "Build Your World" is
-the university's own tagline. The film credit in the footer is per the original post by
-@jecrcuniversity. **Everything else — section copy, tour captions, the campus-life and
-facilities blurbs, the programme lists — is written to fit and needs review before launch.**
-The crest is a placeholder emblem, not JECRC's official logo.
+The published lockup is red artwork on an opaque white plate, which is right on the white
+navbar and wrong over the film. `npm run brand:mono` keys the plate out into
+`public/brand/jecrc-lockup-mono.png`. Re-run it if the brand asset changes.
 
 ---
 
-## How the scroll animation works
+## SEO and GEO
 
-The full write-up, including why it isn't a `<video>` and the measurements behind that
-decision, is in **[TOUR.md](./TOUR.md)**.
+- **Metadata** in `app/layout.tsx`: title template, canonical, Open Graph, Twitter card,
+  `max-image-preview: large`, `en-IN`.
+- **Structured data** in `lib/seo/schema.ts`, built from the same content the page renders,
+  so the two cannot drift. One `@graph` where the organisation, the three campuses, the
+  ambassador, the site, the page and the FAQ all reference each other by `@id`, rather than
+  a pile of unrelated blobs.
+- **`robots.ts` and `sitemap.ts`** are generated, not static files. Answer engines are
+  allowed in deliberately.
+- **`public/llms.txt`** states the same facts in plain text for models that fetch it.
+- **The FAQ answers are written to be quoted.** Every one is self-contained: no
+  back-references, no pronouns that need the previous entry. A model lifting a single entry
+  comes away with a complete, correct sentence.
+
+### Before going live
+
+Set `NEXT_PUBLIC_SITE_URL` to the real origin. It feeds `metadataBase`, the canonical, the
+sitemap, `robots.txt` and every `@id` in the graph. The fallback in `content/site.ts` is a
+placeholder.
+
+---
+
+## Deploying
+
+Nothing on the page is server-rendered per request, so it builds to static output and does
+not care where it lands.
+
+- **Cloudflare Pages or Workers** reads `public/_headers`.
+- **Node-served hosts** read the `headers()` block in `next.config.ts`.
+
+The two files carry the same rules and have to be kept in step. `images.unoptimized` is on
+so `next/image` needs no platform image service: every image already ships at the size it
+is used at.
+
+Tour frames are served `immutable` for a year. A rebuild produces a new commit rather than
+new contents at an old URL, so nothing goes stale, and only a visitor's very first load
+pays for the film.
+
+---
+
+## Known placeholders
+
+1. **The film is placeholder footage.** Real campus film goes through
+   `npm run tour:build`; nothing else changes. The section imagery in `media/stills/` is
+   lifted from whatever film is loaded, so it restyles with it.
+2. **No named alumni and no ambassador portrait**, for the reasons above.
+3. **Social links** in `content/site.ts` are the group's canonical handles. Confirm each
+   against the client's live accounts before launch.
+4. **The JECRC Foundation street address** in `lib/seo/schema.ts` is the published campus
+   address; have the client confirm the postcode.
+
+---
+
+## Notes
+
+- `TOUR.md` is the full write-up of the scroll film: why it is an image sequence on a
+  canvas rather than a scrubbed `<video>`, with the frame-timing measurements behind that.
+- `legacy/` is the previous build, kept for reference. It is excluded from `tsconfig.json`,
+  `eslint.config.mjs` and the route tree, so it costs nothing. Delete it once this build is
+  signed off.
