@@ -9,10 +9,9 @@ type Tone = "chrome" | "solid" | "ghost";
 
 const TRIGGER: Record<Tone, string> = {
   // The outlined pill from the live navbar.
-  chrome:
-    "border border-crimson text-crimson hover:bg-crimson hover:text-white",
-  solid: "bg-crimson text-white hover:bg-crimson-lit",
-  ghost: "border border-white/25 text-paper hover:border-white/60 hover:bg-white/5",
+  chrome: "border-crimson text-crimson hover:bg-crimson hover:text-paper",
+  solid: "border-crimson bg-crimson text-paper hover:bg-crimson-deep",
+  ghost: "border-ink/20 text-ink hover:border-ink hover:bg-ink hover:text-paper",
 };
 
 /**
@@ -62,13 +61,12 @@ export default function ApplyMenu({
         aria-expanded={open}
         aria-controls={menuId}
         aria-haspopup="menu"
-        className={cn(
-          "u-label inline-flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 transition-colors duration-300 md:px-6",
-          TRIGGER[tone]
-        )}
+        className={cn("u-pill whitespace-nowrap px-5 py-2.5 md:px-6", TRIGGER[tone])}
       >
         {label}
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-300", open && "rotate-180")} />
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 transition-transform duration-300", open && "rotate-180")}
+        />
       </button>
 
       <div
@@ -76,7 +74,7 @@ export default function ApplyMenu({
         role="menu"
         aria-label="Choose a campus to apply to"
         className={cn(
-          "absolute top-[calc(100%+0.6rem)] z-10 w-[min(88vw,20rem)] origin-top overflow-hidden rounded-xl border border-line bg-void/95 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.85)] backdrop-blur-xl transition duration-300 ease-out-expo",
+          "absolute top-[calc(100%+0.6rem)] z-10 w-[min(88vw,21rem)] origin-top overflow-hidden rounded-lg border border-rule bg-paper shadow-[0_24px_60px_-24px_rgba(0,0,0,0.28)] transition duration-300 ease-out-expo",
           align === "right" && "right-0",
           align === "left" && "left-0",
           align === "center" && "left-1/2 -translate-x-1/2",
@@ -92,13 +90,15 @@ export default function ApplyMenu({
             rel="noopener noreferrer"
             tabIndex={open ? 0 : -1}
             onClick={() => setOpen(false)}
-            className="group flex items-center justify-between gap-4 border-b border-line px-5 py-4 text-left transition-colors duration-300 last:border-b-0 hover:bg-crimson/10"
+            className="group flex items-center justify-between gap-4 border-b border-rule px-5 py-4 text-left transition-colors duration-300 last:border-b-0 hover:bg-bone"
           >
             <span>
-              <span className="u-label block text-crimson">{link.label}</span>
-              <span className="mt-1 block text-[13px] leading-snug text-mist">{link.name}</span>
+              <span className="u-eyebrow block text-crimson">{link.label}</span>
+              <span className="mt-1.5 block text-[14px] font-medium leading-snug text-ink">
+                {link.name}
+              </span>
             </span>
-            <ArrowUpRight className="h-4 w-4 text-dim transition-colors duration-300 group-hover:text-paper" />
+            <ArrowUpRight className="h-4 w-4 text-quiet transition-colors duration-300 group-hover:text-ink" />
           </a>
         ))}
       </div>

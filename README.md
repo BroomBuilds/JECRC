@@ -6,8 +6,13 @@ JECRC University's NCR campus in Alwar, and JECRC Foundation.
 It opens on a scroll-driven film with no navigation at all. When the film plays out, the
 navbar from [jecrcuniversity.edu.in](https://jecrcuniversity.edu.in/) drops in, rebuilt
 rather than screenshotted: the same red utility strip over a white primary strip, the same
-crest hanging through a notch between them, the same Montserrat at the same weights, the
-same `#DE1819`.
+crest hanging through a notch between them, the same `#DE1819`.
+
+The rest of the page is light: paper ground, black type, red as the single accent, with
+two bands inverted to true black. Three sections are rebuilds of
+[arts.vcu.edu](https://arts.vcu.edu/), measured off the live page rather than eyeballed:
+the scratch-reveal band, the schools list and the footer. Each carries a comment saying
+what was measured and why it is built that way.
 
 ```
 npm install
@@ -42,7 +47,7 @@ legacy/              the previous build, frozen. Not compiled. Delete when signe
 
 **All copy lives in `src/lib/content/`.** Nothing is hardcoded in a component, so a content
 change never means reading JSX. The files are `site`, `universities`, `navigation`,
-`tour`, `programmes`, `outcomes`, `alumni`, `ambassador`, `announcement`, `faq`.
+`tour`, `schools`, `outcomes`, `alumni`, `ambassador`, `announcement`, `faq`.
 
 ---
 
@@ -51,11 +56,45 @@ change never means reading JSX. The files are `site`, `universities`, `navigatio
 | To change | Edit |
 | --- | --- |
 | Any headline, stat or link | the matching file in `src/lib/content/` |
+| The schools list and its photographs | `content/schools.ts` |
 | The film's beats and their timing | `content/tour.ts` (fractions of the scroll, 0 to 1) |
 | How long the film takes to scrub | `TOUR_VH` in `sections/ScrollTour.tsx` |
 | The coming-soon banner, or removing it | `content/announcement.ts`, set `live: false` |
+| The scratch band's collage | `SCRATCH_IMAGES` in `app/page.tsx` |
+| The scratch brush | `HEAL`, `CORE`, `SATELLITES`, `SPREAD` in `sections/ScratchReveal.tsx` |
 | Colour, type scale, motion | the `@theme` block at the top of `app/globals.css` |
 | The film itself | `npm run tour:build <video>`, see `TOUR.md` |
+
+## Type
+
+Two faces, in fixed roles. **Archivo** is the grotesque and carries every piece of
+interface: navigation, eyebrows, buttons, the schools list, every figure. **Newsreader** is
+the editorial voice and carries headlines and long statements. The headline is always the
+serif and the lead is always the grotesque, never the reverse; keeping the two in fixed
+roles is most of what makes a pairing read as deliberate.
+
+They stand in for the commercial pair on arts.vcu.edu, Aktiv Grotesk and Mercury. Both are
+variable Google fonts, so the weight range costs one file each.
+
+## The three rebuilt sections
+
+**Scratch band** (`sections/ScratchReveal.tsx`). A collage sits at the bottom of the stack.
+Over it lies a canvas whose CSS background is white and whose blend mode is `screen`.
+Screen against white is white, so the band reads as blank paper; paint black into the
+canvas and screen against black is the backdrop, so the collage shows through wherever the
+brush has been. No masks, no clip paths, no second copy of the images. The brush is a core
+disc of about 52px with a dozen satellites strung out vertically, which is what gives the
+revealed shapes ragged top and bottom edges and clean horizontal sweeps.
+
+**Schools list** (`sections/Majors.tsx`). Black band. Rows sit at opacity 0.2 and come to 1
+when active; each row owns a portrait figure pinned to its right that fades in while the
+image inside it slides 100px. Clicking opens the row as an accordion and drops the figure
+to 0.2. The dimming is gated on `(hover: hover)` in CSS, so a touch device shows every row
+at full strength rather than a list that looks disabled.
+
+**Footer** (`layout/Footer.tsx`). Five bands in one black block: identity and social marks,
+three full-width pills, four link columns with the first set noticeably heavier, the
+statutory paragraph, then the ribbon.
 
 ### Adding named alumni
 

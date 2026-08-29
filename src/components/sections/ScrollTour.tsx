@@ -337,7 +337,7 @@ export default function ScrollTour({ captions = [] }: Props) {
               )}
 
               {c.eyebrow && (
-                <span className="u-label mb-5 inline-flex items-center gap-3 text-ember">
+                <span className="u-eyebrow mb-5 inline-flex items-center gap-3 text-crimson-lit">
                   <span aria-hidden className="h-px w-8 bg-crimson" />
                   {c.eyebrow}
                 </span>
@@ -347,8 +347,8 @@ export default function ScrollTour({ captions = [] }: Props) {
                 aria-hidden={c.variant === "hero"}
                 className={
                   c.variant === "hero"
-                    ? "u-display text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
-                    : "u-display max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
+                    ? "u-serif text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
+                    : "u-serif max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
                 }
               >
                 {c.variant === "hero" ? BRAND.tagline : c.title}
@@ -370,7 +370,7 @@ export default function ScrollTour({ captions = [] }: Props) {
                       rel="noopener noreferrer"
                       className="group inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-6 py-3.5 backdrop-blur-md transition-colors duration-300 hover:border-crimson hover:bg-crimson"
                     >
-                      <span className="u-label whitespace-nowrap text-paper">Apply · {link.label}</span>
+                      <span className="u-eyebrow whitespace-nowrap text-paper">Apply · {link.label}</span>
                       <ArrowUpRight className="h-4 w-4 text-paper/70 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                     </a>
                   ))}
@@ -386,7 +386,7 @@ export default function ScrollTour({ captions = [] }: Props) {
           aria-hidden
           className="pointer-events-none absolute bottom-12 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3 transition-opacity duration-500"
         >
-          <span className="u-label text-white/50">Scroll</span>
+          <span className="u-eyebrow text-white/50">Scroll</span>
           <span className="block h-10 w-px bg-linear-to-b from-white/50 to-transparent" />
         </div>
 
@@ -398,7 +398,7 @@ export default function ScrollTour({ captions = [] }: Props) {
           role="status"
           aria-live="polite"
         >
-          <span className="u-label text-white/45">Loading the tour, {pct}%</span>
+          <span className="u-eyebrow text-white/45">Loading the tour, {pct}%</span>
         </div>
 
         {/* Playhead. */}

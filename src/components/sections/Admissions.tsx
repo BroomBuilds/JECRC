@@ -31,14 +31,8 @@ const STEPS = [
  */
 export default function Admissions() {
   return (
-    <Section id="admissions" tone="surface" className="u-grain overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-40 -top-32 h-[36rem] w-[36rem] rounded-full opacity-20 blur-[130px]"
-        style={{ background: "radial-gradient(circle, var(--color-crimson) 0%, transparent 70%)" }}
-      />
-
-      <div className="relative grid gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-24">
+    <Section id="admissions" tone="paper">
+      <div className="grid gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:gap-24">
         <div>
           <div data-reveal>
             <Eyebrow>Admissions 2026 to 2027</Eyebrow>
@@ -46,17 +40,16 @@ export default function Admissions() {
 
           <h2
             data-reveal
-            style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
-            className="u-display mt-6 max-w-[14ch] pb-[0.1em] text-[2.5rem] leading-[1.02] text-paper sm:text-[3.25rem] lg:text-[4.25rem]"
+            style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
+            className="u-serif mt-6 max-w-[13ch] text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
           >
-            Applications are{" "}
-            <span className="u-display-italic text-crimson">open</span>
+            Applications are <span className="u-serif-italic text-crimson">open</span>
           </h2>
 
           <p
             data-reveal
-            style={{ "--reveal-delay": "150ms" } as React.CSSProperties}
-            className="mt-7 max-w-[50ch] text-[15px] leading-[1.85] text-mist md:text-base"
+            style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
+            className="mt-8 max-w-[50ch] text-[16px] leading-[1.7] text-graphite md:text-[17px]"
           >
             Undergraduate, postgraduate, lateral entry and doctoral programmes across all three
             institutions. Scholarships are assessed on merit at the point of application, so there
@@ -65,33 +58,33 @@ export default function Admissions() {
 
           <ol
             data-reveal
-            style={{ "--reveal-delay": "210ms" } as React.CSSProperties}
+            style={{ "--reveal-delay": "200ms" } as React.CSSProperties}
             className="mt-12 grid gap-8 sm:grid-cols-3"
           >
             {STEPS.map((s) => (
               <li key={s.n}>
                 <span className="u-figure text-[1.25rem] text-crimson">{s.n}</span>
-                <h3 className="mt-3 text-[15px] font-semibold text-paper">{s.title}</h3>
-                <p className="mt-2 text-[13px] leading-[1.75] text-mist">{s.body}</p>
+                <h3 className="mt-3 text-[16px] font-bold tracking-tight text-ink">{s.title}</h3>
+                <p className="mt-2 text-[14px] leading-[1.7] text-graphite">{s.body}</p>
               </li>
             ))}
           </ol>
 
           <div
             data-reveal
-            style={{ "--reveal-delay": "270ms" } as React.CSSProperties}
-            className="mt-12 flex flex-col gap-2 border-t border-line pt-8 text-[14px] text-mist sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8"
+            style={{ "--reveal-delay": "260ms" } as React.CSSProperties}
+            className="mt-12 flex flex-col gap-2 border-t border-rule pt-8 text-[15px] text-graphite sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8"
           >
-            <a href={CONTACT.admissionsPhoneHref} className="u-underline text-paper">
+            <a href={CONTACT.admissionsPhoneHref} className="u-underline font-semibold text-ink">
               {CONTACT.admissionsPhone}
             </a>
-            <a href={CONTACT.altPhoneHref} className="u-underline text-paper">
+            <a href={CONTACT.altPhoneHref} className="u-underline font-semibold text-ink">
               {CONTACT.altPhone}
             </a>
-            <a href={CONTACT.emailHref} className="u-underline text-paper">
+            <a href={CONTACT.emailHref} className="u-underline font-semibold text-ink">
               {CONTACT.email}
             </a>
-            <span className="text-dim">{CONTACT.note}</span>
+            <span className="text-quiet">{CONTACT.note}</span>
           </div>
         </div>
 
@@ -101,23 +94,23 @@ export default function Admissions() {
             <li
               key={link.id}
               data-reveal
-              style={{ "--reveal-delay": `${120 + i * 100}ms` } as React.CSSProperties}
+              style={{ "--reveal-delay": `${110 + i * 90}ms` } as React.CSSProperties}
             >
               <a
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center justify-between gap-6 rounded-2xl border border-line bg-void p-7 transition-colors duration-500 hover:border-crimson hover:bg-crimson md:p-8"
+                className="group flex items-center justify-between gap-6 rounded-lg border border-rule bg-paper p-7 transition-colors duration-500 hover:border-ink hover:bg-ink md:p-8"
               >
                 <span>
-                  <span className="u-label text-crimson transition-colors duration-500 group-hover:text-white/80">
+                  <span className="u-eyebrow block text-crimson transition-colors duration-500 group-hover:text-white/70">
                     Apply · {link.label}
                   </span>
-                  <span className="u-display mt-3 block text-[1.4rem] leading-tight text-paper md:text-[1.7rem]">
+                  <span className="u-grotesk mt-3 block text-[1.4rem] text-ink transition-colors duration-500 group-hover:text-paper md:text-[1.65rem]">
                     {link.name}
                   </span>
                 </span>
-                <ArrowUpRight className="h-6 w-6 shrink-0 text-dim transition-[color,transform] duration-500 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-white" />
+                <ArrowUpRight className="h-6 w-6 shrink-0 text-quiet transition-[color,transform] duration-500 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-paper" />
               </a>
             </li>
           ))}

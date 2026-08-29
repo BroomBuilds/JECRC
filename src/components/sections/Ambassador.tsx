@@ -6,29 +6,22 @@ import { ArrowUpRight, PlayMark } from "@/components/ui/Icons";
 /**
  * Brand ambassador.
  *
- * Full-bleed and darker than its neighbours so it lands as a moment rather than
- * another card. The portrait slot degrades to a branded frame when no licensed
- * image is set, which keeps the section shippable before the shoot assets
- * arrive instead of leaving a hole in the page.
+ * The one warm band on the page: a bone ground rather than paper, so it reads
+ * as a moment without needing a border or a card. The portrait slot degrades to
+ * a branded frame when no licensed image is set, which keeps the section
+ * shippable before the shoot assets arrive instead of leaving a hole.
  */
 export default function Ambassador() {
   return (
     <section
       id="ambassador"
       style={{ scrollMarginTop: "6.5rem" }}
-      className="u-grain relative overflow-hidden bg-ink py-24 md:py-32 lg:py-40"
+      className="relative overflow-hidden bg-bone py-20 md:py-28 lg:py-36"
     >
-      {/* A single warm light, off to one side. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-1/4 top-1/2 h-[42rem] w-[42rem] -translate-y-1/2 rounded-full opacity-[0.16] blur-[120px]"
-        style={{ background: "radial-gradient(circle, var(--color-crimson) 0%, transparent 68%)" }}
-      />
-
-      <div className="u-shell relative grid items-center gap-14 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] lg:gap-20">
+      <div className="u-shell grid items-center gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-20">
         {/* ---- portrait ---- */}
-        <figure data-reveal="mask" className="relative order-1 lg:order-none">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-line bg-surface">
+        <figure data-reveal="mask" className="relative">
+          <div className="relative aspect-4/5 w-full overflow-hidden bg-linen">
             {AMBASSADOR.portrait ? (
               <Image
                 src={AMBASSADOR.portrait}
@@ -38,19 +31,18 @@ export default function Ambassador() {
                 className="object-cover"
               />
             ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-6 px-8 text-center">
-                <span className="u-display text-[5.5rem] leading-none text-crimson/25">VM</span>
-                <p className="u-label text-dim">Campaign portrait to follow</p>
+              <div className="flex h-full flex-col items-center justify-center gap-5 px-8 text-center">
+                <span className="u-grotesk-black text-[5.5rem] leading-none text-crimson/20">
+                  VM
+                </span>
+                <p className="u-eyebrow text-quiet">Campaign portrait to follow</p>
               </div>
             )}
-
-            {/* Name plate, over the bottom edge of whichever of the two is
-                showing. */}
-            <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-ink via-ink/85 to-transparent p-6 pt-16">
-              <p className="u-display text-[1.6rem] leading-none text-paper">{AMBASSADOR.name}</p>
-              <p className="mt-2 text-[12.5px] text-mist">{AMBASSADOR.role}</p>
-            </figcaption>
           </div>
+          <figcaption className="mt-5 flex items-baseline justify-between gap-4 border-t border-rule pt-4">
+            <span className="u-grotesk text-[1.15rem] text-ink">{AMBASSADOR.name}</span>
+            <span className="text-[13px] text-quiet">{AMBASSADOR.role}</span>
+          </figcaption>
         </figure>
 
         {/* ---- copy ---- */}
@@ -61,58 +53,60 @@ export default function Ambassador() {
 
           <h2
             data-reveal
-            style={{ "--reveal-delay": "80ms" } as React.CSSProperties}
-            className="u-display mt-6 pb-[0.1em] text-[2.5rem] leading-[1.02] text-paper sm:text-[3.25rem] lg:text-[4.25rem]"
+            style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
+            className="u-serif mt-6 text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
           >
             {AMBASSADOR.name}
-            <span className="mt-2 block u-display-italic text-crimson">is the face of JECRC</span>
+            <span className="u-serif-italic mt-1 block text-crimson">is the face of JECRC</span>
           </h2>
 
           <p
             data-reveal
-            style={{ "--reveal-delay": "160ms" } as React.CSSProperties}
-            className="mt-8 max-w-[52ch] text-[15px] leading-[1.9] text-mist md:text-base"
+            style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
+            className="mt-8 max-w-[52ch] text-[16px] leading-[1.75] text-graphite md:text-[17px]"
           >
             {AMBASSADOR.body}
           </p>
 
           <blockquote
             data-reveal
-            style={{ "--reveal-delay": "220ms" } as React.CSSProperties}
+            style={{ "--reveal-delay": "200ms" } as React.CSSProperties}
             className="mt-10 border-l-2 border-crimson pl-6"
           >
-            <p className="u-display-italic text-[1.6rem] leading-[1.35] text-paper md:text-[2rem]">
+            <p className="u-serif-italic text-[1.75rem] leading-[1.3] text-ink md:text-[2.15rem]">
               {AMBASSADOR.quote}
             </p>
-            <cite className="u-label mt-4 block not-italic text-dim">{AMBASSADOR.quoteBy}</cite>
+            <cite className="u-eyebrow mt-4 block not-italic text-quiet">{AMBASSADOR.quoteBy}</cite>
           </blockquote>
 
           <dl
             data-reveal
-            style={{ "--reveal-delay": "280ms" } as React.CSSProperties}
-            className="mt-12 grid gap-6 border-t border-line pt-8 sm:grid-cols-3"
+            style={{ "--reveal-delay": "260ms" } as React.CSSProperties}
+            className="mt-12 grid gap-6 border-t border-rule pt-8 sm:grid-cols-3"
           >
             {AMBASSADOR.notes.map((n) => (
               <div key={n.label}>
-                <dt className="u-label text-dim">{n.label}</dt>
-                <dd className="mt-2 text-[14px] leading-snug text-paper">{n.value}</dd>
+                <dt className="u-eyebrow text-quiet">{n.label}</dt>
+                <dd className="mt-2 text-[15px] font-medium leading-snug text-ink">{n.value}</dd>
               </div>
             ))}
           </dl>
 
           <a
             data-reveal
-            style={{ "--reveal-delay": "340ms" } as React.CSSProperties}
+            style={{ "--reveal-delay": "320ms" } as React.CSSProperties}
             href={AMBASSADOR.watchHref}
             target="_blank"
             rel="noopener noreferrer"
             className="group mt-10 inline-flex items-center gap-4"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-crimson text-crimson transition-colors duration-400 group-hover:bg-crimson group-hover:text-white">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-crimson text-crimson transition-colors duration-400 group-hover:bg-crimson group-hover:text-paper">
               <PlayMark className="ml-0.5 h-4 w-4" />
             </span>
-            <span className="u-label text-paper">{AMBASSADOR.watchLabel}</span>
-            <ArrowUpRight className="h-4 w-4 text-dim transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            <span className="text-[15px] font-bold tracking-tight text-ink">
+              {AMBASSADOR.watchLabel}
+            </span>
+            <ArrowUpRight className="h-4 w-4 text-quiet transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </a>
         </div>
       </div>
