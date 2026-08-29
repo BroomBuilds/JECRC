@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * build-tour.mjs — turn any video into the scroll-driven tour.
+ * build-tour.mjs: turn any video into the scroll-driven tour.
  *
  *   node scripts/build-tour.mjs <video> [options]
  *
@@ -52,7 +52,7 @@ if (!existsSync(input)) {
   process.exit(1);
 }
 try { execSync("ffmpeg -version", { stdio: "ignore" }); }
-catch { console.error("✗ ffmpeg not found on PATH — install it and try again."); process.exit(1); }
+catch { console.error("✗ ffmpeg not found on PATH. Install it and try again."); process.exit(1); }
 
 const probe = (stream) =>
   execFileSync("ffprobe", ["-v","error","-select_streams","v:0","-show_entries",stream,"-of","csv=p=0",input])
@@ -140,7 +140,7 @@ mkdirSync(resolve("src/lib"), { recursive: true });
 writeFileSync(resolve("src/lib/tour-manifest.json"), JSON.stringify(manifest, null, 2));
 
 const total = sizes.reduce((n, s) => n + s.bytes, 0);
-console.log(`\n✓ ${count} frames × ${sizes.length} sizes — ${(total / 1048576).toFixed(1)} MB total`);
+console.log(`\n✓ ${count} frames × ${sizes.length} sizes, ${(total / 1048576).toFixed(1)} MB total`);
 console.log(`✓ manifest written to ${join(outDir, "manifest.json")}`);
 console.log(`\n  Scroll length is set by TOUR_VH in src/components/ScrollTour.tsx.`);
 console.log(`  ${count} frames over the current 900vh ≈ one new frame every ${Math.round(900 * 8 / count)}px of scroll.`);
