@@ -44,7 +44,7 @@ export default function Majors() {
       id="schools"
       data-cursor-invert
       style={{ scrollMarginTop: "6.5rem" }}
-      className="relative overflow-hidden bg-obsidian py-20 text-paper md:py-24"
+      className="relative overflow-hidden bg-obsidian py-16 text-paper md:py-24"
     >
       <div className="u-shell">
         <div className="mx-auto max-w-[46ch] text-center">
@@ -87,7 +87,7 @@ export default function Majors() {
                         on this list, but repeating it under every row turned
                         the list into a wall of small red type. It reappears in
                         the open panel, where there is room to read it. */}
-                    <span className="u-grotesk block min-w-0 max-w-[16ch] text-[7.5vw] leading-[1.05] sm:text-[4.6vw] lg:max-w-none lg:text-[clamp(1.9rem,2.9vw,2.85rem)]">
+                    <span className="u-grotesk block min-w-0 max-w-[16ch] text-[6.4vw] leading-[1.08] sm:text-[4.2vw] lg:max-w-none lg:text-[clamp(1.9rem,2.9vw,2.85rem)]">
                       {p.name}
                     </span>
 

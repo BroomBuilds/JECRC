@@ -27,15 +27,23 @@ import { ArrowRight } from "@/components/ui/Icons";
  *   - It does not scratch itself. There is no idle path wandering across the
  *     band. The visitor is the one holding the coin.
  *
- * On a touchscreen none of that is available. A finger dragged across the band
- * scrolls the page, and taking that away with `touch-action: none` would trap
- * the visitor inside a decorative section. So a coarse pointer gets the honest
- * equivalent instead: the sheet opens on scroll, from the top down, as the band
- * travels through the viewport. Same reveal, driven by the only gesture a phone
- * actually has here.
+ * ---- and on a phone ----
  *
- * On a fine pointer it keeps score. A coarse occupancy grid records which cells
- * the brush has touched, and once enough of the band is open the rest goes.
+ * A finger dragged across the band scrolls the page, and taking that away with
+ * `touch-action: none` would trap the visitor inside a decorative section. So a
+ * coarse pointer gets the honest equivalent: the band PINS, exactly the way the
+ * film above it pins, and the sheet lifts as you scrub.
+ *
+ * That pin is the whole point. An earlier pass drove the reveal off the band's
+ * ordinary travel through the viewport, which meant it was already most of the
+ * way open by the time it was centred and readable: the visitor arrived after
+ * the event and the interaction read as broken. Pinned, the reveal happens
+ * while they are looking at it, it runs both ways under the thumb, and it is
+ * the same gesture and the same grammar as the tour.
+ *
+ * On a fine pointer it keeps score instead. A coarse occupancy grid records
+ * which cells the brush has touched, and once enough of the band is open the
+ * rest goes.
  *
  * How that last move happens matters. Fading the canvas out looks like the
  * obvious answer and is wrong: the canvas is `screen` blended over white, so
@@ -65,6 +73,16 @@ const THRESHOLD = 0.42;
  */
 const FLOOD = 0.055;
 
+/**
+ * Fraction of the pin spent opening the sheet, on a phone. The remainder is
+ * the beat where the collage is simply there to be looked at before the band
+ * lets go: a reveal that finishes on the last pixel of its own pin is a reveal
+ * nobody sees finished.
+ */
+const SWEEP = 0.95;
+/** Depth of the soft edge on the travelling tear, as a fraction of the stage. */
+const TEAR = 0.12;
+
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 
 type Sat = { offset: number; radius: number; phase: number };
@@ -84,19 +102,35 @@ const makeSatellites = (): Sat[] =>
 
 export default function ScratchReveal({ images }: { images: string[] }) {
   const section = useRef<HTMLElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [cleared, setCleared] = useState(false);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const sec = section.current;
+    const st = stage.current;
     const cv = canvas.current;
-    if (!sec || !cv) return;
+    if (!sec || !st || !cv) return;
 
     const ctx = cv.getContext("2d");
     if (!ctx) return;
 
     const coarse = window.matchMedia("(pointer: coarse)").matches;
+
+    /** Match the bitmap to the stage box. Returns the CSS-pixel size. */
+    const fit = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = st.clientWidth;
+      const h = st.clientHeight;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+        cv.width = Math.round(w * dpr);
+        cv.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { w, h, resized: true };
+      }
+      return { w, h, resized: false };
+    };
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       // Nothing to scratch: hand over the picture and skip the apparatus. The
@@ -104,13 +138,9 @@ export default function ScratchReveal({ images }: { images: string[] }) {
       // it either way. Deferred a frame so this is not a synchronous setState
       // in an effect body, which would cascade a render on every mount.
       const paint = () => {
-        const r = sec.getBoundingClientRect();
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        cv.width = Math.round(r.width * dpr);
-        cv.height = Math.round(r.height * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const { w, h } = fit();
         ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, r.width, r.height);
+        ctx.fillRect(0, 0, w, h);
       };
       const frame = requestAnimationFrame(() => {
         paint();
@@ -125,34 +155,49 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     }
 
     if (coarse) {
-      // Scroll-driven. The band opens top down as it crosses the viewport, and
-      // holds whatever it has opened: a reveal that closed again on the way
-      // back up would undo itself every time the visitor scrolled past.
-      let opened = 0;
+      // ---- pinned, scrubbed ------------------------------------------------
+      // Progress is the stage's travel inside its own container, which is the
+      // section's padding-bottom and nothing else. Measuring it that way keeps
+      // it independent of `innerHeight`, so a URL bar sliding away cannot move
+      // the reveal the way it used to move the film.
       let frame = 0;
 
       const paint = () => {
         frame = 0;
         const r = sec.getBoundingClientRect();
-        const vh = window.innerHeight;
-        const span = r.height + vh;
-        const p = clamp01((vh - r.top) / span);
-        // Fully open by the time the band is halfway through, so the collage
-        // is there to be looked at rather than still arriving as it leaves.
-        const want = clamp01(p / 0.55);
-        if (want <= opened) return;
-        opened = want;
-
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const w = r.width;
-        const h = r.height;
-        if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
-          cv.width = Math.round(w * dpr);
-          cv.height = Math.round(h * dpr);
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const { w, h } = fit();
+        const travel = r.height - h;
+        ctx.clearRect(0, 0, w, h);
+        if (travel <= 0) {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, w, h);
+          return;
         }
+        const open = clamp01(clamp01(-r.top / travel) / SWEEP);
+        if (open <= 0) return;
+
+        // The tear runs past the bottom edge so the last of the sheet leaves
+        // the screen instead of dissolving in place.
+        const edge = h * TEAR;
+        const y = open * (h + edge);
+        const solid = Math.max(0, y - edge);
+
         ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, w, h * opened);
+        if (solid > 0) ctx.fillRect(0, 0, w, solid);
+
+        // Soft trailing edge. Semi-transparent black over the canvas's own
+        // white background is grey, and screen against grey lifts the collage
+        // rather than cutting to it, so the sheet tears rather than wipes.
+        if (y > solid) {
+          const g = ctx.createLinearGradient(0, solid, 0, y);
+          g.addColorStop(0, "rgba(0,0,0,1)");
+          g.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, solid, w, y - solid);
+        }
+        // No setState here on purpose. This runs on every scrolled frame, and
+        // the only thing `progress` drives is the fine-pointer prompt, which
+        // is not rendered on a coarse one.
       };
 
       const onScroll = () => {
@@ -161,10 +206,15 @@ export default function ScratchReveal({ images }: { images: string[] }) {
       paint();
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onScroll);
+      window.visualViewport?.addEventListener("resize", onScroll);
+      const ro = new ResizeObserver(onScroll);
+      ro.observe(st);
       return () => {
         cancelAnimationFrame(frame);
+        ro.disconnect();
         window.removeEventListener("scroll", onScroll);
         window.removeEventListener("resize", onScroll);
+        window.visualViewport?.removeEventListener("resize", onScroll);
       };
     }
 
@@ -177,13 +227,10 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     let height = 0;
 
     const resize = () => {
-      const r = sec.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = r.width;
-      height = r.height;
-      cv.width = Math.round(width * dpr);
-      cv.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const { w, h, resized } = fit();
+      width = w;
+      height = h;
+      if (!resized) return;
       // A resize clears the bitmap. Once the flood has run the answer is the
       // whole sheet; before that, replay the opened cells rather than losing
       // the visitor's work.
@@ -205,7 +252,7 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     resize();
 
     const ro = new ResizeObserver(resize);
-    ro.observe(sec);
+    ro.observe(st);
 
     /** Paint one brush stamp and record the cells it covers. */
     const stamp = (x: number, y: number, phase: number) => {
@@ -250,7 +297,7 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     let dirty = false;
 
     const onPointer = (e: PointerEvent) => {
-      const r = sec.getBoundingClientRect();
+      const r = st.getBoundingClientRect();
       px = e.clientX - r.left;
       py = e.clientY - r.top;
       if (!have) {
@@ -260,10 +307,13 @@ export default function ScratchReveal({ images }: { images: string[] }) {
       }
       dirty = true;
     };
+    const onLeave = () => {
+      have = false;
+    };
 
-    sec.addEventListener("pointermove", onPointer, { passive: true });
-    sec.addEventListener("pointerdown", onPointer, { passive: true });
-    sec.addEventListener("pointerleave", () => { have = false; }, { passive: true });
+    st.addEventListener("pointermove", onPointer, { passive: true });
+    st.addEventListener("pointerdown", onPointer, { passive: true });
+    st.addEventListener("pointerleave", onLeave, { passive: true });
 
     let raf = 0;
     let running = false;
@@ -331,126 +381,163 @@ export default function ScratchReveal({ images }: { images: string[] }) {
       },
       { rootMargin: "120px 0px" }
     );
-    io.observe(sec);
+    io.observe(st);
 
     return () => {
       running = false;
       cancelAnimationFrame(raf);
       io.disconnect();
       ro.disconnect();
-      sec.removeEventListener("pointermove", onPointer);
-      sec.removeEventListener("pointerdown", onPointer);
+      st.removeEventListener("pointermove", onPointer);
+      st.removeEventListener("pointerdown", onPointer);
+      st.removeEventListener("pointerleave", onLeave);
     };
   }, []);
 
   return (
+    /* The spacer below the stage IS the pin: the stage sticks to the top and
+       the section keeps travelling for another 85vh underneath it, which is
+       the scroll the sheet is scrubbed against. On a fine pointer the spacer
+       is not rendered, the stage has nowhere to travel, and the coin does the
+       work instead.
+
+       It has to be a real box and not padding on the section. A sticky
+       element is constrained to its containing block, which is the CONTENT
+       box of the nearest block-container ancestor: padding-bottom sits
+       outside it, so `pb-[85vh]` here made the section taller and gave the
+       pin exactly zero travel. */
     <section
       ref={section}
       id="build"
       style={{ scrollMarginTop: "6.5rem" }}
-      className="relative isolate overflow-hidden bg-paper"
+      className="relative bg-paper"
     >
-      {/* ---- the collage, bottom of the stack ---- */}
-      <div aria-hidden className="absolute inset-0 grid grid-cols-2 md:grid-cols-4">
-        {images.map((src, i) => (
-          <div key={src + i} className="relative">
-            <Image
-              src={src}
-              alt=""
-              fill
-              sizes="(min-width: 768px) 25vw, 50vw"
-              className="object-cover"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* ---- the paper, and the brush that takes it away ----
-          Screen against the white background is white, so this reads as blank
-          until something paints black into it. Its opacity is never animated,
-          for the reason in the note at the top of this file. */}
-      <canvas
-        ref={canvas}
-        aria-hidden
-        className="absolute inset-0 h-full w-full bg-paper"
-        style={{ mixBlendMode: "screen" }}
-      />
-
-      {/* ---- type protection ----
-          Once the sheet is gone the copy is sitting on photographs. A paper
-          wash across the reading column, fading out before the halfway mark,
-          keeps black type legible without desaturating the reveal itself,
-          which is the whole payoff. */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-full bg-linear-to-r from-paper via-paper/85 to-transparent md:w-[62%] lg:w-[52%]"
-      />
-
-      {/* ---- content ---- */}
-      <div className="relative z-10 u-shell py-24 md:py-32 lg:py-40">
-        {/* The name, set the way the lockup sets it: the word over a
-            letterspaced second line at roughly the same width. An earlier pass
-            had a lowercase "jecrc" in the grotesk, which read as a fashion
-            logotype rather than the university's own mark.
-
-            Two spans in one paragraph with the accessible name spelled out, so
-            it is announced as "JECRC University" and not as two fragments. */}
-        <p
-          aria-label="JECRC University"
-          className="select-none text-crimson"
-        >
-          {/* The second line is 0.4706 of the first, the cap-height ratio
-              measured off the lockup. The J descends in this face, so the two
-              lines are not closed up as tightly as a grotesk would allow. */}
-          <span aria-hidden className="u-wordmark block text-[19vw] leading-[0.92] lg:text-[13vw]">
-            JECRC
-          </span>
-          <span
-            aria-hidden
-            className="u-wordmark-sub block text-[8.9vw] leading-[1.05] lg:text-[6.1vw]"
-          >
-            UNIVERSITY
-          </span>
-        </p>
-
-        <p className="u-display mt-6 max-w-[22ch] text-[9vw] leading-[1.06] text-ink sm:text-[6.5vw] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
-          Twenty-six years of building people who build things. Find the campus, the school and
-          the year that fits.
-        </p>
-
-        <div className="mt-12 flex flex-wrap gap-3">
-          {APPLY_LINKS.map((link) => (
-            <a
-              key={link.id}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="u-pill bg-paper text-ink hover:bg-ink hover:text-paper"
-            >
-              Apply · {link.label}
-              <ArrowRight className="h-4 w-4" />
-            </a>
+        ref={stage}
+        className="relative isolate flex flex-col justify-end overflow-hidden bg-paper pointer-coarse:sticky pointer-coarse:top-0 pointer-coarse:min-h-dvh"
+      >
+        {/* ---- the collage, bottom of the stack ---- */}
+        <div aria-hidden className="absolute inset-0 grid grid-cols-2 md:grid-cols-4">
+          {images.map((src, i) => (
+            <div key={src + i} className="relative">
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="(min-width: 768px) 25vw, 50vw"
+                className="object-cover"
+              />
+            </div>
           ))}
         </div>
 
-        {/* ---- the prompt, and how far through you are ---- */}
+        {/* ---- the paper, and the brush that takes it away ----
+            Screen against the white background is white, so this reads as blank
+            until something paints black into it. Its opacity is never animated,
+            for the reason in the note at the top of this file. */}
+        <canvas
+          ref={canvas}
+          aria-hidden
+          className="absolute inset-0 h-full w-full bg-paper"
+          style={{ mixBlendMode: "screen" }}
+        />
+
+        {/* ---- type protection ----
+            Once the sheet is gone the copy is sitting on photographs.
+
+            Two different washes, because the two layouts read in different
+            directions. On a desktop the copy holds the left column, so the
+            wash runs left to right and the pictures keep the right half. On a
+            phone the copy is bottom-anchored under a full-bleed collage, so it
+            runs bottom to top and the pictures keep the top third: a
+            left-to-right wash on a 390px screen is just an opaque band over
+            the entire reveal. */}
         <div
           aria-hidden
-          className="mt-14 flex items-center gap-4 transition-opacity duration-700"
-          style={{ opacity: cleared ? 0 : 1 }}
-        >
-          <span className="u-eyebrow whitespace-nowrap text-quiet">
-            <span className="hidden sm:inline">Scratch to see the place</span>
-            <span className="sm:hidden">Scroll to see the place</span>
-          </span>
-          <span className="h-px w-full max-w-40 bg-ink/15">
+          className="pointer-events-none absolute inset-0 hidden pointer-coarse:block"
+          style={{
+            background:
+              "linear-gradient(to top, #fff 0%, #fff 32%, rgba(255,255,255,0.9) 52%, rgba(255,255,255,0.55) 74%, rgba(255,255,255,0.12) 92%, rgba(255,255,255,0) 100%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-full bg-linear-to-r from-paper via-paper/85 to-transparent pointer-coarse:hidden md:w-[62%] lg:w-[52%]"
+        />
+
+        {/* ---- content ---- */}
+        <div className="relative z-10 u-shell pb-32 pt-20 md:py-32 lg:py-40">
+          {/* The name, set the way the lockup sets it: the word over a
+              letterspaced second line at roughly the same width. An earlier pass
+              had a lowercase "jecrc" in the grotesk, which read as a fashion
+              logotype rather than the university's own mark.
+
+              Two spans in one paragraph with the accessible name spelled out, so
+              it is announced as "JECRC University" and not as two fragments. */}
+          <p aria-label="JECRC University" className="select-none text-crimson">
+            {/* The second line is 0.4706 of the first, the cap-height ratio
+                measured off the lockup. The J descends in this face, so the two
+                lines are not closed up as tightly as a grotesk would allow. */}
+            <span aria-hidden className="u-wordmark block text-[14vw] leading-[0.92] lg:text-[13vw]">
+              JECRC
+            </span>
             <span
-              className="block h-px origin-left bg-crimson transition-transform duration-300 ease-out"
-              style={{ transform: `scaleX(${progress})` }}
-            />
-          </span>
+              aria-hidden
+              className="u-wordmark-sub block text-[6.6vw] leading-[1.05] lg:text-[6.1vw]"
+            >
+              UNIVERSITY
+            </span>
+          </p>
+
+          <p className="u-display mt-5 max-w-[30ch] text-[6.4vw] leading-[1.15] text-ink sm:text-[4.6vw] md:mt-6 md:leading-[1.06] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
+            Twenty-six years of building people who build things. Find the campus, the school and
+            the year that fits.
+          </p>
+
+          {/* Stacked and full width on a phone, with the first campus carrying
+              the weight. Three identical outline pills in a row is three equal
+              choices and no recommendation; on a screen this narrow that reads
+              as a form, not an invitation. */}
+          <div className="mt-8 flex flex-col gap-2.5 md:mt-12 md:flex-row md:flex-wrap md:gap-3">
+            {APPLY_LINKS.map((link, i) => (
+              <a
+                key={link.id}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={
+                  i === 0
+                    ? "u-pill w-full border-crimson bg-crimson text-paper hover:bg-crimson-deep md:w-auto md:border-ink md:bg-paper md:text-ink md:hover:bg-ink md:hover:text-paper"
+                    : "u-pill w-full border-ink/20 bg-paper/80 text-ink hover:bg-ink hover:text-paper md:w-auto md:border-ink md:bg-paper"
+                }
+              >
+                Apply · {link.label}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            ))}
+          </div>
+
+          {/* ---- the prompt, and how far through you are ----
+              Fine pointers only. On a phone the sheet lifts itself as the band
+              is scrubbed, so a line of instructions is telling the visitor to
+              do the thing that is already happening. */}
+          <div
+            aria-hidden
+            className="mt-14 hidden items-center gap-4 transition-opacity duration-700 sm:flex"
+            style={{ opacity: cleared ? 0 : 1 }}
+          >
+            <span className="u-eyebrow whitespace-nowrap text-quiet">Scratch to see the place</span>
+            <span className="h-px w-full max-w-40 bg-ink/15">
+              <span
+                className="block h-px origin-left bg-crimson transition-transform duration-300 ease-out"
+                style={{ transform: `scaleX(${progress})` }}
+              />
+            </span>
+          </div>
         </div>
       </div>
+
+      <div aria-hidden className="hidden h-[80vh] pointer-coarse:block" />
     </section>
   );
 }

@@ -83,7 +83,7 @@ export function SectionHeading({
       <Tag
         data-reveal
         style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-        className="u-display mt-6 max-w-[17ch] pb-[0.12em] text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
+        className="u-display mt-5 max-w-[17ch] pb-[0.12em] text-[2rem] text-ink sm:mt-6 sm:text-[2.9rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
       >
         {title}
       </Tag>
@@ -92,7 +92,7 @@ export function SectionHeading({
           data-reveal
           style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
           className={cn(
-            "mt-8 max-w-[52ch] text-[16px] leading-[1.7] text-graphite md:text-[17px]",
+            "mt-6 max-w-[52ch] text-[15.5px] leading-[1.7] text-graphite md:mt-8 md:text-[17px]",
             align === "center" && "mx-auto"
           )}
         >

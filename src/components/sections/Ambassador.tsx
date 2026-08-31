@@ -16,7 +16,7 @@ export default function Ambassador() {
     <section
       id="ambassador"
       style={{ scrollMarginTop: "6.5rem" }}
-      className="relative overflow-hidden bg-bone py-20 md:py-24 lg:py-28"
+      className="relative overflow-hidden bg-bone py-16 md:py-24 lg:py-28"
     >
       <div className="u-shell grid items-center gap-12 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] lg:gap-16">
         {/* ---- portrait ---- */}
@@ -54,7 +54,7 @@ export default function Ambassador() {
           <h2
             data-reveal
             style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-            className="u-display mt-6 pb-[0.12em] text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
+            className="u-display mt-5 pb-[0.12em] text-[2rem] text-ink sm:mt-6 sm:text-[2.9rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
           >
             {AMBASSADOR.name}
             <span className="u-display-strong mt-1 block text-crimson">is the face of JECRC</span>
@@ -63,7 +63,7 @@ export default function Ambassador() {
           <p
             data-reveal
             style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
-            className="mt-8 max-w-[52ch] text-[16px] leading-[1.75] text-graphite md:text-[17px]"
+            className="mt-6 max-w-[52ch] text-[15.5px] leading-[1.75] text-graphite md:mt-8 md:text-[17px]"
           >
             {AMBASSADOR.body}
           </p>
@@ -71,9 +71,9 @@ export default function Ambassador() {
           <blockquote
             data-reveal
             style={{ "--reveal-delay": "200ms" } as React.CSSProperties}
-            className="mt-10 border-l-2 border-crimson pl-6"
+            className="mt-8 border-l-2 border-crimson pl-5 md:mt-10 md:pl-6"
           >
-            <p className="u-display-strong text-[1.75rem] leading-[1.3] text-ink md:text-[2.15rem]">
+            <p className="u-display-strong text-[1.3rem] leading-[1.35] text-ink sm:text-[1.6rem] md:text-[2.15rem]">
               {AMBASSADOR.quote}
             </p>
             <cite className="u-eyebrow mt-4 block not-italic text-quiet">{AMBASSADOR.quoteBy}</cite>

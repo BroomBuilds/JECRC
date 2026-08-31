@@ -23,7 +23,7 @@ export default function Ledger() {
     <section
       id="numbers"
       style={{ scrollMarginTop: "6.5rem" }}
-      className="relative overflow-hidden bg-paper py-20 md:py-24 lg:py-28"
+      className="relative overflow-hidden bg-paper py-16 md:py-24 lg:py-28"
     >
       <div className="u-shell">
         <div data-reveal>
@@ -38,7 +38,7 @@ export default function Ledger() {
         <h2
           data-reveal
           style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-          className="u-display mt-6 text-[2.25rem] text-ink md:whitespace-nowrap md:text-[clamp(2.4rem,5.9vw,5.75rem)]"
+          className="u-display mt-5 text-[1.9rem] text-ink md:mt-6 md:whitespace-nowrap md:text-[clamp(2.4rem,5.9vw,5.75rem)]"
         >
           What twenty-six years{" "}
           <span className="u-display-strong text-crimson">adds up to</span>
@@ -47,25 +47,25 @@ export default function Ledger() {
         <p
           data-reveal
           style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
-          className="mt-8 max-w-[56ch] text-[16px] leading-[1.7] text-graphite md:text-[17px]"
+          className="mt-6 max-w-[56ch] text-[15.5px] leading-[1.7] text-graphite md:mt-8 md:text-[17px]"
         >
           {LEDGER.lead}
         </p>
 
         {/* ---- the two that matter most ---- */}
-        <dl className="mt-14 grid border-y border-rule md:mt-16 md:grid-cols-2">
+        <dl className="mt-10 grid border-y border-rule md:mt-16 md:grid-cols-2">
           {lead.map((f, i) => (
             <div
               key={f.label}
               data-reveal
               style={{ "--reveal-delay": `${i * 100}ms` } as React.CSSProperties}
-              className="border-b border-rule py-12 last:border-b-0 md:border-b-0 md:py-16 md:odd:border-r md:odd:pr-12 md:even:pl-12"
+              className="border-b border-rule py-9 last:border-b-0 md:border-b-0 md:py-16 md:odd:border-r md:odd:pr-12 md:even:pl-12"
             >
-              <dd className="u-figure text-[19vw] text-ink sm:text-[13vw] lg:text-[clamp(6rem,9vw,10.5rem)]">
+              <dd className="u-figure text-[13.5vw] text-ink sm:text-[11vw] lg:text-[clamp(6rem,9vw,10.5rem)]">
                 {f.value}
                 {f.unit && <span className="text-crimson">{f.unit}</span>}
               </dd>
-              <dt className="u-grotesk mt-6 text-[1.35rem] text-ink md:text-[1.6rem]">{f.label}</dt>
+              <dt className="u-grotesk mt-4 text-[1.1rem] text-ink md:mt-6 md:text-[1.6rem]">{f.label}</dt>
               {f.detail && (
                 <p className="mt-3 max-w-[34ch] text-[14.5px] leading-[1.65] text-quiet">
                   {f.detail}
@@ -85,13 +85,13 @@ export default function Ledger() {
               key={f.label}
               data-reveal
               style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}
-              className="group border-b border-rule py-10 transition-colors duration-500 hover:bg-bone sm:odd:border-r sm:odd:pr-6 sm:even:pl-6 lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0 lg:odd:pr-6 lg:even:pl-6"
+              className="group border-b border-rule py-8 transition-colors duration-500 hover:bg-bone sm:odd:border-r sm:odd:pr-6 sm:even:pl-6 lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0 lg:odd:pr-6 lg:even:pl-6"
             >
-              <dd className="u-figure text-[3.25rem] text-ink md:text-[4rem]">
+              <dd className="u-figure text-[2.5rem] text-ink md:text-[4rem]">
                 {f.value}
                 {f.unit && <span className="text-crimson">{f.unit}</span>}
               </dd>
-              <dt className="mt-5 text-[15px] font-semibold tracking-[-0.01em] text-ink">
+              <dt className="mt-4 text-[15px] font-semibold tracking-[-0.01em] text-ink">
                 {f.label}
               </dt>
               {f.detail && (
@@ -119,7 +119,7 @@ export default function Ledger() {
         </dl>
 
         {/* ---- who came ---- */}
-        <div className="mt-16 md:mt-20">
+        <div className="mt-12 md:mt-20">
           <p data-reveal className="u-eyebrow text-quiet">
             Who came to campus
           </p>
@@ -146,7 +146,7 @@ export default function Ledger() {
                   {RECRUITERS.map((name) => (
                     <span
                       key={`${copy}-${name}`}
-                      className="u-grotesk whitespace-nowrap text-[1.5rem] text-ink/25 transition-colors md:text-[2rem]"
+                      className="u-grotesk whitespace-nowrap text-[1.15rem] text-ink/25 transition-colors md:text-[2rem]"
                     >
                       {name}
                     </span>

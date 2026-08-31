@@ -46,16 +46,16 @@ export default function Footer() {
       <div className="u-shell py-14 pb-[max(3.5rem,env(safe-area-inset-bottom))] md:py-16">
         {/* ---- 1. identity ---- */}
         <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:justify-between">
-          {/* The navbar's lockup, red artwork on its white plate, rather than
-              the flattened white one. It is the mark people just scrolled past
-              at the top of the page, and the plate is what carries the red. */}
+          {/* Brand red on transparent, never the plated version. On a black
+              ground the plate reads as a white card sitting on the footer
+              rather than as the mark printed on it. */}
           <ScrollTopButton className="w-fit">
             <Image
-              src={LOGO.lockup}
+              src={LOGO.lockupRed}
               alt={`${BRAND.name} and JECRC Medical College Hospital and Research Centre`}
               width={557}
               height={258}
-              className="h-auto w-52 rounded-md md:w-60"
+              className="h-auto w-48 md:w-60"
             />
           </ScrollTopButton>
 
