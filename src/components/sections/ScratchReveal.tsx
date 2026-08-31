@@ -1,0 +1,456 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { APPLY_LINKS } from "@/lib/content/universities";
+import { ArrowRight } from "@/components/ui/Icons";
+
+/**
+ * The scratch band.
+ *
+ * A collage sits at the bottom of the stack. Over it lies a canvas whose CSS
+ * background is white and whose blend mode is `screen`. Screen against white is
+ * white, so the band reads as blank paper; paint BLACK into the canvas and
+ * screen against black is the backdrop, so wherever the brush has been, the
+ * collage shows through. No masks, no clip paths, no second copy of the images.
+ *
+ * The brush is a core disc of about 52px with a dozen small satellites strung
+ * out VERTICALLY, radii five to thirteen, all breathing on one slow phase. The
+ * vertical string is what gives the reveal ragged top and bottom edges and
+ * clean horizontal sweeps.
+ *
+ * Two things it deliberately does NOT do:
+ *
+ *   - It does not heal. An earlier pass washed the canvas with a low-alpha
+ *     white each frame so the trail closed up behind you. Scratching something
+ *     that repairs itself is a nervous tic, not an interaction.
+ *   - It does not scratch itself. There is no idle path wandering across the
+ *     band. The visitor is the one holding the coin.
+ *
+ * On a touchscreen none of that is available. A finger dragged across the band
+ * scrolls the page, and taking that away with `touch-action: none` would trap
+ * the visitor inside a decorative section. So a coarse pointer gets the honest
+ * equivalent instead: the sheet opens on scroll, from the top down, as the band
+ * travels through the viewport. Same reveal, driven by the only gesture a phone
+ * actually has here.
+ *
+ * On a fine pointer it keeps score. A coarse occupancy grid records which cells
+ * the brush has touched, and once enough of the band is open the rest goes.
+ *
+ * How that last move happens matters. Fading the canvas out looks like the
+ * obvious answer and is wrong: the canvas is `screen` blended over white, so
+ * dropping its opacity lifts the ALREADY-scratched areas back toward white on
+ * the way down before they return at zero. The picture you had disappears and
+ * then comes back, which is exactly the flinch you feel.
+ *
+ * So the canvas never changes opacity. It floods: a low-alpha black is painted
+ * over the whole bitmap each frame until the sheet is black everywhere.
+ * Painting black over black is a no-op, so what you already opened does not
+ * move at all, and the rest arrives from where it stood.
+ */
+
+/** Core brush radius, before the breathing modulation. */
+const CORE = 52;
+const SATELLITES = 12;
+/** How far up and down the satellites string out from the core. */
+const SPREAD = 68;
+/** Occupancy grid, in cells. Coarse on purpose: this is a progress bar. */
+const COLS = 26;
+const ROWS = 14;
+/** Fraction of the grid that has to be opened before the rest falls away. */
+const THRESHOLD = 0.42;
+/**
+ * Per-frame alpha of the black flood once the threshold is reached. Coverage
+ * goes 1 - (1 - a)^n, so 0.055 is opaque in about a second at 60fps.
+ */
+const FLOOD = 0.055;
+
+const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+type Sat = { offset: number; radius: number; phase: number };
+
+const makeSatellites = (): Sat[] =>
+  Array.from({ length: SATELLITES }, (_, i) => {
+    // Deterministic rather than random: the brush should look the same on every
+    // load, and a seeded shape is easier to tune than a lucky one.
+    const t = (i + 1) / (SATELLITES + 1);
+    const swing = Math.sin(t * Math.PI * 2.7);
+    return {
+      offset: (t * 2 - 1) * SPREAD + swing * 12,
+      radius: 5 + Math.abs(Math.cos(t * Math.PI * 3.1)) * 8,
+      phase: t * Math.PI * 2,
+    };
+  });
+
+export default function ScratchReveal({ images }: { images: string[] }) {
+  const section = useRef<HTMLElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [cleared, setCleared] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const sec = section.current;
+    const cv = canvas.current;
+    if (!sec || !cv) return;
+
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Nothing to scratch: hand over the picture and skip the apparatus. The
+      // sheet is painted out rather than hidden, so the same code path draws
+      // it either way. Deferred a frame so this is not a synchronous setState
+      // in an effect body, which would cascade a render on every mount.
+      const paint = () => {
+        const r = sec.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        cv.width = Math.round(r.width * dpr);
+        cv.height = Math.round(r.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, r.width, r.height);
+      };
+      const frame = requestAnimationFrame(() => {
+        paint();
+        setCleared(true);
+        setProgress(1);
+      });
+      window.addEventListener("resize", paint);
+      return () => {
+        cancelAnimationFrame(frame);
+        window.removeEventListener("resize", paint);
+      };
+    }
+
+    if (coarse) {
+      // Scroll-driven. The band opens top down as it crosses the viewport, and
+      // holds whatever it has opened: a reveal that closed again on the way
+      // back up would undo itself every time the visitor scrolled past.
+      let opened = 0;
+      let frame = 0;
+
+      const paint = () => {
+        frame = 0;
+        const r = sec.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const span = r.height + vh;
+        const p = clamp01((vh - r.top) / span);
+        // Fully open by the time the band is halfway through, so the collage
+        // is there to be looked at rather than still arriving as it leaves.
+        const want = clamp01(p / 0.55);
+        if (want <= opened) return;
+        opened = want;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = r.width;
+        const h = r.height;
+        if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+          cv.width = Math.round(w * dpr);
+          cv.height = Math.round(h * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, w, h * opened);
+      };
+
+      const onScroll = () => {
+        if (!frame) frame = requestAnimationFrame(paint);
+      };
+      paint();
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      return () => {
+        cancelAnimationFrame(frame);
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onScroll);
+      };
+    }
+
+    const sats = makeSatellites();
+    const grid = new Uint8Array(COLS * ROWS);
+    let opened = 0;
+    let done = false;
+
+    let width = 0;
+    let height = 0;
+
+    const resize = () => {
+      const r = sec.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = r.width;
+      height = r.height;
+      cv.width = Math.round(width * dpr);
+      cv.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // A resize clears the bitmap. Once the flood has run the answer is the
+      // whole sheet; before that, replay the opened cells rather than losing
+      // the visitor's work.
+      if (done) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, width, height);
+        return;
+      }
+      if (opened) {
+        ctx.fillStyle = "#000";
+        const cw = width / COLS;
+        const ch = height / ROWS;
+        for (let i = 0; i < grid.length; i++) {
+          if (!grid[i]) continue;
+          ctx.fillRect((i % COLS) * cw, Math.floor(i / COLS) * ch, cw + 1, ch + 1);
+        }
+      }
+    };
+    resize();
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(sec);
+
+    /** Paint one brush stamp and record the cells it covers. */
+    const stamp = (x: number, y: number, phase: number) => {
+      const breathe = 1 + Math.sin(phase) * 0.09;
+      const r = CORE * breathe;
+
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (const s of sats) {
+        ctx.beginPath();
+        ctx.arc(x, y + s.offset, s.radius * (1 + Math.sin(phase + s.phase) * 0.22), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (done || width === 0) return;
+      // Mark the grid over the core's box plus the satellites' vertical reach.
+      const cw = width / COLS;
+      const ch = height / ROWS;
+      const c0 = Math.max(0, Math.floor((x - r) / cw));
+      const c1 = Math.min(COLS - 1, Math.floor((x + r) / cw));
+      const r0 = Math.max(0, Math.floor((y - SPREAD) / ch));
+      const r1 = Math.min(ROWS - 1, Math.floor((y + SPREAD) / ch));
+      for (let row = r0; row <= r1; row++) {
+        for (let col = c0; col <= c1; col++) {
+          const k = row * COLS + col;
+          if (!grid[k]) {
+            grid[k] = 1;
+            opened++;
+          }
+        }
+      }
+    };
+
+    let px = 0;
+    let py = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let have = false;
+    let dirty = false;
+
+    const onPointer = (e: PointerEvent) => {
+      const r = sec.getBoundingClientRect();
+      px = e.clientX - r.left;
+      py = e.clientY - r.top;
+      if (!have) {
+        lastX = px;
+        lastY = py;
+        have = true;
+      }
+      dirty = true;
+    };
+
+    sec.addEventListener("pointermove", onPointer, { passive: true });
+    sec.addEventListener("pointerdown", onPointer, { passive: true });
+    sec.addEventListener("pointerleave", () => { have = false; }, { passive: true });
+
+    let raf = 0;
+    let running = false;
+    let t = 0;
+    let flooding = false;
+    let floodFrames = 0;
+
+    const tick = () => {
+      if (!running) return;
+      raf = requestAnimationFrame(tick);
+
+      // Threshold reached: stop taking input and wash the rest of the sheet to
+      // black. Black over black changes nothing, so everything already opened
+      // holds still while the remainder arrives.
+      if (flooding) {
+        ctx.fillStyle = `rgba(0,0,0,${FLOOD})`;
+        ctx.fillRect(0, 0, width, height);
+        floodFrames++;
+        // 1 - (1 - FLOOD)^n passes 0.999 well before this, and one opaque
+        // pass at the end guarantees no residue on a slow frame budget.
+        if (floodFrames > 90) {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, width, height);
+          done = true;
+          running = false;
+          cancelAnimationFrame(raf);
+        }
+        return;
+      }
+
+      if (!have || !dirty || done) return;
+
+      dirty = false;
+      t += 0.06;
+
+      // Interpolate from the previous point, so a fast flick draws a stroke
+      // rather than a dotted line.
+      const dx = px - lastX;
+      const dy = py - lastY;
+      const steps = Math.min(24, Math.max(1, Math.round(Math.hypot(dx, dy) / 14)));
+      for (let i = 1; i <= steps; i++) {
+        stamp(lastX + (dx * i) / steps, lastY + (dy * i) / steps, t + i * 0.2);
+      }
+      lastX = px;
+      lastY = py;
+
+      const ratio = opened / grid.length;
+      setProgress(Math.min(1, ratio / THRESHOLD));
+      if (ratio >= THRESHOLD) {
+        flooding = true;
+        setCleared(true);
+      }
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (done) return;
+        if (entry.isIntersecting && !running) {
+          running = true;
+          raf = requestAnimationFrame(tick);
+        } else if (!entry.isIntersecting && running) {
+          running = false;
+          cancelAnimationFrame(raf);
+        }
+      },
+      { rootMargin: "120px 0px" }
+    );
+    io.observe(sec);
+
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      ro.disconnect();
+      sec.removeEventListener("pointermove", onPointer);
+      sec.removeEventListener("pointerdown", onPointer);
+    };
+  }, []);
+
+  return (
+    <section
+      ref={section}
+      id="build"
+      style={{ scrollMarginTop: "6.5rem" }}
+      className="relative isolate overflow-hidden bg-paper"
+    >
+      {/* ---- the collage, bottom of the stack ---- */}
+      <div aria-hidden className="absolute inset-0 grid grid-cols-2 md:grid-cols-4">
+        {images.map((src, i) => (
+          <div key={src + i} className="relative">
+            <Image
+              src={src}
+              alt=""
+              fill
+              sizes="(min-width: 768px) 25vw, 50vw"
+              className="object-cover"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* ---- the paper, and the brush that takes it away ----
+          Screen against the white background is white, so this reads as blank
+          until something paints black into it. Its opacity is never animated,
+          for the reason in the note at the top of this file. */}
+      <canvas
+        ref={canvas}
+        aria-hidden
+        className="absolute inset-0 h-full w-full bg-paper"
+        style={{ mixBlendMode: "screen" }}
+      />
+
+      {/* ---- type protection ----
+          Once the sheet is gone the copy is sitting on photographs. A paper
+          wash across the reading column, fading out before the halfway mark,
+          keeps black type legible without desaturating the reveal itself,
+          which is the whole payoff. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 w-full bg-linear-to-r from-paper via-paper/85 to-transparent md:w-[62%] lg:w-[52%]"
+      />
+
+      {/* ---- content ---- */}
+      <div className="relative z-10 u-shell py-24 md:py-32 lg:py-40">
+        {/* The name, set the way the lockup sets it: the word over a
+            letterspaced second line at roughly the same width. An earlier pass
+            had a lowercase "jecrc" in the grotesk, which read as a fashion
+            logotype rather than the university's own mark.
+
+            Two spans in one paragraph with the accessible name spelled out, so
+            it is announced as "JECRC University" and not as two fragments. */}
+        <p
+          aria-label="JECRC University"
+          className="select-none text-crimson"
+        >
+          {/* The second line is 0.4706 of the first, the cap-height ratio
+              measured off the lockup. The J descends in this face, so the two
+              lines are not closed up as tightly as a grotesk would allow. */}
+          <span aria-hidden className="u-wordmark block text-[19vw] leading-[0.92] lg:text-[13vw]">
+            JECRC
+          </span>
+          <span
+            aria-hidden
+            className="u-wordmark-sub block text-[8.9vw] leading-[1.05] lg:text-[6.1vw]"
+          >
+            UNIVERSITY
+          </span>
+        </p>
+
+        <p className="u-display mt-6 max-w-[22ch] text-[9vw] leading-[1.06] text-ink sm:text-[6.5vw] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
+          Twenty-six years of building people who build things. Find the campus, the school and
+          the year that fits.
+        </p>
+
+        <div className="mt-12 flex flex-wrap gap-3">
+          {APPLY_LINKS.map((link) => (
+            <a
+              key={link.id}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="u-pill bg-paper text-ink hover:bg-ink hover:text-paper"
+            >
+              Apply · {link.label}
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          ))}
+        </div>
+
+        {/* ---- the prompt, and how far through you are ---- */}
+        <div
+          aria-hidden
+          className="mt-14 flex items-center gap-4 transition-opacity duration-700"
+          style={{ opacity: cleared ? 0 : 1 }}
+        >
+          <span className="u-eyebrow whitespace-nowrap text-quiet">
+            <span className="hidden sm:inline">Scratch to see the place</span>
+            <span className="sm:hidden">Scroll to see the place</span>
+          </span>
+          <span className="h-px w-full max-w-40 bg-ink/15">
+            <span
+              className="block h-px origin-left bg-crimson transition-transform duration-300 ease-out"
+              style={{ transform: `scaleX(${progress})` }}
+            />
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
