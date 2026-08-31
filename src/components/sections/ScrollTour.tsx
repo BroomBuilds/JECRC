@@ -7,8 +7,15 @@ import { APPLY_LINKS } from "@/lib/content/universities";
 import { BRAND, LOGO } from "@/lib/content/site";
 import { ArrowUpRight } from "@/components/ui/Icons";
 
-/** Scroll length of the tour, in vh. Higher is slower and more cinematic. */
-export const TOUR_VH = 1500;
+/**
+ * Scroll length of the tour.
+ *
+ * Set in CSS rather than here so it can differ by screen: 1500vh on a desktop
+ * is fifteen screens of film, and the same number on a 780px phone is a wall
+ * the visitor has to climb before reaching anything else. See `--tour-vh` in
+ * globals.css.
+ */
+export const TOUR_HEIGHT = "var(--tour-vh)";
 
 export type Caption = {
   /** [fade-in point, fade-out point] as fractions of the tour, 0 to 1. */
@@ -69,6 +76,17 @@ export default function ScrollTour({ captions = [] }: Props) {
     const chosen = sizes.find((s) => s.width >= needed * 0.85) ?? sizes[sizes.length - 1];
     const url = (i: number) => `${base}/${chosen.dir}/f${String(i + 1).padStart(pad, "0")}.${format}`;
 
+    // Every second frame on a phone. The tour is by far the heaviest thing on
+    // the page, most of the traffic is mobile, and at the pixel-per-frame this
+    // runs at, half the sequence still reads as continuous motion: the scroll
+    // length halves alongside it, so the pixels between frames barely change.
+    const step = window.innerWidth < 768 ? 2 : 1;
+    /** Frame indices actually fetched, in order. */
+    const track: number[] = [];
+    for (let i = 0; i < count; i += step) track.push(i);
+    if (track[track.length - 1] !== count - 1) track.push(count - 1);
+    const frames = track.length;
+
     // ---- frame store -----------------------------------------------------
     const images: (HTMLImageElement | undefined)[] = new Array(count);
     const ready: boolean[] = new Array(count).fill(false);
@@ -88,14 +106,14 @@ export default function ScrollTour({ captions = [] }: Props) {
     const queue: number[] = [];
     const seen = new Set<number>();
     for (const stride of [16, 8, 4, 2, 1]) {
-      for (let i = 0; i < count; i += stride) {
+      for (let k = 0; k < frames; k += stride) {
+        const i = track[k];
         if (!seen.has(i)) {
           seen.add(i);
           queue.push(i);
         }
       }
     }
-    if (!seen.has(count - 1)) queue.push(count - 1);
 
     let disposed = false;
     let dirty = true;
@@ -120,13 +138,13 @@ export default function ScrollTour({ captions = [] }: Props) {
           ready[i] = true;
           loadedCount++;
           inflight--;
-          if (loadedCount % 6 === 0 || loadedCount === count) {
-            setPct(Math.round((loadedCount / count) * 100));
+          if (loadedCount % 6 === 0 || loadedCount === frames) {
+            setPct(Math.round((loadedCount / frames) * 100));
           }
           // The first coarse pass covers the timeline end to end: enough to
           // show a real picture at any scroll position, so reveal here rather
           // than waiting for all of them.
-          if (!disposed && loadedCount >= Math.min(count, Math.ceil(count / 16) + 2)) setPrimed(true);
+          if (!disposed && loadedCount >= Math.min(frames, Math.ceil(frames / 16) + 2)) setPrimed(true);
           dirty = true;
           pump();
         };
@@ -237,7 +255,9 @@ export default function ScrollTour({ captions = [] }: Props) {
       const total = rect.height - window.innerHeight;
       const p = total > 0 ? clamp01(-rect.top / total) : 0;
 
-      const idx = Math.round(p * (count - 1));
+      // Snap to a frame that was actually fetched, otherwise `nearest` would
+      // be walking outward on every single paint at step 2.
+      const idx = track[Math.min(frames - 1, Math.round(p * (frames - 1)))];
       current = idx;
 
       if (idx !== lastDrawn || dirty) {
@@ -275,7 +295,7 @@ export default function ScrollTour({ captions = [] }: Props) {
   }, []);
 
   return (
-    <section ref={section} id="tour" style={{ height: `${TOUR_VH}vh` }} className="relative">
+    <section ref={section} id="tour" style={{ height: TOUR_HEIGHT }} className="relative">
       <span id="top" aria-hidden className="absolute top-0" />
 
       {/* The page's one h1. It lives out here rather than inside a caption
@@ -347,8 +367,8 @@ export default function ScrollTour({ captions = [] }: Props) {
                 aria-hidden={c.variant === "hero"}
                 className={
                   c.variant === "hero"
-                    ? "u-serif text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
-                    : "u-serif max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
+                    ? "u-display text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
+                    : "u-display max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
                 }
               >
                 {c.variant === "hero" ? BRAND.tagline : c.title}

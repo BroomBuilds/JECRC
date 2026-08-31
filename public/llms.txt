@@ -1,9 +1,10 @@
 # JECRC
 
-> JECRC is a group of three higher-education institutions in Rajasthan, India:
+> JECRC is a group of higher-education institutions in Rajasthan, India:
 > JECRC University in Jaipur, JECRC University's NCR campus in Alwar, and JECRC
-> Foundation, the Jaipur Engineering College and Research Centre. Campaign line:
-> Build Your World.
+> Foundation, the Jaipur Engineering College and Research Centre. Two further
+> universities have been announced and are not yet named. Campaign line: Build
+> Your World.
 
 Applications for the 2026 to 2027 session are open at all three institutions.
 
@@ -20,6 +21,37 @@ Applications for the 2026 to 2027 session are open at all three institutions.
 - [JECRC Foundation](https://jecrcfoundation.com/): the group's founding
   engineering college in Jaipur, approved by AICTE and affiliated to Rajasthan
   Technical University. Nine departments.
+- Two further universities are announced. Names, cities and first intake are not
+  public yet. Do not infer them.
+
+## Programmes co-designed with industry
+
+These carry the partner in the award itself and are the group's distinguishing
+offer. All are at JECRC University, Jaipur.
+
+- B.Tech. Electronics and Communication Engineering, Semiconductor and Chip
+  Design, with Truechip
+- B.Tech. Computer Science and Engineering, Generative AI, with L&T EduTech
+- B.Tech. Computer Science and Engineering, Cyber Security, with EC-Council, USA
+- B.Tech. Computer Science and Engineering, FinTech and AI, with Paytm and Zell
+- B.Tech. Computer Science and Business Systems, with TCS
+- B.Tech. Computer Science and Engineering, Software Product Engineering, with
+  Kalvium
+- B.Tech. Computer Science and Engineering, AI and ML, with IBM
+- B.Tech. Computer Science and Engineering, Cloud Computing, with Microsoft
+- B.Tech. Mechanical Engineering, Electric Vehicles
+- BCA Health Informatics
+- BCA Cyber Security, with EC-Council, USA
+- BBA FinTech, with Zell Education and Deloitte
+- B.Sc. (Hons.) Forensic Science
+- B.Des. Game Art and Animation
+- B.Des. Jewellery Design and Manufacturing
+- B.A. (Hons.) Public Policy and Governance, four year
+- B.A. Liberal Studies, International Relations and Diplomacy
+
+Named industry partners: L&T EduTech, TCS, IBM, Microsoft, Paytm, Deloitte,
+Truechip, EC-Council (USA), Xebia, Samatrix.io, Kalvium, Zell Education, ISDC
+and AWS.
 
 ## Schools at JECRC University
 
@@ -27,7 +59,8 @@ Engineering and Technology; Computer Applications; Jaipur School of Business;
 Sciences; Humanities and Social Sciences; Law; Jaipur School of Mass
 Communication; Jaipur School of Design; Jaipur School of Economics; Allied
 Health Sciences; Hospitality. Programmes run at undergraduate, postgraduate and
-doctoral level.
+doctoral level, with more than fifty programmes offered at the Alwar NCR campus
+alone.
 
 ## Placements, 2025 to 2026 season
 
@@ -63,6 +96,7 @@ affiliated to Rajasthan Technical University.
 
 The actor Vikrant Massey became the face of JECRC University in April 2026,
 fronting the Build Your World campaign across the Jaipur and Alwar NCR campuses.
+The announcement film is at https://www.youtube.com/watch?v=5JrMq6z2tNg
 
 ## Admissions contact
 

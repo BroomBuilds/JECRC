@@ -8,10 +8,20 @@
    That is the arrangement on arts.vcu.edu, and the contrast is what
    makes those two bands land.
 
-   Type is a pair. Archivo, a grotesque, carries every piece of
-   interface: navigation, eyebrows, buttons, the majors list, stats.
-   Newsreader, a sturdy text serif, carries the editorial voice:
-   headlines and the long statements. Nothing else is introduced.
+   One typeface, Hanken Grotesk, and nothing else. Hierarchy comes from
+   size, weight and tracking rather than from a second face.
+
+   It is here for the Gotham register: geometric skeleton, tall x-height,
+   flat terminals, wide even-width capitals, and the institutional
+   neutrality that comes with them. Gotham itself is licensed, and the
+   usual free stand-in is Montserrat, which is on every second site.
+
+   The rule, opposite to a high-contrast serif: the bigger it gets the
+   HEAVIER it gets. A geometric sans has no stroke contrast to carry a
+   display line, so weight has to. Display is 700 to 800, section heads
+   600, interface 500 to 600, small caps 700, body 400.
+
+   No italics anywhere. Emphasis is weight and the brand red.
    ================================================================== */
 
 @theme {
@@ -24,6 +34,11 @@
   /* --- inverted bands ---------------------------------------- */
   --color-obsidian: #000000;
   --color-carbon: #101012;
+  /* Near-black with a red cast, so the red lockup and the red rules in
+     the footer sit in the same family as the ground instead of on top
+     of a neutral. */
+  --color-oxblood: #150507;
+  --color-oxblood-lift: #23090c;
 
   /* --- ink --------------------------------------------------- */
   --color-ink: #0a0a0b;
@@ -37,8 +52,8 @@
   --color-blush: #fdecec;
 
   /* --- type -------------------------------------------------- */
-  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
 
   /* --- motion ------------------------------------------------ */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -47,13 +62,26 @@
 
 :root {
   color-scheme: light;
-  /* One knob for the page's horizontal rhythm. */
+  /* The film's scroll length. Nine screens on a phone, fifteen on a
+     desktop: the same number on both makes the tour two thirds of the
+     page on the screen most people arrive with. */
+  --tour-vh: 900vh;
+  /* One knob for the page's horizontal rhythm. Foldable cover screens are
+     280px wide, and a 24px gutter each side leaves 232px of content, which
+     is not enough for a row of five 44px targets. */
   --shell: 1600px;
-  --pad: 1.5rem;
+  --pad: 1.125rem;
+}
+
+@media (min-width: 380px) {
+  :root { --pad: 1.5rem; }
 }
 
 @media (min-width: 768px) {
-  :root { --pad: 2.5rem; }
+  :root { --pad: 2.5rem; --tour-vh: 1200vh; }
+}
+@media (min-width: 1024px) {
+  :root { --tour-vh: 1500vh; }
 }
 @media (min-width: 1280px) {
   :root { --pad: 4rem; }
@@ -63,38 +91,54 @@
    Base
    ------------------------------------------------------------------ */
 
-*,
-*::before,
-*::after { box-sizing: border-box; }
+/* Wrapped in @layer base on purpose. Unlayered CSS beats every Tailwind
+   layer, so `p { margin: 0 }` sitting outside a layer silently defeats
+   `mt-8` and `mx-auto` on every paragraph on the site. Inside the layer it
+   is a default again, which is all it was ever meant to be. */
+@layer base {
+  *,
+  *::before,
+  *::after { box-sizing: border-box; }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  scroll-behavior: smooth;
-}
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    /* Mobile Safari and Chrome inflate text in blocks they judge too narrow,
+       independently of the viewport meta. The type here is already sized for
+       a phone, and letting the browser enlarge it is what silently pushes a
+       fixed-width row past the screen edge. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
 
-body {
-  margin: 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: 1.0625rem;
-  line-height: 1.65;
-  font-weight: 400;
-  overflow-x: clip;
-}
+  body {
+    margin: 0;
+    /* The clip is a safety net, not the layout. Everything below is sized to
+       fit; this only catches a rounding error rather than hiding a mistake,
+       and it is on both elements because a child can overflow either. */
+    overflow-x: clip;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    font-weight: 400;
+    overflow-x: clip;
+  }
 
-h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
-p { margin: 0; text-wrap: pretty; }
-img, svg, video { display: block; max-width: 100%; }
+  h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+  p { margin: 0; text-wrap: pretty; }
+  img, svg, video { display: block; max-width: 100%; }
 
-::selection { background: var(--color-crimson); color: #fff; }
+  ::selection { background: var(--color-crimson); color: #fff; }
 
-:focus-visible {
-  outline: 2px solid var(--color-crimson);
-  outline-offset: 3px;
-  border-radius: 2px;
+  :focus-visible {
+    outline: 2px solid var(--color-crimson);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
 }
 
 /* Lenis owns the scroll position; let it. */
@@ -111,59 +155,81 @@ html.lenis, html.lenis body { height: auto; }
    wrong.
    ------------------------------------------------------------------ */
 
-/* The small caps line that opens most blocks. */
-.u-eyebrow {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  line-height: 1.4;
-}
+/* In @layer components so a utility on the element still wins: a
+   `leading-[0.98]` next to `.u-serif` should change the leading, and
+   unlayered these classes would quietly outrank it. */
+@layer components {
+  /* The small caps line that opens most blocks. */
+  .u-eyebrow {
+    font-family: var(--font-sans);
+    /* 13px on phones, 12px once there is room for it. Uppercase at 12px
+       with this much tracking is legible on a desktop and marginal in a
+       hand, and the hand is the common case here. */
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+  @media (min-width: 768px) {
+    .u-eyebrow { font-size: 0.75rem; }
+  }
 
-/* The grotesque, at display size. Tracking tightens as it grows. */
-.u-grotesk {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  line-height: 1.06;
-  letter-spacing: -0.03em;
-}
+  /* Interface weight: list rows, card titles, nav. */
+  .u-grotesk {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+  }
 
-.u-grotesk-black {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: -0.045em;
-}
+  /* The wordmark cut. Geometric caps and bowls tighten as they grow, so
+     the tracking comes off hard at this size. */
+  .u-grotesk-black {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+  }
 
-/* The editorial voice. */
-.u-serif {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  line-height: 1.14;
-  letter-spacing: -0.015em;
-}
+  /* Display. Heavy on purpose: a geometric sans has no stroke contrast,
+     so a display line that is not weighted just looks like large body
+     copy. */
+  .u-display {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
 
-.u-serif-italic {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-}
+  /* The emphasised half of a headline. Weight and colour do the work the
+     italic used to do. */
+  .u-display-strong {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+  }
 
-/* Numbers that have to line up across a row of stats. */
-.u-figure {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.04em;
-  line-height: 0.88;
-}
+  /* Numbers that have to line up across a row of stats. */
+  .u-figure {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-variant-numeric: lining-nums;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
+  }
 
-.u-shell {
-  width: 100%;
-  max-width: var(--shell);
-  margin-inline: auto;
-  padding-inline: var(--pad);
+  /* Padding never falls below the safe area. `viewportFit: cover` in the
+     viewport metadata deliberately extends the layout under the rounded
+     corners and the home indicator, which buys an edge-to-edge film and
+     costs a gutter unless the insets are added back here. */
+  .u-shell {
+    width: 100%;
+    max-width: var(--shell);
+    margin-inline: auto;
+    padding-left: max(var(--pad), env(safe-area-inset-left));
+    padding-right: max(var(--pad), env(safe-area-inset-right));
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -262,6 +328,126 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ------------------------------------------------------------------
+   The pointer
+
+   A dot that follows the cursor and grows into a labelled pill over
+   anything with something to say. Driven by components/layout/Cursor.tsx,
+   which sets data-state and data-tone and writes the transform.
+
+   The native cursor is only hidden once `.has-cursor` is on the root,
+   and that class is added by the component itself after it has decided
+   the device qualifies. If the script never runs, the normal cursor is
+   still there.
+   ------------------------------------------------------------------ */
+
+.u-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  /* One size drives both axes, so every state is a true circle: growth is
+     the only thing that changes, never the shape. */
+  height: var(--cursor-size);
+  width: var(--cursor-size);
+  --cursor-size: 30px;
+  border-radius: 50%;
+  /* Translucent at rest so a 30px disc sitting on the pointer never hides
+     the word underneath it. */
+  background: color-mix(in oklab, var(--color-ink) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-ink) 30%, transparent);
+  pointer-events: none;
+  will-change: transform;
+  transition:
+    --cursor-size 0.34s var(--ease-out-expo),
+    height 0.34s var(--ease-out-expo),
+    width 0.34s var(--ease-out-expo),
+    background-color 0.34s var(--ease-out-expo),
+    border-color 0.34s var(--ease-out-expo),
+    opacity 0.25s linear;
+}
+
+.has-cursor .u-cursor { display: flex; }
+
+/* Anything clickable: the same circle, larger and quieter, so it reads as
+   the pointer opening up rather than as a different object arriving. */
+.u-cursor[data-state="interactive"] {
+  --cursor-size: 68px;
+  background: color-mix(in oklab, var(--color-ink) 12%, transparent);
+  border-color: color-mix(in oklab, var(--color-ink) 22%, transparent);
+}
+
+/* With a label: larger again and filled, but still a circle. The label
+   wraps inside it rather than stretching it into a pill. */
+.u-cursor[data-state="labelled"] {
+  --cursor-size: 116px;
+  background: var(--color-ink);
+  border-color: transparent;
+}
+.u-cursor[data-state="labelled"][data-tone="crimson"] { background: var(--color-crimson); }
+
+/* Over a dark band the whole thing flips, so the circle is always the
+   opposite of what it is sitting on. The crimson fill is left alone: it
+   reads on paper and on black equally. */
+.u-cursor[data-invert] {
+  background: color-mix(in oklab, var(--color-paper) 22%, transparent);
+  border-color: color-mix(in oklab, var(--color-paper) 34%, transparent);
+}
+.u-cursor[data-invert][data-state="interactive"] {
+  background: color-mix(in oklab, var(--color-paper) 14%, transparent);
+  border-color: color-mix(in oklab, var(--color-paper) 26%, transparent);
+}
+.u-cursor[data-invert][data-state="labelled"] {
+  background: var(--color-paper);
+  border-color: transparent;
+}
+.u-cursor[data-invert][data-state="labelled"] .u-cursor-label { color: var(--color-ink); }
+.u-cursor[data-invert][data-state="labelled"][data-tone="crimson"] {
+  background: var(--color-crimson);
+}
+.u-cursor[data-invert][data-state="labelled"][data-tone="crimson"] .u-cursor-label {
+  color: var(--color-paper);
+}
+
+.u-cursor-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  /* Wraps, so a two-word label stacks inside the circle instead of
+     forcing it wider than it is tall. */
+  max-width: 74%;
+  color: var(--color-paper);
+  opacity: 0;
+  transition: opacity 0.18s linear;
+}
+.u-cursor[data-state="labelled"] .u-cursor-label { opacity: 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.has-cursor,
+  html.has-cursor *,
+  html.has-cursor a,
+  html.has-cursor button { cursor: none; }
+
+  /* Anything that still needs a real caret or a resize handle keeps it.
+     A modal <dialog> renders in the top layer, above every z-index, so the
+     replacement cursor cannot reach it. Hiding the native one there would
+     leave no pointer at all. */
+  html.has-cursor input,
+  html.has-cursor textarea,
+  html.has-cursor select,
+  html.has-cursor dialog,
+  html.has-cursor dialog *,
+  html.has-cursor iframe,
+  html.has-cursor [data-native-cursor] { cursor: auto; }
+}
+
+/* ------------------------------------------------------------------
    Marquee
 
    Two copies of the track, translated by exactly half its width, so
@@ -292,6 +478,10 @@ html.lenis, html.lenis body { height: auto; }
     clip-path: none !important;
   }
   .u-marquee-track { animation: none; transform: none; }
+  /* Cursor.tsx refuses to mount under reduced motion, so this is only a
+     belt-and-braces guard for the class lingering after a preference change. */
+  .u-cursor { display: none !important; }
+  html.has-cursor, html.has-cursor * { cursor: auto !important; }
   *,
   *::before,
   *::after {

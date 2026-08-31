@@ -1,166 +1,121 @@
 /**
- * The eleven schools, shaped for the majors list.
+ * Featured programmes.
  *
- * One entry per school, each with the degrees it awards, a one-paragraph
- * description and a portrait image. The list component reads nothing else, so
- * adding a school is one object here.
+ * Not the school list. Anyone can find "B.Tech Computer Science" by opening
+ * jecrcuniversity.edu.in, and a list of eleven school names says nothing a
+ * hundred other universities could not say. These are the degrees that exist
+ * here and largely nowhere else in the state: the ones co-designed with, and
+ * co-branded by, the firms that go on to hire from them.
  *
- * `image` should be portrait (roughly 3:4). The figure crops to that ratio, and
- * a landscape source will letterbox.
+ * Every entry below is taken verbatim from the programme list on JECRC's own
+ * application portal. Do not invent partners.
+ *
+ * Eight, not fourteen. The list is an argument, not an index: past about
+ * eight rows a visitor stops reading names and starts scrolling past them,
+ * and the full catalogue is one click away on the portal anyway.
+ *
+ * `image` should be portrait, roughly 3:4. The figure crops to that ratio.
  */
 
-export type School = {
+export type Programme = {
   slug: string;
+  /** The short name shown in the list. */
   name: string;
-  /** Degrees awarded, as one line. Sits under the name when the row opens. */
-  degrees: string[];
-  description: string;
+  /** The full award, as the portal words it. */
+  award: string;
+  /** Industry partner, if the degree carries one. Rendered as the badge. */
+  partner?: string;
+  school: string;
+  /** Why this one and not a generic equivalent. One sentence, no adjectives. */
+  why: string;
   image: string;
-  campuses: string[];
-  href: string;
 };
 
-const APPLY_JAIPUR = "https://jecrcuapplication.jecrcuniversity.edu.in/application-form";
-
-export const SCHOOLS: School[] = [
+export const PROGRAMMES: Programme[] = [
   {
-    slug: "engineering-technology",
-    name: "Engineering and Technology",
-    degrees: ["B.Tech", "M.Tech", "Ph.D."],
-    description:
-      "Computer science, artificial intelligence and data science, mechanical, civil, electrical and electronics. Dedicated labs for AI, robotics and VLSI, and a coding ecosystem that runs the year round rather than the fortnight before placements.",
-    image: "/media/school-engineering.jpg",
-    campuses: ["Jaipur", "Alwar NCR", "Foundation"],
-    href: "https://jecrcuniversity.edu.in/school-of-engineering-technology/",
-  },
-  {
-    slug: "computer-applications",
-    name: "Computer Applications",
-    degrees: ["BCA", "MCA"],
-    description:
-      "Software written to be used by someone other than the person who wrote it. Cloud, mobile and data engineering, with a great deal of code review in between.",
-    image: "/media/school-computing.jpg",
-    campuses: ["Jaipur", "Alwar NCR"],
-    href: "https://jecrcuniversity.edu.in/school-of-computer-applications/",
-  },
-  {
-    slug: "jaipur-school-of-business",
-    name: "Jaipur School of Business",
-    degrees: ["BBA", "MBA", "Integrated MBA"],
-    description:
-      "Case method, live consulting briefs with Jaipur and NCR firms, and a placement season that opens in the penultimate year rather than the last one.",
-    image: "/media/school-lecture.jpg",
-    campuses: ["Jaipur", "Alwar NCR"],
-    href: "https://jecrcuniversity.edu.in/jaipur-school-of-business/",
-  },
-  {
-    slug: "sciences",
-    name: "Sciences",
-    degrees: ["B.Sc", "M.Sc", "Ph.D."],
-    description:
-      "Physics, chemistry, mathematics and biotechnology, with bench time from the first year and research groups that take undergraduates seriously.",
-    image: "/media/school-sciences.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/school-of-sciences/",
-  },
-  {
-    slug: "allied-health-sciences",
-    name: "Allied Health Sciences",
-    degrees: ["B.Sc", "M.Sc", "Diploma"],
-    description:
-      "Radiology, optometry, nutrition, physiotherapy and medical laboratory technology, taught alongside the JECRC Medical College Hospital and Research Centre.",
-    image: "/media/stills/s5.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/school-of-allied-health-science/",
-  },
-  {
-    slug: "law",
-    name: "Law",
-    degrees: ["BA LLB", "BBA LLB", "LLM"],
-    description:
-      "A moot court that runs like the real thing, legal aid clinics open to the public, and a curriculum built around drafting and advocacy rather than recitation.",
-    image: "/media/stills/s3.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/school-of-law/",
-  },
-  {
-    slug: "jaipur-school-of-design",
-    name: "Jaipur School of Design",
-    degrees: ["B.Des", "M.Des"],
-    description:
-      "Fashion, interior, jewellery and communication design, taught in studios that stay open late because the work does not fit inside a timetable.",
-    image: "/media/school-robotics.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/jaipur-school-of-design/",
-  },
-  {
-    slug: "mass-communication",
-    name: "Jaipur School of Mass Communication",
-    degrees: ["BA JMC", "MA JMC"],
-    description:
-      "Journalism, film, advertising and digital media, with a working newsroom, an edit suite and a broadcast studio students book for themselves.",
-    image: "/media/stills/s7.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/jaipur-school-of-mass-communication/",
-  },
-  {
-    slug: "humanities-social-sciences",
-    name: "Humanities and Social Sciences",
-    degrees: ["BA", "MA", "Ph.D."],
-    description:
-      "English, psychology, political science and sociology, taken seriously as disciplines in their own right and as the ground every other school stands on.",
-    image: "/media/stills/s2.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/school-of-humanities-social-sciences/",
-  },
-  {
-    slug: "jaipur-school-of-economics",
-    name: "Jaipur School of Economics",
-    degrees: ["BA Economics", "MA Economics"],
-    description:
-      "Econometrics, public policy and development economics, with the analytics training that sends graduates into policy and research roles rather than back to theory.",
+    slug: "semiconductor-chip-design",
+    name: "Semiconductor and Chip Design",
+    award: "B.Tech. Electronics and Communication Engineering",
+    partner: "Truechip",
+    school: "Engineering and Technology",
+    why: "Verification IP is written here on the same tooling the industry ships with, in a country that is building its fabs now rather than later.",
     image: "/media/school-electronics.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/jaipur-school-of-economics/",
   },
   {
-    slug: "hospitality",
-    name: "Hospitality",
-    degrees: ["BHM", "Diploma"],
-    description:
-      "Front-of-house and kitchen training on working service floors, taught by people who have run them, with placements across hotel groups and event operators.",
-    image: "/media/stills/s8.jpg",
-    campuses: ["Jaipur"],
-    href: "https://jecrcuniversity.edu.in/school-of-hospitality/",
+    slug: "generative-ai",
+    name: "Generative AI",
+    award: "B.Tech. Computer Science and Engineering",
+    partner: "L&T EduTech",
+    school: "Engineering and Technology",
+    why: "The syllabus is set by the engineering firm that will interview you, and it is revised on their release cycle rather than a five-year academic one.",
+    image: "/media/school-computing.jpg",
+  },
+  {
+    slug: "cyber-security",
+    name: "Cyber Security",
+    award: "B.Tech. Computer Science and Engineering",
+    partner: "EC-Council, USA",
+    school: "Engineering and Technology",
+    why: "You graduate with the international certifications recruiters actually screen for, sat during the degree rather than after it.",
+    image: "/media/stills/s7.jpg",
+  },
+  {
+    slug: "fintech-ai",
+    name: "FinTech and AI",
+    award: "B.Tech. Computer Science and Engineering",
+    partner: "Paytm and Zell",
+    school: "Engineering and Technology",
+    why: "Payments infrastructure taught by the company that built India's, with the accounting rigour bolted on rather than assumed.",
+    image: "/media/school-engineering.jpg",
+  },
+  {
+    slug: "electric-vehicles",
+    name: "Electric Vehicles",
+    award: "B.Tech. Mechanical Engineering",
+    school: "Engineering and Technology",
+    why: "Battery packs, motors and thermal management on a bench, in the decade the entire Indian drivetrain is being replaced.",
+    image: "/media/school-robotics.jpg",
+  },
+  {
+    slug: "health-informatics",
+    name: "Health Informatics",
+    award: "BCA Health Informatics",
+    school: "Computer Applications",
+    why: "Clinical systems taught next door to a working medical college and hospital, which is the part nobody else in Jaipur can offer.",
+    image: "/media/stills/s5.jpg",
+  },
+  {
+    slug: "forensic-science",
+    name: "Forensic Science",
+    award: "B.Sc. (Hons.) Forensic Science",
+    school: "Sciences",
+    why: "Wet lab, evidence handling and courtroom procedure, taught alongside a law school that runs a real moot court.",
+    image: "/media/school-sciences.jpg",
+  },
+  {
+    slug: "game-art-animation",
+    name: "Game Art and Animation",
+    award: "B.Des. Game Art and Animation",
+    school: "Jaipur School of Design",
+    why: "A design degree pointed at a studio pipeline, in a city with a jewellery and craft tradition to steal from.",
+    image: "/media/stills/s6.jpg",
   },
 ];
 
-export const SCHOOLS_APPLY = APPLY_JAIPUR;
-
-/** The things students do here that are not a degree. */
-export const OPPORTUNITIES = [
-  {
-    name: "JU MakerSpace",
-    body: "A student-run prototyping floor for IoT, robotics and 3D printing. Ideas in, working objects out.",
-  },
-  {
-    name: "JECRC Incubation Centre",
-    body: "Mentorship, seed support and desk space for student ventures. Two hundred have been incubated so far.",
-  },
-  {
-    name: "National ISRO Science Exhibition",
-    body: "A national space-science exhibition hosted on campus in collaboration with ISRO.",
-  },
-  {
-    name: "National Healthcare Hackathon",
-    body: "Clinicians set the brief, students build against it over a weekend, and the best builds get taken further.",
-  },
-  {
-    name: "Office of International Affairs",
-    body: "Exchange, semester-abroad and IAESTE placements through the Global Outreach Cell.",
-  },
-  {
-    name: "Renaissance",
-    body: "Three days, one main stage, booked and budgeted and lit and run end to end by students.",
-  },
-];
+/** Named on the application portal. Rendered as the partner marquee. */
+export const PARTNERS = [
+  "L&T EduTech",
+  "TCS",
+  "IBM",
+  "Microsoft",
+  "Paytm",
+  "Deloitte",
+  "Truechip",
+  "EC-Council, USA",
+  "Xebia",
+  "Samatrix.io",
+  "Kalvium",
+  "Zell Education",
+  "ISDC",
+  "AWS",
+] as const;

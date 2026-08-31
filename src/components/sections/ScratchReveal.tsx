@@ -1,52 +1,78 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { APPLY_LINKS } from "@/lib/content/universities";
 import { ArrowRight } from "@/components/ui/Icons";
 
 /**
  * The scratch band.
  *
- * A rebuild of the reveal on the arts.vcu.edu hero, measured off the live page
- * by instrumenting its canvas rather than guessing at it.
+ * A collage sits at the bottom of the stack. Over it lies a canvas whose CSS
+ * background is white and whose blend mode is `screen`. Screen against white is
+ * white, so the band reads as blank paper; paint BLACK into the canvas and
+ * screen against black is the backdrop, so wherever the brush has been, the
+ * collage shows through. No masks, no clip paths, no second copy of the images.
  *
- * How it works. A collage sits at the bottom of the stack. Over it lies a
- * canvas whose CSS background is white and whose blend mode is `screen`. Screen
- * against white is white, so the band reads as blank paper. Paint BLACK into
- * the canvas and screen against black is the backdrop, so wherever the brush
- * has been, the collage shows through. No masks, no clip paths, no second copy
- * of the images.
+ * The brush is a core disc of about 52px with a dozen small satellites strung
+ * out VERTICALLY, radii five to thirteen, all breathing on one slow phase. The
+ * vertical string is what gives the reveal ragged top and bottom edges and
+ * clean horizontal sweeps.
  *
- * The brush is the part worth copying exactly. It is not one circle: it is a
- * core disc of roughly 52px with a dozen small satellites strung out
- * VERTICALLY around it, radii five to thirteen. The source's own draw calls
- * gave every satellite the same x as the core, which is why the revealed shapes
- * have ragged top and bottom edges and clean horizontal sweeps. All the radii
- * breathe on one slow phase, so a stationary cursor keeps opening the hole
- * instead of freezing.
+ * Two things it deliberately does NOT do:
  *
- * Everything else follows from that: interpolate between pointer samples so a
- * fast flick does not leave gaps, wash the whole canvas with a very low alpha
- * white each frame so the trail closes over about four seconds, and run a
- * wandering path when nobody has touched the band yet, since a reveal nobody
- * discovers is not a feature.
+ *   - It does not heal. An earlier pass washed the canvas with a low-alpha
+ *     white each frame so the trail closed up behind you. Scratching something
+ *     that repairs itself is a nervous tic, not an interaction.
+ *   - It does not scratch itself. There is no idle path wandering across the
+ *     band. The visitor is the one holding the coin.
+ *
+ * On a touchscreen none of that is available. A finger dragged across the band
+ * scrolls the page, and taking that away with `touch-action: none` would trap
+ * the visitor inside a decorative section. So a coarse pointer gets the honest
+ * equivalent instead: the sheet opens on scroll, from the top down, as the band
+ * travels through the viewport. Same reveal, driven by the only gesture a phone
+ * actually has here.
+ *
+ * On a fine pointer it keeps score. A coarse occupancy grid records which cells
+ * the brush has touched, and once enough of the band is open the rest goes.
+ *
+ * How that last move happens matters. Fading the canvas out looks like the
+ * obvious answer and is wrong: the canvas is `screen` blended over white, so
+ * dropping its opacity lifts the ALREADY-scratched areas back toward white on
+ * the way down before they return at zero. The picture you had disappears and
+ * then comes back, which is exactly the flinch you feel.
+ *
+ * So the canvas never changes opacity. It floods: a low-alpha black is painted
+ * over the whole bitmap each frame until the sheet is black everywhere.
+ * Painting black over black is a no-op, so what you already opened does not
+ * move at all, and the rest arrives from where it stood.
  */
 
-/** Alpha of the white wash painted over the canvas each frame. */
-const HEAL = 0.014;
 /** Core brush radius, before the breathing modulation. */
 const CORE = 52;
 const SATELLITES = 12;
 /** How far up and down the satellites string out from the core. */
 const SPREAD = 68;
+/** Occupancy grid, in cells. Coarse on purpose: this is a progress bar. */
+const COLS = 26;
+const ROWS = 14;
+/** Fraction of the grid that has to be opened before the rest falls away. */
+const THRESHOLD = 0.42;
+/**
+ * Per-frame alpha of the black flood once the threshold is reached. Coverage
+ * goes 1 - (1 - a)^n, so 0.055 is opaque in about a second at 60fps.
+ */
+const FLOOD = 0.055;
+
+const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 
 type Sat = { offset: number; radius: number; phase: number };
 
 const makeSatellites = (): Sat[] =>
   Array.from({ length: SATELLITES }, (_, i) => {
-    // Deterministic rather than random: the brush should look the same on
-    // every load, and a seeded shape is easier to tune than a lucky one.
+    // Deterministic rather than random: the brush should look the same on every
+    // load, and a seeded shape is easier to tune than a lucky one.
     const t = (i + 1) / (SATELLITES + 1);
     const swing = Math.sin(t * Math.PI * 2.7);
     return {
@@ -59,6 +85,8 @@ const makeSatellites = (): Sat[] =>
 export default function ScratchReveal({ images }: { images: string[] }) {
   const section = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const [cleared, setCleared] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const sec = section.current;
@@ -68,34 +96,125 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     const ctx = cv.getContext("2d");
     if (!ctx) return;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Nothing to scratch: hand over the picture and skip the apparatus. The
+      // sheet is painted out rather than hidden, so the same code path draws
+      // it either way. Deferred a frame so this is not a synchronous setState
+      // in an effect body, which would cascade a render on every mount.
+      const paint = () => {
+        const r = sec.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        cv.width = Math.round(r.width * dpr);
+        cv.height = Math.round(r.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, r.width, r.height);
+      };
+      const frame = requestAnimationFrame(() => {
+        paint();
+        setCleared(true);
+        setProgress(1);
+      });
+      window.addEventListener("resize", paint);
+      return () => {
+        cancelAnimationFrame(frame);
+        window.removeEventListener("resize", paint);
+      };
+    }
+
+    if (coarse) {
+      // Scroll-driven. The band opens top down as it crosses the viewport, and
+      // holds whatever it has opened: a reveal that closed again on the way
+      // back up would undo itself every time the visitor scrolled past.
+      let opened = 0;
+      let frame = 0;
+
+      const paint = () => {
+        frame = 0;
+        const r = sec.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const span = r.height + vh;
+        const p = clamp01((vh - r.top) / span);
+        // Fully open by the time the band is halfway through, so the collage
+        // is there to be looked at rather than still arriving as it leaves.
+        const want = clamp01(p / 0.55);
+        if (want <= opened) return;
+        opened = want;
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = r.width;
+        const h = r.height;
+        if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+          cv.width = Math.round(w * dpr);
+          cv.height = Math.round(h * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, w, h * opened);
+      };
+
+      const onScroll = () => {
+        if (!frame) frame = requestAnimationFrame(paint);
+      };
+      paint();
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      return () => {
+        cancelAnimationFrame(frame);
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onScroll);
+      };
+    }
+
     const sats = makeSatellites();
+    const grid = new Uint8Array(COLS * ROWS);
+    let opened = 0;
+    let done = false;
 
     let width = 0;
     let height = 0;
-    let dpr = 1;
 
     const resize = () => {
       const r = sec.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = r.width;
       height = r.height;
       cv.width = Math.round(width * dpr);
       cv.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // A resize clears the bitmap. Once the flood has run the answer is the
+      // whole sheet; before that, replay the opened cells rather than losing
+      // the visitor's work.
+      if (done) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, width, height);
+        return;
+      }
+      if (opened) {
+        ctx.fillStyle = "#000";
+        const cw = width / COLS;
+        const ch = height / ROWS;
+        for (let i = 0; i < grid.length; i++) {
+          if (!grid[i]) continue;
+          ctx.fillRect((i % COLS) * cw, Math.floor(i / COLS) * ch, cw + 1, ch + 1);
+        }
+      }
     };
     resize();
 
     const ro = new ResizeObserver(resize);
     ro.observe(sec);
 
-    /** Paint one brush stamp, centred on the given point. */
+    /** Paint one brush stamp and record the cells it covers. */
     const stamp = (x: number, y: number, phase: number) => {
       const breathe = 1 + Math.sin(phase) * 0.09;
-      ctx.fillStyle = "#000";
+      const r = CORE * breathe;
 
+      ctx.fillStyle = "#000";
       ctx.beginPath();
-      ctx.arc(x, y, CORE * breathe, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
 
       for (const s of sats) {
@@ -103,16 +222,32 @@ export default function ScratchReveal({ images }: { images: string[] }) {
         ctx.arc(x, y + s.offset, s.radius * (1 + Math.sin(phase + s.phase) * 0.22), 0, Math.PI * 2);
         ctx.fill();
       }
+
+      if (done || width === 0) return;
+      // Mark the grid over the core's box plus the satellites' vertical reach.
+      const cw = width / COLS;
+      const ch = height / ROWS;
+      const c0 = Math.max(0, Math.floor((x - r) / cw));
+      const c1 = Math.min(COLS - 1, Math.floor((x + r) / cw));
+      const r0 = Math.max(0, Math.floor((y - SPREAD) / ch));
+      const r1 = Math.min(ROWS - 1, Math.floor((y + SPREAD) / ch));
+      for (let row = r0; row <= r1; row++) {
+        for (let col = c0; col <= c1; col++) {
+          const k = row * COLS + col;
+          if (!grid[k]) {
+            grid[k] = 1;
+            opened++;
+          }
+        }
+      }
     };
 
-    // Pointer state. `have` stays false until something actually moves over the
-    // band, which is what keeps the idle path running underneath.
     let px = 0;
     let py = 0;
     let lastX = 0;
     let lastY = 0;
     let have = false;
-    let idle = 0;
+    let dirty = false;
 
     const onPointer = (e: PointerEvent) => {
       const r = sec.getBoundingClientRect();
@@ -123,76 +258,69 @@ export default function ScratchReveal({ images }: { images: string[] }) {
         lastY = py;
         have = true;
       }
-      idle = 0;
+      dirty = true;
     };
+
     sec.addEventListener("pointermove", onPointer, { passive: true });
     sec.addEventListener("pointerdown", onPointer, { passive: true });
     sec.addEventListener("pointerleave", () => { have = false; }, { passive: true });
 
-    if (reduced) {
-      // No loop and no trail: open a wide band across the middle once, so the
-      // collage is visible and the section still reads as designed.
-      const draw = () => {
-        resize();
-        for (let x = -80; x < width + 80; x += 26) stamp(x, height * 0.52, 0);
-      };
-      draw();
-      const onResize = () => draw();
-      window.addEventListener("resize", onResize);
-      return () => {
-        window.removeEventListener("resize", onResize);
-        ro.disconnect();
-        sec.removeEventListener("pointermove", onPointer);
-        sec.removeEventListener("pointerdown", onPointer);
-      };
-    }
-
     let raf = 0;
     let running = false;
     let t = 0;
+    let flooding = false;
+    let floodFrames = 0;
 
     const tick = () => {
       if (!running) return;
       raf = requestAnimationFrame(tick);
-      t += 0.06;
 
-      // Heal: a whisper of white over everything, so old trail closes up.
-      ctx.fillStyle = `rgba(255,255,255,${HEAL})`;
-      ctx.fillRect(0, 0, width, height);
-
-      let x = px;
-      let y = py;
-
-      if (!have || idle > 90) {
-        // Nobody is driving. Wander a wide, slow figure across the band so the
-        // effect announces itself.
-        idle++;
-        const a = t * 0.16;
-        x = width * (0.5 + 0.42 * Math.sin(a));
-        y = height * (0.5 + 0.3 * Math.sin(a * 1.7 + 0.9));
-        if (!have) {
-          lastX = lastX || x;
-          lastY = lastY || y;
+      // Threshold reached: stop taking input and wash the rest of the sheet to
+      // black. Black over black changes nothing, so everything already opened
+      // holds still while the remainder arrives.
+      if (flooding) {
+        ctx.fillStyle = `rgba(0,0,0,${FLOOD})`;
+        ctx.fillRect(0, 0, width, height);
+        floodFrames++;
+        // 1 - (1 - FLOOD)^n passes 0.999 well before this, and one opaque
+        // pass at the end guarantees no residue on a slow frame budget.
+        if (floodFrames > 90) {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, width, height);
+          done = true;
+          running = false;
+          cancelAnimationFrame(raf);
         }
-      } else {
-        idle++;
+        return;
       }
+
+      if (!have || !dirty || done) return;
+
+      dirty = false;
+      t += 0.06;
 
       // Interpolate from the previous point, so a fast flick draws a stroke
       // rather than a dotted line.
-      const dx = x - lastX;
-      const dy = y - lastY;
-      const dist = Math.hypot(dx, dy);
-      const steps = Math.min(24, Math.max(1, Math.round(dist / 14)));
+      const dx = px - lastX;
+      const dy = py - lastY;
+      const steps = Math.min(24, Math.max(1, Math.round(Math.hypot(dx, dy) / 14)));
       for (let i = 1; i <= steps; i++) {
         stamp(lastX + (dx * i) / steps, lastY + (dy * i) / steps, t + i * 0.2);
       }
-      lastX = x;
-      lastY = y;
+      lastX = px;
+      lastY = py;
+
+      const ratio = opened / grid.length;
+      setProgress(Math.min(1, ratio / THRESHOLD));
+      if (ratio >= THRESHOLD) {
+        flooding = true;
+        setCleared(true);
+      }
     };
 
     const io = new IntersectionObserver(
       ([entry]) => {
+        if (done) return;
         if (entry.isIntersecting && !running) {
           running = true;
           raf = requestAnimationFrame(tick);
@@ -223,14 +351,14 @@ export default function ScratchReveal({ images }: { images: string[] }) {
       className="relative isolate overflow-hidden bg-paper"
     >
       {/* ---- the collage, bottom of the stack ---- */}
-      <div aria-hidden className="absolute inset-0 grid grid-cols-3 md:grid-cols-5">
+      <div aria-hidden className="absolute inset-0 grid grid-cols-2 md:grid-cols-4">
         {images.map((src, i) => (
           <div key={src + i} className="relative">
             <Image
               src={src}
               alt=""
               fill
-              sizes="(min-width: 768px) 20vw, 34vw"
+              sizes="(min-width: 768px) 25vw, 50vw"
               className="object-cover"
             />
           </div>
@@ -239,7 +367,8 @@ export default function ScratchReveal({ images }: { images: string[] }) {
 
       {/* ---- the paper, and the brush that takes it away ----
           Screen against the white background is white, so this reads as blank
-          until something paints black into it. */}
+          until something paints black into it. Its opacity is never animated,
+          for the reason in the note at the top of this file. */}
       <canvas
         ref={canvas}
         aria-hidden
@@ -247,26 +376,31 @@ export default function ScratchReveal({ images }: { images: string[] }) {
         style={{ mixBlendMode: "screen" }}
       />
 
+      {/* ---- type protection ----
+          Once the sheet is gone the copy is sitting on photographs. A paper
+          wash across the reading column, fading out before the halfway mark,
+          keeps black type legible without desaturating the reveal itself,
+          which is the whole payoff. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 w-full bg-linear-to-r from-paper via-paper/85 to-transparent md:w-[62%] lg:w-[52%]"
+      />
+
       {/* ---- content ---- */}
       <div className="relative z-10 u-shell py-24 md:py-32 lg:py-40">
-        <p // Tight leading with explicit padding rather than a looser line box:
+        <p
+          // Tight leading with explicit padding rather than a looser line box:
           // the wordmark should sit as low as the grotesque allows, but the
           // descender on the j overflows a sub-1 line box and lands on the
           // statement underneath.
-          className="u-grotesk-black select-none pb-[0.16em] text-[22vw] leading-[0.85] text-ink lg:text-[15.5vw]">
+          className="u-grotesk-black select-none pb-[0.16em] text-[22vw] leading-[0.85] text-ink lg:text-[15.5vw]"
+        >
           jecrc
         </p>
 
-        <p className="u-serif mt-6 max-w-[22ch] text-[9vw] leading-[1.08] text-ink sm:text-[6.5vw] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
-          {/* A white inline background, the same trick the source uses. It is
-              invisible on the paper and becomes a highlight exactly where the
-              brush has opened the collage underneath, which is what keeps the
-              statement readable over a photograph without dimming the reveal.
-              box-decoration-clone so every wrapped line gets its own box. */}
-          <span className="box-decoration-clone bg-paper px-1 -mx-1">
-            Twenty-six years of building people who build things. Find the campus, the school and
-            the year that fits.
-          </span>
+        <p className="u-display mt-6 max-w-[22ch] text-[9vw] leading-[1.06] text-ink sm:text-[6.5vw] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
+          Twenty-six years of building people who build things. Find the campus, the school and
+          the year that fits.
         </p>
 
         <div className="mt-12 flex flex-wrap gap-3">
@@ -282,6 +416,24 @@ export default function ScratchReveal({ images }: { images: string[] }) {
               <ArrowRight className="h-4 w-4" />
             </a>
           ))}
+        </div>
+
+        {/* ---- the prompt, and how far through you are ---- */}
+        <div
+          aria-hidden
+          className="mt-14 flex items-center gap-4 transition-opacity duration-700"
+          style={{ opacity: cleared ? 0 : 1 }}
+        >
+          <span className="u-eyebrow whitespace-nowrap text-quiet">
+            <span className="hidden sm:inline">Scratch to see the place</span>
+            <span className="sm:hidden">Scroll to see the place</span>
+          </span>
+          <span className="h-px w-full max-w-40 bg-ink/15">
+            <span
+              className="block h-px origin-left bg-crimson transition-transform duration-300 ease-out"
+              style={{ transform: `scaleX(${progress})` }}
+            />
+          </span>
         </div>
       </div>
     </section>

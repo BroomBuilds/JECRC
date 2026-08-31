@@ -1,56 +1,50 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ApplyBar from "@/components/layout/ApplyBar";
 import ScrollTour from "@/components/sections/ScrollTour";
-import Campuses from "@/components/sections/Campuses";
 import ScratchReveal from "@/components/sections/ScratchReveal";
 import Ambassador from "@/components/sections/Ambassador";
 import ComingSoon from "@/components/sections/ComingSoon";
 import Majors from "@/components/sections/Majors";
-import Opportunities from "@/components/sections/Opportunities";
-import Outcomes from "@/components/sections/Outcomes";
-import Alumni from "@/components/sections/Alumni";
+import Ledger from "@/components/sections/Ledger";
 import Faq from "@/components/sections/Faq";
-import Admissions from "@/components/sections/Admissions";
 import { TOUR_CAPTIONS } from "@/lib/content/tour";
-import { SCHOOLS } from "@/lib/content/schools";
+import { PROGRAMMES } from "@/lib/content/schools";
 
-/** The collage the scratch band reveals. Ten reads as a wall; five reads as a grid. */
-const SCRATCH_IMAGES = SCHOOLS.slice(0, 10).map((s) => s.image);
+/** The collage the scratch band reveals: all eight, as two rows of four. */
+const SCRATCH_IMAGES = PROGRAMMES.map((p) => p.image);
 
 /**
  * Section order is the argument the page makes:
  *
  *   film        establish the place
- *   campuses    which of the three, before anything else
  *   scratch     the promise, and the only place the visitor plays with it
  *   ambassador  the moment
- *   coming soon what is next
- *   schools     what you would study
- *   life        what you would do besides study
- *   outcomes    what it is worth
- *   alumni      who else did it
+ *   schools     what you would study that you could not study elsewhere
+ *   numbers     what it is worth
+ *   coming soon what is next, once the case for today is made
  *   faq         the objections
- *   admissions  the ask
  *
- * The grounds alternate paper, bone, paper so nothing runs together, and the
- * two black bands, the schools list and the footer, bracket the bottom half.
+ * The ask is not a section. It rides along as a capsule pinned to the bottom
+ * centre, so it is half a click away from anywhere, and it stands down once the
+ * footer arrives with the same three portals laid out full width.
+ *
+ * Grounds alternate paper, bone, paper so nothing runs together; the black
+ * programmes band and the oxblood footer bracket the second half.
  */
 export default function HomePage() {
   return (
     <>
       <Navbar />
+      <ApplyBar />
       <main>
         <ScrollTour captions={TOUR_CAPTIONS} />
-        <Campuses />
         <ScratchReveal images={SCRATCH_IMAGES} />
         <Ambassador />
-        <ComingSoon />
         <Majors />
-        <Opportunities />
-        <Outcomes />
-        <Alumni />
+        <Ledger />
+        <ComingSoon />
         <Faq />
-        <Admissions />
       </main>
       <Footer />
     </>

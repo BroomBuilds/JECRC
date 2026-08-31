@@ -1,35 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Newsreader } from "next/font/google";
+import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/layout/SmoothScroll";
 import Reveal from "@/components/layout/Reveal";
+import Cursor from "@/components/layout/Cursor";
 import { BRAND, SITE_URL } from "@/lib/content/site";
 import { jsonLd } from "@/lib/seo/schema";
 
 /**
- * The pair.
+ * One typeface for the whole site.
  *
- * Archivo is the grotesque: navigation, eyebrows, buttons, the majors list,
- * every figure. It is the closest open face to the Aktiv Grotesk that carries
- * arts.vcu.edu, and unlike most free grotesques it has a genuine 800, which is
- * what the display sizes need.
+ * Hanken Grotesk, 400 to 900, roman only. It is here for the Gotham register:
+ * a geometric skeleton, a tall x-height, flat terminals and wide even-width
+ * capitals, which is what gives that family its institutional, signage-like
+ * authority. Gotham itself is licensed; the usual free stand-in is Montserrat,
+ * which is on every second university site.
  *
- * Newsreader is the editorial voice, standing in for Mercury: sturdy rather
- * than fashionable, and it holds up at both 20px and 90px. Both are variable,
- * so the weight range costs one file each.
+ * Every level of hierarchy comes out of size, weight and tracking rather than
+ * a second face, and nothing on this site is set in italic, so the italic cut
+ * is never requested and never downloaded.
  */
-const archivo = Archivo({
-  variable: "--font-archivo",
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal"],
   display: "swap",
 });
 
@@ -71,10 +66,10 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: [
       {
-        url: "/media/tour/poster.jpg",
+        url: "/opengraph-image.png",
         width: 1200,
-        height: 675,
-        alt: "The JECRC University campus at Sitapura, Jaipur",
+        height: 630,
+        alt: "JECRC, Build Your World. JECRC University Jaipur, Alwar NCR, and JECRC Foundation.",
       },
     ],
   },
@@ -82,7 +77,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${TITLE} | Jaipur and Alwar NCR`,
     description: DESCRIPTION,
-    images: ["/media/tour/poster.jpg"],
+    images: ["/opengraph-image.png"],
   },
   robots: {
     index: true,
@@ -96,6 +91,21 @@ export const metadata: Metadata = {
     },
   },
   formatDetection: { telephone: true, address: false, email: true },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
+  // Named so an answer engine quoting this page can attribute it. The
+  // publisher and the subject are the same organisation here, which is
+  // worth saying out loud rather than leaving to be inferred.
+  other: {
+    "og:locale": "en_IN",
+    "article:publisher": "https://jecrcuniversity.edu.in/",
+  },
 };
 
 export const viewport: Viewport = {
@@ -108,7 +118,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-IN" className={`${archivo.variable} ${newsreader.variable}`}>
+    <html lang="en-IN" className={hanken.variable}>
       <head>
         {/* The tour's first frames are the largest paint on the page and are
             fetched by script, so the connection is warmed before React runs. */}
@@ -122,13 +132,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <a
-          href="#campuses"
+          href="#build"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-crimson focus:px-6 focus:py-3 focus:text-white"
         >
-          Skip the film, go to the campuses
+          Skip the film
         </a>
         <SmoothScroll />
         <Reveal />
+        <Cursor />
         {children}
       </body>
     </html>

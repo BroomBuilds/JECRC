@@ -1,5 +1,5 @@
 /**
- * Derive a white-on-transparent lockup from the brand PNG.
+ * Derive a flat-colour, transparent-background lockup from the brand PNG.
  *
  * The lockup as published sits on an opaque white plate, which is correct on
  * the white navbar and useless over the film: a CSS invert turns the plate
@@ -9,7 +9,7 @@
  * Alpha is taken from the source's darkness, so the crest's hairlines and the
  * type's antialiased edges survive instead of being thresholded into jaggies.
  *
- *   node scripts/make-mono-logo.mjs [in.png] [out.png]
+ *   node scripts/make-mono-logo.mjs [in.png] [out.png] [#hex]
  *
  * Uses the Playwright Chromium already present for visual checks; it is the
  * only image decoder in the toolchain and this runs once per brand refresh.
@@ -21,6 +21,9 @@ import path from "node:path";
 
 const IN = process.argv[2] ?? "public/brand/jecrc-lockup.png";
 const OUT = process.argv[3] ?? "public/brand/jecrc-lockup-mono.png";
+/** Flat colour to paint the keyed artwork in. Default white, for dark grounds. */
+const INK = (process.argv[4] ?? "#ffffff").replace("#", "");
+const RGB = [0, 2, 4].map((i) => parseInt(INK.slice(i, i + 2), 16));
 
 /**
  * Luma below which a neutral pixel still counts as ink, for the few black
@@ -44,7 +47,7 @@ await page.waitForFunction(() => {
   return img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0;
 });
 
-const dataUrl = await page.evaluate(({ DARK_FLOOR, CHROMA_GAIN }) => {
+const dataUrl = await page.evaluate(({ DARK_FLOOR, CHROMA_GAIN, RGB }) => {
   const img = document.getElementById("src");
   const canvas = document.createElement("canvas");
   canvas.width = img.naturalWidth;
@@ -62,9 +65,9 @@ const dataUrl = await page.evaluate(({ DARK_FLOOR, CHROMA_GAIN }) => {
     const b = px[i + 2];
     const a = px[i + 3];
 
-    px[i] = 255;
-    px[i + 1] = 255;
-    px[i + 2] = 255;
+    px[i] = RGB[0];
+    px[i + 1] = RGB[1];
+    px[i + 2] = RGB[2];
 
     // The artwork sits entirely on the opaque plate, so any pixel that is not
     // fully opaque belongs to the plate's own antialiased outline. Those
@@ -90,7 +93,7 @@ const dataUrl = await page.evaluate(({ DARK_FLOOR, CHROMA_GAIN }) => {
 
   ctx.putImageData(frame, 0, 0);
   return canvas.toDataURL("image/png");
-}, { DARK_FLOOR, CHROMA_GAIN });
+}, { DARK_FLOOR, CHROMA_GAIN, RGB });
 
 await browser.close();
 

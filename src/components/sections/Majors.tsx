@@ -2,31 +2,29 @@
 
 import Image from "next/image";
 import { useId, useState } from "react";
-import { SCHOOLS } from "@/lib/content/schools";
+import { PROGRAMMES } from "@/lib/content/schools";
 import { cn } from "@/lib/utils/cn";
-import { ArrowRight, ChevronDown } from "@/components/ui/Icons";
+import { ArrowUpRight, ChevronDown } from "@/components/ui/Icons";
 
 /**
- * Explore our schools.
+ * Explore our programmes.
  *
- * A rebuild of the majors list on arts.vcu.edu, measured off the live page
- * rather than eyeballed. The mechanics there, and here:
+ * The list mechanic is the one from arts.vcu.edu, measured off the live page:
+ * a black band where every row sits at opacity 0.2 and comes to 1 when it is
+ * active, each row owning a portrait figure pinned to its right that fades in
+ * while the image inside it slides 100px. Two transforms on two elements, both
+ * 0.4s: the frame arrives, the picture catches up. One element doing both reads
+ * as a slide; two reads as a reveal.
  *
- *   - Black band. Every row sits at opacity 0.2 and comes to 1 when it is the
- *     active one. That single move is what makes the list read as a dimmer
- *     rather than a menu.
- *   - Each row owns a portrait figure pinned to the right of the band,
- *     vertically centred on the row, at opacity 0. On activation the figure
- *     fades to 1 while the image inside it slides from 100px to 0. Two
- *     transforms on two elements, both 0.4s: the frame arrives, the picture
- *     catches up. One element doing both reads as a slide; two reads as a
- *     reveal.
- *   - Clicking a row opens it as an accordion, and the figure drops to 0.2 so
- *     the copy underneath stays readable.
+ * What is NOT theirs is the content. This is deliberately not a list of school
+ * names, because "School of Engineering" is a thing every university has and a
+ * thing anyone can find on jecrcuniversity.edu.in in ten seconds. These are the
+ * degrees that carry an industry partner in the award itself, which is the one
+ * claim the group can make that its neighbours cannot.
  *
- * Active state is hover on a pointer device and open state on click, so the
- * whole thing works without a pointer: every row is a real button, the panel is
- * a real region, and keyboard focus drives the same states hover does.
+ * The dim is gated on `(hover: hover)` in CSS: on a touch device there is no
+ * hover, so every row would sit at 0.2 forever and the list would read as
+ * disabled.
  */
 
 /** Matched to the source: figure fade, image slide and row dim all share it. */
@@ -44,27 +42,31 @@ export default function Majors() {
   return (
     <section
       id="schools"
+      data-cursor-invert
       style={{ scrollMarginTop: "6.5rem" }}
-      className="relative overflow-hidden bg-obsidian py-20 text-paper md:py-28"
+      className="relative overflow-hidden bg-obsidian py-20 text-paper md:py-24"
     >
       <div className="u-shell">
-        <h2 className="u-eyebrow text-center text-[15px] font-extrabold tracking-[0.05em] text-paper md:text-[16px]">
-          Explore our schools
-        </h2>
+        <div className="mx-auto max-w-[46ch] text-center">
+          <h2 className="u-eyebrow text-[15px] font-semibold tracking-[0.06em] text-paper md:text-[16px]">
+            Explore our programmes
+          </h2>
+          <p className="mt-6 text-[15.5px] leading-[1.7] text-white/60 md:text-[16.5px]">
+            Not the school list. These are the degrees written with the firms that go on to hire
+            from them, and they carry that partner in the award itself.
+          </p>
+        </div>
 
-        <ul
-          className="relative mt-14 md:mt-20"
-          onMouseLeave={() => setHovered(null)}
-        >
-          {SCHOOLS.map((school) => {
-            const isActive = active === school.slug;
-            const isOpen = open === school.slug;
-            const panelId = `${uid}-${school.slug}`;
+        <ul className="relative mt-12 md:mt-16" onMouseLeave={() => setHovered(null)}>
+          {PROGRAMMES.map((p) => {
+            const isActive = active === p.slug;
+            const isOpen = open === p.slug;
+            const panelId = `${uid}-${p.slug}`;
 
             return (
               <li
-                key={school.slug}
-                onMouseEnter={() => setHovered(school.slug)}
+                key={p.slug}
+                onMouseEnter={() => setHovered(p.slug)}
                 data-majors-row
                 data-active={isActive}
                 className="relative border-t border-white/15 last:border-b"
@@ -75,26 +77,26 @@ export default function Majors() {
                     type="button"
                     aria-expanded={isOpen}
                     aria-controls={panelId}
-                    onFocus={() => setHovered(school.slug)}
+                    onFocus={() => setHovered(p.slug)}
                     onBlur={() => setHovered(null)}
-                    onClick={() => setOpen(isOpen ? null : school.slug)}
+                    onClick={() => setOpen(isOpen ? null : p.slug)}
+                    data-cursor={isOpen ? "Close" : "Open"}
                     className="group relative z-10 grid w-full grid-cols-[1fr_auto] items-center gap-4 py-3.5 text-left md:gap-8 md:py-5"
                   >
-                    <span className="u-grotesk block max-w-[18ch] text-[8vw] leading-[1.06] sm:text-[5vw] lg:max-w-none lg:text-[clamp(2rem,3.1vw,3rem)]">
-                      {school.name}
+                    {/* Name only. The partner is the reason the programme is
+                        on this list, but repeating it under every row turned
+                        the list into a wall of small red type. It reappears in
+                        the open panel, where there is room to read it. */}
+                    <span className="u-grotesk block min-w-0 max-w-[16ch] text-[7.5vw] leading-[1.05] sm:text-[4.6vw] lg:max-w-none lg:text-[clamp(1.9rem,2.9vw,2.85rem)]">
+                      {p.name}
                     </span>
 
-                    <span className="flex items-center gap-4 md:gap-7">
-                      <span className="hidden text-[13px] font-medium tracking-tight text-white/70 lg:inline xl:hidden">
-                        {school.degrees.join(" · ")}
-                      </span>
-                      <ChevronDown
-                        className={cn(
-                          "h-5 w-5 shrink-0 text-white transition-transform duration-500 ease-out-expo",
-                          isOpen && "rotate-180"
-                        )}
-                      />
-                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "h-5 w-5 shrink-0 text-white transition-transform duration-500 ease-out-expo",
+                        isOpen && "rotate-180"
+                      )}
+                    />
                   </button>
                 </h3>
 
@@ -118,13 +120,7 @@ export default function Majors() {
                       transition: `translate ${T} var(--ease-out-expo)`,
                     }}
                   >
-                    <Image
-                      src={school.image}
-                      alt=""
-                      fill
-                      sizes="32rem"
-                      className="object-cover"
-                    />
+                    <Image src={p.image} alt="" fill sizes="32rem" className="object-cover" />
                   </div>
                 </figure>
 
@@ -132,48 +128,33 @@ export default function Majors() {
                 <div
                   id={panelId}
                   role="region"
-                  aria-label={school.name}
+                  aria-label={p.name}
                   inert={!isOpen}
                   className="relative z-10 grid overflow-hidden transition-[grid-template-rows] duration-500 ease-out-expo"
                   style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
                 >
                   <div className="min-h-0">
-                    <div className="grid gap-8 pb-10 pt-2 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:gap-16 md:pb-14 xl:max-w-[58%]">
+                    <div className="grid gap-8 pb-10 pt-2 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] md:gap-14 md:pb-14 xl:max-w-[58%]">
                       <div>
-                        <p className="max-w-[46ch] text-[15px] leading-[1.75] text-white/75">
-                          {school.description}
+                        <p className="max-w-[44ch] text-[15px] leading-[1.75] text-white/75">
+                          {p.why}
                         </p>
                         <a
-                          href={school.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href="#apply"
                           className="u-pill mt-8 text-paper hover:bg-paper hover:text-obsidian"
                         >
-                          Explore {school.name.split(" ")[0]}
-                          <ArrowRight className="h-4 w-4" />
+                          Apply for this
+                          <ArrowUpRight className="h-4 w-4" />
                         </a>
                       </div>
 
                       <div>
-                        <p className="u-eyebrow text-white/50">Degrees</p>
-                        <ul className="mt-4 flex flex-col gap-2">
-                          {school.degrees.map((d) => (
-                            <li key={d} className="text-[15px] font-medium text-paper">
-                              {d}
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="u-eyebrow mt-8 text-white/50">Offered at</p>
-                        <ul className="mt-4 flex flex-wrap gap-2">
-                          {school.campuses.map((c) => (
-                            <li
-                              key={c}
-                              className="rounded-full border border-white/25 px-3.5 py-1.5 text-[12px] font-medium"
-                            >
-                              {c}
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="u-eyebrow text-white/45">The award</p>
+                        <p className="mt-3 text-[15px] font-medium leading-snug text-paper">
+                          {p.award}
+                        </p>
+                        <p className="u-eyebrow mt-7 text-white/45">School</p>
+                        <p className="mt-3 text-[14px] text-white/70">{p.school}</p>
                       </div>
                     </div>
                   </div>
@@ -182,6 +163,7 @@ export default function Majors() {
             );
           })}
         </ul>
+
       </div>
     </section>
   );

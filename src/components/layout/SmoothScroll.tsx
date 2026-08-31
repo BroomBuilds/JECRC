@@ -36,6 +36,18 @@ export default function SmoothScroll() {
 
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey) return;
+
+      // The crest goes back to the very top and writes nothing to the address
+      // bar. It cannot be an anchor: the branch below puts the hash into
+      // history, and `#top` is a poor thing to leave on the URL of someone who
+      // only wanted to start again.
+      const toTop = (event.target as HTMLElement)?.closest?.("[data-scroll-top]");
+      if (toTop) {
+        event.preventDefault();
+        lenis.scrollTo(0, { duration: 1.2 });
+        return;
+      }
+
       const anchor = (event.target as HTMLElement)?.closest?.('a[href^="#"]') as HTMLAnchorElement | null;
       if (!anchor) return;
 

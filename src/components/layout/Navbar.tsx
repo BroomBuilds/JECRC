@@ -2,74 +2,76 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import {
-  MOBILE_NAV,
-  PRIMARY_LEFT,
-  PRIMARY_RIGHT,
-  UTILITY_LEFT,
-  UTILITY_RIGHT,
-  type NavItem,
-} from "@/lib/content/navigation";
+import { MOBILE_NAV, PRIMARY, UTILITY, type NavItem } from "@/lib/content/navigation";
 import { LOGO, SOCIAL } from "@/lib/content/site";
 import { useTourComplete } from "@/lib/hooks/useTourComplete";
 import { cn } from "@/lib/utils/cn";
 import ApplyMenu from "@/components/ui/ApplyMenu";
 import { SOCIAL_ICONS } from "@/components/ui/Icons";
+import ScrollTopButton from "@/components/ui/ScrollTopButton";
 
 /**
- * The navigation, rebuilt from jecrcuniversity.edu.in.
+ * The navigation, from jecrcuniversity.edu.in and cut down to what one page
+ * needs.
  *
- * Same two-strip anatomy as the live site: a red utility bar over a white
- * primary bar, with the crest in a white shield that hangs into the page
- * through a notch. The shield is a clip-path rather than an image so it stays
- * crisp at any density and takes the same shadow as the bars.
+ * The anatomy is theirs: a red utility strip over a white primary strip, with
+ * the crest in a white shield hanging through a notch between them. The shield
+ * is a clip-path rather than an image so it stays crisp at any density.
  *
- * The one behavioural difference: it does not exist while the scroll tour is
- * playing. The film gets a clean frame, and the bar drops in on the beat the
- * tour ends (see useTourComplete).
+ * The contents are not theirs. Their bar carries a full site's menu; this
+ * fronts one page, so it carries the social marks, three in-page jumps and the
+ * apply button, and nothing else. A directory belongs in the footer.
+ *
+ * It does not exist while the scroll tour is playing: the film gets a clean
+ * frame, and the bar drops in on the beat the tour ends.
  */
 
 /** Where the shield's flat edge stops and the point begins. */
 const SHIELD_CLIP = "polygon(0 0, 100% 0, 100% 76%, 50% 100%, 0 76%)";
 
 /**
- * The chrome runs wider and with tighter gutters than the editorial shell
- * below it, the way the live navbar does.
- *
- * Three grid columns rather than flex with a spacer. Two `minmax(0, 1fr)`
- * tracks are always equal, so the fixed centre column is exactly on the
- * viewport centre and the crest can never drift onto a link. Flexbox does not
- * give that: `flex-1` sides refuse to shrink below their nowrap content, so
- * the wider group pushes the centre off-axis, which is precisely how the first
- * pass ended up with the crest sitting on top of "Campus Life".
+ * The chrome runs wider and with tighter gutters than the editorial shell, the
+ * way the live navbar does. Three grid columns rather than flex with a spacer:
+ * two `minmax(0, 1fr)` tracks are always equal, so the fixed centre column sits
+ * exactly on the viewport centre and the crest can never drift onto a link.
  */
 const BAR =
-  "mx-auto grid w-full max-w-[1800px] grid-cols-[minmax(0,1fr)_280px_minmax(0,1fr)] items-center px-5 md:px-8 lg:px-6 2xl:px-10";
+  "mx-auto grid w-full max-w-[1800px] grid-cols-[minmax(0,1fr)_280px_minmax(0,1fr)] items-center px-[max(1.25rem,env(safe-area-inset-left))] md:px-8 lg:px-6 2xl:px-10";
 
 /** Mobile has no centre column: the lockup lives in the bar itself. */
-const BAR_MOBILE = "mx-auto flex w-full max-w-[1800px] items-center justify-between px-5 md:px-8";
+const BAR_MOBILE =
+  "mx-auto flex w-full max-w-[1800px] items-center justify-between px-[max(1.25rem,env(safe-area-inset-left))] md:px-8";
 
-function UtilityLink({ item }: { item: NavItem }) {
-  return (
-    <a
-      href={item.href}
-      {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="u-underline whitespace-nowrap text-[13px] font-semibold tracking-[-0.01em] text-white/90 transition-colors duration-300 hover:text-white 2xl:text-[15px]"
-    >
-      {item.label}
-    </a>
-  );
-}
+const rel = (item: NavItem) =>
+  item.external ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
-function PrimaryLink({ item }: { item: NavItem }) {
+function SocialRow({ tone }: { tone: "light" | "dark" }) {
+  // Negative margin so the 44px hit areas do not push the row wider than the
+  // marks look. The icon keeps its size; only the target around it grows.
   return (
-    <a
-      href={item.href}
-      {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="u-underline whitespace-nowrap text-[13px] font-bold tracking-[-0.015em] text-ink transition-colors duration-300 hover:text-crimson 2xl:text-[15px]"
-    >
-      {item.label}
-    </a>
+    <ul className="-mx-1.5 flex items-center">
+      {SOCIAL.map((s) => {
+        const Icon = SOCIAL_ICONS[s.label as keyof typeof SOCIAL_ICONS];
+        return (
+          <li key={s.label}>
+            <a
+              href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${s.label}, opens in a new tab`}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center transition-colors duration-300",
+                tone === "light"
+                  ? "text-white/85 hover:text-white"
+                  : "text-quiet hover:text-crimson"
+              )}
+            >
+              <Icon className="h-4.5 w-4.5" />
+            </a>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -77,8 +79,8 @@ export default function Navbar() {
   const revealed = useTourComplete("tour");
   const [open, setOpen] = useState(false);
 
-  // A drawer that stays open behind a resize into the desktop layout leaves the
-  // page scroll-locked with nothing on screen to close.
+  // A drawer left open behind a resize into the desktop layout leaves the page
+  // scroll-locked with nothing on screen to close.
   useEffect(() => {
     if (!open) return;
     document.documentElement.style.overflow = "hidden";
@@ -103,41 +105,25 @@ export default function Navbar() {
     >
       {/* ---- red utility strip (desktop) ---- */}
       <div className="hidden bg-crimson lg:block">
-        <div className={`${BAR} h-[46px]`}>
-          <nav aria-label="Secondary" className="flex items-center gap-5 2xl:gap-8">
-            {UTILITY_LEFT.map((item) => (
-              <UtilityLink key={item.label} item={item} />
+        <div className={`${BAR} h-[42px]`}>
+          <nav aria-label="The group" className="flex items-center gap-6">
+            {UTILITY.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                {...rel(item)}
+                className="u-underline flex h-[42px] items-center whitespace-nowrap text-[12.5px] font-medium text-white/85 transition-colors duration-300 hover:text-white"
+              >
+                {item.label}
+              </a>
             ))}
           </nav>
 
-          {/* The crest's column. Wider than the 268px shield so the nearest
-              link on each side never sits flush against its edge. */}
+          {/* The crest's column. */}
           <div aria-hidden />
 
-          <div className="flex items-center justify-end gap-5 2xl:gap-7">
-            <nav aria-label="Utility" className="flex items-center gap-5 2xl:gap-8">
-              {UTILITY_RIGHT.map((item) => (
-                <UtilityLink key={item.label} item={item} />
-              ))}
-            </nav>
-            <ul className="flex items-center gap-3.5 2xl:gap-4">
-              {SOCIAL.map((s) => {
-                const Icon = SOCIAL_ICONS[s.label as keyof typeof SOCIAL_ICONS];
-                return (
-                  <li key={s.label}>
-                    <a
-                      href={s.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${s.label}, opens in a new tab`}
-                      className="block text-white/85 transition-colors duration-300 hover:text-white"
-                    >
-                      <Icon className="h-4.5 w-4.5" />
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="flex items-center justify-end">
+            <SocialRow tone="light" />
           </div>
         </div>
       </div>
@@ -146,7 +132,7 @@ export default function Navbar() {
       <div className="bg-paper shadow-[0_1px_0_rgba(0,0,0,0.06)]">
         {/* Mobile row: lockup left, menu right, no centre column. */}
         <div className={`${BAR_MOBILE} h-[62px] lg:hidden`}>
-          <a href="#top" aria-label="JECRC, back to top">
+          <ScrollTopButton>
             <Image
               src={LOGO.lockup}
               alt="JECRC University and JECRC Medical College Hospital and Research Centre"
@@ -155,7 +141,7 @@ export default function Navbar() {
               priority
               className="h-10 w-auto"
             />
-          </a>
+          </ScrollTopButton>
 
           <button
             type="button"
@@ -181,21 +167,22 @@ export default function Navbar() {
         </div>
 
         {/* Desktop row. */}
-        <div className={`hidden ${BAR} h-[54px] lg:grid`}>
-          <nav aria-label="Primary" className="flex items-center gap-5 2xl:gap-8">
-            {PRIMARY_LEFT.map((item) => (
-              <PrimaryLink key={item.label} item={item} />
+        <div className={`hidden ${BAR} h-[56px] lg:grid`}>
+          <nav aria-label="On this page" className="flex items-center gap-7 2xl:gap-9">
+            {PRIMARY.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                className="u-underline flex h-[44px] items-center whitespace-nowrap text-[14px] font-semibold text-ink transition-colors duration-300 hover:text-crimson 2xl:text-[15px]"
+              >
+                {item.label}
+              </a>
             ))}
           </nav>
 
           <div aria-hidden />
 
-          <div className="flex items-center justify-end gap-5 2xl:gap-7">
-            <nav aria-label="Primary, continued" className="flex items-center gap-5 2xl:gap-8">
-              {PRIMARY_RIGHT.map((item) => (
-                <PrimaryLink key={item.label} item={item} />
-              ))}
-            </nav>
+          <div className="flex items-center justify-end">
             <ApplyMenu tone="chrome" />
           </div>
         </div>
@@ -203,9 +190,7 @@ export default function Navbar() {
 
       {/* ---- crest shield, hanging through the notch ---- */}
       <div className="pointer-events-none absolute inset-x-0 top-0 hidden justify-center lg:flex">
-        <a
-          href="#top"
-          aria-label="JECRC, back to top"
+        <ScrollTopButton
           className="pointer-events-auto flex h-[122px] w-[268px] items-start justify-center bg-paper px-4 pt-2.5 drop-shadow-[0_12px_20px_rgba(0,0,0,0.14)]"
           style={{ clipPath: SHIELD_CLIP }}
         >
@@ -217,7 +202,7 @@ export default function Navbar() {
             priority
             className="h-auto w-full"
           />
-        </a>
+        </ScrollTopButton>
       </div>
 
       {/* ---- mobile drawer ---- */}
@@ -229,41 +214,29 @@ export default function Navbar() {
           open ? "max-h-[85svh] opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <nav aria-label="Mobile" className="mx-auto flex w-full max-w-[1800px] flex-col gap-1 overflow-y-auto border-t border-black/5 px-5 py-5 md:px-8">
-          {/* Apply leads the drawer. The full link list is taller than the
-              panel, so anything below it needs a scroll to reach, and the one
-              thing a visitor opened this menu to do should not. */}
+        <nav
+          aria-label="Mobile"
+          className="mx-auto flex w-full max-w-[1800px] flex-col gap-1 overflow-y-auto border-t border-rule px-[max(1.25rem,env(safe-area-inset-left))] py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:px-8"
+        >
+          {/* Apply leads the drawer: the one thing a visitor opened this menu
+              to do should not need a scroll. */}
           <ApplyMenu tone="chrome" align="left" className="mb-5 self-start" />
 
           {MOBILE_NAV.map((item) => (
             <a
               key={item.label}
               href={item.href}
-              {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              {...rel(item)}
               onClick={() => setOpen(false)}
-              className="border-b border-black/5 py-3.5 text-[15px] font-semibold text-ink transition-colors duration-300 hover:text-crimson"
+              className="flex min-h-[52px] items-center border-b border-rule py-3.5 text-[16px] font-semibold text-ink transition-colors duration-300 hover:text-crimson"
             >
               {item.label}
             </a>
           ))}
-          <ul className="mt-7 flex items-center gap-5 pb-2">
-            {SOCIAL.map((s) => {
-              const Icon = SOCIAL_ICONS[s.label as keyof typeof SOCIAL_ICONS];
-              return (
-                <li key={s.label}>
-                  <a
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${s.label}, opens in a new tab`}
-                    className="block text-ink transition-colors duration-300 hover:text-crimson"
-                  >
-                    <Icon className="h-5 w-5" />
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+
+          <div className="mt-7 pb-2">
+            <SocialRow tone="dark" />
+          </div>
         </nav>
       </div>
     </header>

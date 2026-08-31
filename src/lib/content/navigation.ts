@@ -1,54 +1,41 @@
 /**
- * The navigation, mirroring jecrcuniversity.edu.in exactly: a red utility strip
- * over a white primary strip, with the crest sitting in the notch between them.
+ * The navigation.
+ *
+ * The chrome from jecrcuniversity.edu.in, cut down. Their bar carries a full
+ * site's information architecture because it fronts a full site; this is one
+ * page, so a copy of that menu would be eleven links pointing at four places.
+ *
+ * What is left is the shape, not the contents: a red utility strip carrying the
+ * social marks, and a white primary strip with a handful of in-page jumps and
+ * the apply button. Everything else lives in the footer, where a directory
+ * belongs.
  */
 
 export type NavItem = { label: string; href: string; external?: boolean };
 
-/** Red strip, left of the crest. */
-export const UTILITY_LEFT: NavItem[] = [
-  { label: "About", href: "https://jecrcuniversity.edu.in/overview/", external: true },
-  { label: "JU Initiatives", href: "https://jecrcuniversity.edu.in/ju-creators/", external: true },
-  { label: "Life at JU", href: "https://jecrcuniversity.edu.in/clubs-communities/", external: true },
-  { label: "Career at JU", href: "https://jecrcuniversity.edu.in/careers/", external: true },
+/** Red strip. Anything that leaves the page. */
+export const UTILITY: NavItem[] = [
+  { label: "jecrcuniversity.edu.in", href: "https://jecrcuniversity.edu.in/", external: true },
+  { label: "Alwar NCR", href: "https://jecrcuncr.edu.in/", external: true },
 ];
 
-/** Red strip, right of the crest. */
-export const UTILITY_RIGHT: NavItem[] = [
-  { label: "About JMCH", href: "https://jecrcuniversity.edu.in/jmch/", external: true },
-  { label: "Contact", href: "#admissions" },
-];
-
-/** White strip, left of the crest. */
-export const PRIMARY_LEFT: NavItem[] = [
-  { label: "Admissions", href: "#admissions" },
-  { label: "Campuses", href: "#campuses" },
+/** White strip. In-page only, in the order the sections appear. */
+export const PRIMARY: NavItem[] = [
   { label: "Programmes", href: "#schools" },
-  { label: "Placements", href: "#outcomes" },
-];
-
-/** White strip, right of the crest. */
-export const PRIMARY_RIGHT: NavItem[] = [
-  { label: "Campus Life", href: "#life" },
-  { label: "Alumni", href: "#alumni" },
-  { label: "NCR Campus Alwar", href: "https://jecrcuncr.edu.in/", external: true },
+  { label: "The record", href: "#numbers" },
+  { label: "Questions", href: "#faq" },
 ];
 
 /** Flattened, in reading order, for the mobile drawer. */
-export const MOBILE_NAV: NavItem[] = [
-  ...PRIMARY_LEFT,
-  ...PRIMARY_RIGHT,
-  ...UTILITY_LEFT,
-  ...UTILITY_RIGHT,
-];
+export const MOBILE_NAV: NavItem[] = [...PRIMARY, ...UTILITY];
 
 export const FOOTER_NAV = {
   study: [
     { label: "Programmes", href: "#schools" },
-    { label: "Admissions", href: "#admissions" },
+    { label: "The record", href: "#numbers" },
+    { label: "Questions", href: "#faq" },
     { label: "Scholarships", href: "https://jecrcuniversity.edu.in/scholarship/", external: true },
     { label: "Fee structure", href: "https://jecrcuncr.edu.in/fee-structure", external: true },
-    { label: "Placements", href: "#outcomes" },
   ],
   campuses: [
     { label: "Jaipur campus", href: "https://jecrcuniversity.edu.in/", external: true },
@@ -61,7 +48,7 @@ export const FOOTER_NAV = {
     { label: "Leadership", href: "https://jecrcuniversity.edu.in/leadership/", external: true },
     { label: "Research", href: "https://jecrcuniversity.edu.in/research-at-jecrc-university/", external: true },
     { label: "Incubation centre", href: "https://jecrcincubation.com/", external: true },
+    { label: "Campus life", href: "https://jecrcuniversity.edu.in/clubs-communities/", external: true },
     { label: "Anti-ragging", href: "https://jecrcuniversity.edu.in/anti-ragging/", external: true },
-    { label: "Approvals and compliance", href: "https://jecrcuncr.edu.in/", external: true },
   ],
 } satisfies Record<string, NavItem[]>;
