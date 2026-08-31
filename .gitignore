@@ -42,3 +42,5 @@ next-env.d.ts
 
 # video files
 *.mp4
+
+ref

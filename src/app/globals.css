@@ -1,113 +1,531 @@
 @import "tailwindcss";
 
-/* ------------------------------------------------------------------
-   Royal Palace design system, re-skinned in JECRC's brand colours.
-   Gold → crimson, plum → maroon, ivory → paper.
-   ------------------------------------------------------------------ */
+/* ==================================================================
+   JECRC design system, light
+
+   Paper ground, black type, JECRC red as the one accent. Two bands
+   invert to true black on purpose: the majors list and the footer.
+   That is the arrangement on arts.vcu.edu, and the contrast is what
+   makes those two bands land.
+
+   One text face, DM Sans, and nothing else. Hierarchy comes from size,
+   weight and tracking rather than from a second face. The wordmark is the
+   single exception, and it is set in the logo's own face.
+
+   DM Sans is not a lookalike chosen for its register: the group already
+   sets its own pages in it, at 400 over 16px/24px, so the site inherits
+   rather than guesses.
+
+   The rule, opposite to a high-contrast serif: the bigger it gets the
+   HEAVIER it gets. A geometric sans has no stroke contrast to carry a
+   display line, so weight has to. Display is 700 to 800, section heads
+   600, interface 500 to 600, small caps 700, body 400.
+
+   No italics anywhere. Emphasis is weight and the brand red.
+   ================================================================== */
 
 @theme {
-  --color-ink: #0b0808;
-  --color-maroon: #2a0d0c;
-  --color-maroon-deep: #1a0807;
-  --color-paper: #f5f1ea;
-  --color-cream: #e8e0d3;
-  --color-sand: #cdbfad;
-  --color-crimson: #cd201f;      /* JECRC red */
-  --color-crimson-soft: #e05a4c;
-  --color-crimson-pale: #f3b3a6;
-  --color-brick: #915229;        /* JECRC brown */
+  /* --- ground ------------------------------------------------ */
+  --color-paper: #ffffff;
+  --color-bone: #f6f4f1;
+  --color-linen: #ece8e3;
+  --color-rule: #dcd8d2;
 
-  --font-display: var(--font-display);
-  --font-script: var(--font-script);
-  --font-sans: var(--font-sans-ui);
+  /* --- inverted bands ---------------------------------------- */
+  --color-obsidian: #000000;
+  --color-carbon: #101012;
+  /* Near-black with a red cast, so the red lockup and the red rules in
+     the footer sit in the same family as the ground instead of on top
+     of a neutral. */
+  --color-oxblood: #150507;
+  --color-oxblood-lift: #23090c;
 
-  --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+  /* --- ink --------------------------------------------------- */
+  --color-ink: #0a0a0b;
+  --color-graphite: #4a4a4e;
+  --color-quiet: #74747a;
+
+  /* --- brand, sampled from jecrcuniversity.edu.in ------------ */
+  --color-crimson: #df1919;
+  --color-crimson-lit: #ff3a30;
+  --color-crimson-deep: #a10f10;
+  --color-blush: #fdecec;
+
+  /* --- type -------------------------------------------------- */
+  --font-sans: var(--font-dm), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-dm), "Helvetica Neue", Arial, sans-serif;
+  /* Wordmark only. Never body, never headings. */
+  --font-wordmark: var(--font-cinzel), ui-serif, Georgia, "Times New Roman", serif;
+
+  /* --- motion ------------------------------------------------ */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
 }
 
-:root { color-scheme: dark; }
-
-html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-
-body {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  font-family: var(--font-sans);
-  overflow-x: hidden;
+:root {
+  color-scheme: light;
+  /* The film's scroll length. Nine screens on a phone, fifteen on a
+     desktop: the same number on both makes the tour two thirds of the
+     page on the screen most people arrive with. */
+  --tour-vh: 900vh;
+  /* One knob for the page's horizontal rhythm. Foldable cover screens are
+     280px wide, and a 24px gutter each side leaves 232px of content, which
+     is not enough for a row of five 44px targets. */
+  --shell: 1600px;
+  --pad: 1.125rem;
 }
 
-::selection { background: var(--color-crimson); color: #fff; }
+@media (min-width: 380px) {
+  :root { --pad: 1.5rem; }
+}
 
-/* Lenis */
+@media (min-width: 768px) {
+  :root { --pad: 2.5rem; --tour-vh: 1200vh; }
+}
+@media (min-width: 1024px) {
+  :root { --tour-vh: 1500vh; }
+}
+@media (min-width: 1280px) {
+  :root { --pad: 4rem; }
+}
+
+/* ------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------ */
+
+/* Wrapped in @layer base on purpose. Unlayered CSS beats every Tailwind
+   layer, so `p { margin: 0 }` sitting outside a layer silently defeats
+   `mt-8` and `mx-auto` on every paragraph on the site. Inside the layer it
+   is a default again, which is all it was ever meant to be. */
+@layer base {
+  *,
+  *::before,
+  *::after { box-sizing: border-box; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    /* Mobile Safari and Chrome inflate text in blocks they judge too narrow,
+       independently of the viewport meta. The type here is already sized for
+       a phone, and letting the browser enlarge it is what silently pushes a
+       fixed-width row past the screen edge. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    /* The clip is a safety net, not the layout. Everything below is sized to
+       fit; this only catches a rounding error rather than hiding a mistake,
+       and it is on both elements because a child can overflow either. */
+    overflow-x: clip;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    font-weight: 400;
+    overflow-x: clip;
+  }
+
+  h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+  p { margin: 0; text-wrap: pretty; }
+  img, svg, video { display: block; max-width: 100%; }
+
+  ::selection { background: var(--color-crimson); color: #fff; }
+
+  :focus-visible {
+    outline: 2px solid var(--color-crimson);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+/* Lenis owns the scroll position; let it. */
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 .lenis.lenis-stopped { overflow: hidden; }
 
-/* ---- Type helpers ---- */
-.label {
-  font-family: var(--font-sans);
-  font-size: 0.625rem;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  font-weight: 400;
+/* ------------------------------------------------------------------
+   Type helpers
+
+   Sizes are clamped rather than stepped through breakpoints. A
+   headline that grows continuously never lands at an awkward size
+   between two breakpoints, which is where most responsive type goes
+   wrong.
+   ------------------------------------------------------------------ */
+
+/* In @layer components so a utility on the element still wins: a
+   `leading-[0.98]` next to `.u-serif` should change the leading, and
+   unlayered these classes would quietly outrank it. */
+@layer components {
+  /* The small caps line that opens most blocks. */
+  .u-eyebrow {
+    font-family: var(--font-sans);
+    /* 13px on phones, 12px once there is room for it. Uppercase at 12px
+       with this much tracking is legible on a desktop and marginal in a
+       hand, and the hand is the common case here. */
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+  @media (min-width: 768px) {
+    .u-eyebrow { font-size: 0.75rem; }
+  }
+
+  /* Interface weight: list rows, card titles, nav. */
+  .u-grotesk {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+  }
+
+  /* The heaviest cut, for oversized display figures. Geometric caps and
+     bowls tighten as they grow, so the tracking comes off hard at this
+     size. Not the wordmark: that is `.u-wordmark`, in the logo's face. */
+  .u-grotesk-black {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+  }
+
+  /* ---- the wordmark ------------------------------------------------
+     Everything here is measured off the published lockup rather than
+     chosen. Width over cap height is the comparator, not stem thickness:
+     the mark survives in the artwork as a 34px-tall raster, and how thick
+     a stem comes out of that depends on the upscaling and the threshold,
+     while a width-to-height ratio is pure geometry and survives both.
+
+     Both ratios are taken on ECRC rather than JECRC. The J drops below the
+     baseline in the artwork and in Cinzel alike, so measuring the whole word
+     divides the width by an ink height that is not the cap height, and every
+     number that comes out of it is wrong by the depth of one descender.
+
+     On ECRC the artwork runs 3.3824 widths per cap height. Cinzel is 3.6530
+     at weight 500, so the mark is tighter than the face, not looser, and the
+     tracking below is negative: 0.2706 cap-widths over three gaps, and a cap
+     height that is 0.73 of the em.
+
+     The second line needs none. It measures 8.0527 in the artwork against
+     Cinzel's 8.1136 at weight 400, so its spaced-out look comes free with the
+     face. At 0.4706 of the first line's cap height that puts it at 1.03 of
+     the name's width, which is where the lockup has it. */
+  .u-wordmark {
+    font-family: var(--font-wordmark);
+    font-variation-settings: "wght" 500;
+    /* Fallback for the static cut if the variable file is unavailable. */
+    font-weight: 500;
+    letter-spacing: -0.066em;
+  }
+
+  .u-wordmark-sub {
+    font-family: var(--font-wordmark);
+    font-variation-settings: "wght" 400;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  /* Display. Heavy on purpose: a geometric sans has no stroke contrast,
+     so a display line that is not weighted just looks like large body
+     copy. */
+  .u-display {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+
+  /* The emphasised half of a headline. Weight and colour do the work the
+     italic used to do. */
+  .u-display-strong {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+  }
+
+  /* Numbers that have to line up across a row of stats. */
+  .u-figure {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-variant-numeric: lining-nums;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
+  }
+
+  /* Padding never falls below the safe area. `viewportFit: cover` in the
+     viewport metadata deliberately extends the layout under the rounded
+     corners and the home indicator, which buys an edge-to-edge film and
+     costs a gutter unless the insets are added back here. */
+  .u-shell {
+    width: 100%;
+    max-width: var(--shell);
+    margin-inline: auto;
+    padding-left: max(var(--pad), env(safe-area-inset-left));
+    padding-right: max(var(--pad), env(safe-area-inset-right));
+  }
 }
-@media (min-width: 768px) { .label { font-size: 0.6875rem; } }
 
-.display { font-family: var(--font-display); font-weight: 300; letter-spacing: 0.01em; line-height: 1.02; }
+/* ------------------------------------------------------------------
+   Scroll reveal
 
-/* The accent face. Cormorant italic by default — swap --font-script to the
-   Pinyon Script variable in layout.tsx for the original copperplate. */
-.script { font-family: var(--font-script); font-style: italic; font-weight: 400; }
+   Rect-driven (components/layout/Reveal.tsx) rather than an
+   IntersectionObserver, so a fast flick or a hash jump can never leave
+   an element stuck at opacity 0.
+   ------------------------------------------------------------------ */
 
-.rule { height: 1px; background: linear-gradient(90deg, transparent, var(--color-crimson), transparent); }
-
-/* ---- Scroll reveal ---- */
 [data-reveal] {
   opacity: 0;
-  transform: translateY(26px);
-  transition: opacity 1.15s var(--ease-luxe), transform 1.15s var(--ease-luxe);
-  transition-delay: var(--d, 0ms);
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 0.9s var(--ease-out-expo),
+    transform 0.9s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
 }
-[data-reveal].is-in { opacity: 1; transform: none; }
+[data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
 
-[data-reveal="mask"] { opacity: 1; transform: none; clip-path: inset(0 0 105% 0); transition: clip-path 1.4s var(--ease-luxe); transition-delay: var(--d, 0ms); }
-[data-reveal="mask"].is-in { clip-path: inset(0 0 -5% 0); }
+[data-reveal="mask"] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 102% 0);
+  transition: clip-path 1.2s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="mask"].is-in { clip-path: inset(0 0 -2% 0); }
 
-[data-reveal="wipe"] { opacity: 1; transform: none; clip-path: inset(0 100% 0 0); transition: clip-path 1.6s var(--ease-luxe); transition-delay: var(--d, 0ms); }
+[data-reveal="wipe"] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.3s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
 [data-reveal="wipe"].is-in { clip-path: inset(0 0 0 0); }
 
-/* ---- Ghost / layered heading ---- */
-.ghost-stack { position: relative; display: inline-block; }
-.ghost-stack .ghost {
-  position: absolute; inset: 0;
-  color: transparent;
-  -webkit-text-stroke: 0.5px color-mix(in oklab, var(--color-crimson) 45%, transparent);
-  transform: translateY(0.14em) scale(1.012);
-  opacity: 0;
-  transition: opacity 1.4s var(--ease-luxe), transform 1.4s var(--ease-luxe);
-  pointer-events: none;
-}
-.is-in .ghost, .ghost-stack.is-in .ghost { opacity: 0.7; transform: translateY(0.28em) scale(1.03); }
+/* ------------------------------------------------------------------
+   Links
+   ------------------------------------------------------------------ */
 
-/* ---- Grain ---- */
-.grain::after {
-  content: "";
-  position: absolute; inset: 0;
-  pointer-events: none;
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-.link-underline {
+.u-underline {
   background-image: linear-gradient(currentColor, currentColor);
   background-size: 0% 1px;
   background-repeat: no-repeat;
   background-position: 0 100%;
-  transition: background-size 0.6s var(--ease-luxe);
+  transition: background-size 0.45s var(--ease-out-expo);
 }
-.link-underline:hover { background-size: 100% 1px; }
+.u-underline:hover,
+.u-underline:focus-visible { background-size: 100% 1px; }
+
+/* ------------------------------------------------------------------
+   Pill button, the shape used across arts.vcu.edu and adopted here
+   ------------------------------------------------------------------ */
+
+.u-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  padding: 0.9rem 1.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  transition:
+    background-color 0.35s var(--ease-out-expo),
+    color 0.35s var(--ease-out-expo),
+    border-color 0.35s var(--ease-out-expo);
+}
+
+/* ------------------------------------------------------------------
+   Majors list
+
+   The dim-everything-but-the-active-row effect is a pointer affordance.
+   On a touch device there is no hover, so every row would sit at 0.2
+   forever and the whole list would read as disabled. Gate it on the
+   pointer instead of on JavaScript, so the fallback needs no state.
+   ------------------------------------------------------------------ */
+
+@media (hover: hover) and (pointer: fine) {
+  [data-majors-row] {
+    opacity: 0.2;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+  [data-majors-row][data-active="true"] { opacity: 1; }
+}
+
+/* ------------------------------------------------------------------
+   The pointer
+
+   A dot that follows the cursor and grows into a labelled pill over
+   anything with something to say. Driven by components/layout/Cursor.tsx,
+   which sets data-state and data-tone and writes the transform.
+
+   The native cursor is only hidden once `.has-cursor` is on the root,
+   and that class is added by the component itself after it has decided
+   the device qualifies. If the script never runs, the normal cursor is
+   still there.
+   ------------------------------------------------------------------ */
+
+.u-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  /* One size drives both axes, so every state is a true circle: growth is
+     the only thing that changes, never the shape. */
+  height: var(--cursor-size);
+  width: var(--cursor-size);
+  --cursor-size: 30px;
+  border-radius: 50%;
+  /* Translucent at rest so a 30px disc sitting on the pointer never hides
+     the word underneath it. */
+  background: color-mix(in oklab, var(--color-ink) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-ink) 30%, transparent);
+  pointer-events: none;
+  will-change: transform;
+  transition:
+    --cursor-size 0.34s var(--ease-out-expo),
+    height 0.34s var(--ease-out-expo),
+    width 0.34s var(--ease-out-expo),
+    background-color 0.34s var(--ease-out-expo),
+    border-color 0.34s var(--ease-out-expo),
+    opacity 0.25s linear;
+}
+
+.has-cursor .u-cursor { display: flex; }
+
+/* Anything clickable: the same circle, larger and quieter, so it reads as
+   the pointer opening up rather than as a different object arriving. */
+.u-cursor[data-state="interactive"] {
+  --cursor-size: 68px;
+  background: color-mix(in oklab, var(--color-ink) 12%, transparent);
+  border-color: color-mix(in oklab, var(--color-ink) 22%, transparent);
+}
+
+/* With a label: larger again and filled, but still a circle. The label
+   wraps inside it rather than stretching it into a pill. */
+.u-cursor[data-state="labelled"] {
+  --cursor-size: 116px;
+  background: var(--color-ink);
+  border-color: transparent;
+}
+.u-cursor[data-state="labelled"][data-tone="crimson"] { background: var(--color-crimson); }
+
+/* Over a dark band the whole thing flips, so the circle is always the
+   opposite of what it is sitting on. The crimson fill is left alone: it
+   reads on paper and on black equally. */
+.u-cursor[data-invert] {
+  background: color-mix(in oklab, var(--color-paper) 22%, transparent);
+  border-color: color-mix(in oklab, var(--color-paper) 34%, transparent);
+}
+.u-cursor[data-invert][data-state="interactive"] {
+  background: color-mix(in oklab, var(--color-paper) 14%, transparent);
+  border-color: color-mix(in oklab, var(--color-paper) 26%, transparent);
+}
+.u-cursor[data-invert][data-state="labelled"] {
+  background: var(--color-paper);
+  border-color: transparent;
+}
+.u-cursor[data-invert][data-state="labelled"] .u-cursor-label { color: var(--color-ink); }
+.u-cursor[data-invert][data-state="labelled"][data-tone="crimson"] {
+  background: var(--color-crimson);
+}
+.u-cursor[data-invert][data-state="labelled"][data-tone="crimson"] .u-cursor-label {
+  color: var(--color-paper);
+}
+
+.u-cursor-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  /* Wraps, so a two-word label stacks inside the circle instead of
+     forcing it wider than it is tall. */
+  max-width: 74%;
+  color: var(--color-paper);
+  opacity: 0;
+  transition: opacity 0.18s linear;
+}
+.u-cursor[data-state="labelled"] .u-cursor-label { opacity: 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.has-cursor,
+  html.has-cursor *,
+  html.has-cursor a,
+  html.has-cursor button { cursor: none; }
+
+  /* Anything that still needs a real caret or a resize handle keeps it.
+     A modal <dialog> renders in the top layer, above every z-index, so the
+     replacement cursor cannot reach it. Hiding the native one there would
+     leave no pointer at all. */
+  html.has-cursor input,
+  html.has-cursor textarea,
+  html.has-cursor select,
+  html.has-cursor dialog,
+  html.has-cursor dialog *,
+  html.has-cursor iframe,
+  html.has-cursor [data-native-cursor] { cursor: auto; }
+}
+
+/* ------------------------------------------------------------------
+   Marquee
+
+   Two copies of the track, translated by exactly half its width, so
+   the loop has no visible seam and needs no JavaScript.
+   ------------------------------------------------------------------ */
+
+@keyframes u-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.u-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: u-marquee var(--marquee-duration, 48s) linear infinite;
+}
+.u-marquee:hover .u-marquee-track { animation-play-state: paused; }
+
+/* ------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1 !important; transform: none !important; clip-path: none !important; }
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+  .u-marquee-track { animation: none; transform: none; }
+  /* Cursor.tsx refuses to mount under reduced motion, so this is only a
+     belt-and-braces guard for the class lingering after a preference change. */
+  .u-cursor { display: none !important; }
+  html.has-cursor, html.has-cursor * { cursor: auto !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

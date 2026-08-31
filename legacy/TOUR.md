@@ -17,7 +17,7 @@ flip-book, in both directions.
 
 ## 2. Two ways to build it, and why this one
 
-### Approach A: scrub a `<video>` with `currentTime`
+### Approach A — scrub a `<video>` with `currentTime`
 
 The obvious one, and what the Royal Palace site does:
 
@@ -37,14 +37,14 @@ N the decoder must start at the last keyframe at or before N and decode forward.
   every single step it seeks back to the previous keyframe and decodes forward again.
 
 With a keyframe every 12 frames, going up costs on average ~6× more decode work per step
-than going down, and it is bursty, because the cost spikes at every keyframe boundary.
+than going down — and it is bursty, because the cost spikes at every keyframe boundary.
 That is precisely the "fine going down, not smooth at all going up" report.
 
 You can soften it (short GOP, all-intra encoding, easing the playhead), and the Royal Palace
 build does all three. You cannot remove it, because the browser still runs a demux → decode →
 paint cycle for every seek, and Safari in particular serialises them.
 
-### Approach B: an image sequence on a canvas, **what this site does**
+### Approach B — an image sequence on a canvas ← **what this site does**
 
 Explode the film into individual stills at build time. Preload them. On scroll, pick the
 frame and `drawImage` it.
@@ -61,8 +61,8 @@ recording `requestAnimationFrame` deltas):
 
 | | scrolling down | scrolling up |
 |---|---|---|
-| Royal Palace, video `currentTime` scrub | p95 **50.0 ms**, 155 frames over 32 ms | p95 **33.4 ms**, 124 frames over 32 ms |
-| JECRC, canvas image sequence | p95 **16.8 ms**, 20 frames over 32 ms | p95 **16.8 ms**, 3 frames over 32 ms |
+| Royal Palace — video `currentTime` scrub | p95 **50.0 ms**, 155 frames over 32 ms | p95 **33.4 ms**, 124 frames over 32 ms |
+| JECRC — canvas image sequence | p95 **16.8 ms**, 20 frames over 32 ms | p95 **16.8 ms**, 3 frames over 32 ms |
 
 60 fps is a 16.7 ms budget. The video version misses it on most frames going up; the canvas
 version essentially never does, in either direction.
@@ -94,14 +94,14 @@ the component never has to guess a filename.
 
 ### Choosing `--fps`
 
-Think in **pixels of scroll per frame**, not frames per second: nothing here runs on a clock.
+Think in **pixels of scroll per frame**, not frames per second — nothing here runs on a clock.
 
 ```
 frames  =  duration × fps
 pixels per frame  =  (TOUR_VH / 100 × viewport height) / frames
 ```
 
-At the defaults (30 s, 8 fps, `TOUR_VH = 900`, an 800 px window) that is 240 frames over
+At the defaults — 30 s, 8 fps, `TOUR_VH = 900`, an 800 px window — that is 240 frames over
 7,200 px, or **30 px of scroll per frame**. Around 25–40 px reads as continuous motion. Below
 ~15 px you are paying for frames nobody perceives; above ~60 px it starts to feel steppy.
 
@@ -109,7 +109,7 @@ At the defaults (30 s, 8 fps, `TOUR_VH = 900`, an 800 px window) that is 240 fra
 
 ## 4. The runtime
 
-`src/components/sections/ScrollTour.tsx`. Four parts.
+`src/components/ScrollTour.tsx`. Four parts.
 
 ### 4a. Picking a size
 
@@ -119,13 +119,13 @@ const needed = innerWidth * dpr;
 const chosen = sizes.find(s => s.width >= needed * 0.85) ?? largest;
 ```
 
-DPR is capped at 1.75: a 3x retina phone does not need a 4,000 px source for a full-bleed
+DPR is capped at 1.75 — a 3× retina phone does not need a 4,000 px source for a full-bleed
 soft-focus film, and the memory saved matters more than the sharpness lost.
 
 ### 4b. Loading, coarse-to-fine
 
 Naively loading `f0001 … f0240` in order means the first three seconds are pristine while the
-end of the tour is still blank, and a visitor who flicks to the bottom sees nothing. So the
+end of the tour is still blank — and a visitor who flicks to the bottom sees nothing. So the
 queue is built in passes of decreasing stride:
 
 ```js
@@ -156,7 +156,7 @@ img.onload = () => {
 ```
 
 `onload` only means the bytes arrived. The first `drawImage` of an undecoded image decodes it
-**synchronously, inside your rAF callback**, a 5 to 15 ms stall right when you are trying to
+**synchronously, inside your rAF callback** — a 5–15 ms stall right when you are trying to
 hold 16.7 ms. Calling `img.decode()` first moves that work off the critical path and marks
 the frame ready only once it can be painted for free.
 
@@ -177,14 +177,14 @@ only runs while the section is on screen (an `IntersectionObserver` starts and s
 
 **No easing. No scrub. No lerp toward a target.** This is the second half of the Royal Palace
 fix. That build had Lenis smoothing the scroll position, GSAP `scrub` smoothing it again, and
-then a lerp easing `currentTime` toward the scrubbed value: three filters in series. Each is
+then a lerp easing `currentTime` toward the scrubbed value — three filters in series. Each is
 defensible alone; stacked, they put visible latency between your fingers and the picture, and
 latency reads as lag most strongly when you reverse direction, because every filter has to
 unwind before the image turns around.
 
 Here Lenis smooths the scroll position once and nothing touches it again. One scroll position
 always maps to exactly one frame index, which is why scrolling up is bit-for-bit the reverse
-of scrolling down, verified by hashing the canvas at 25 positions on the way down and again
+of scrolling down — verified by hashing the canvas at 25 positions on the way down and again
 on the way up: **25/25 identical**.
 
 ### 4e. Never a blank frame
@@ -207,7 +207,7 @@ Same progress value, different consumer. Each caption declares the window it liv
 { at: [0.23, 0.42], eyebrow: "The campus", title: "Everything here is a workshop" }
 ```
 
-and gets opacity from a pair of ramps: in over the first 4.5% of its window, out over the
+and gets opacity from a pair of ramps — in over the first 4.5% of its window, out over the
 last 4.5%:
 
 ```js

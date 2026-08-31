@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "tour:build": "node scripts/build-tour.mjs"
+    "tour:build": "node scripts/build-tour.mjs",
+    "brand:mono": "node scripts/make-mono-logo.mjs",
+    "brand:crest": "node scripts/make-crest.mjs",
+    "brand:social": "node scripts/make-social.mjs",
+    "brand:icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.0",
