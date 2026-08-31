@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Hanken_Grotesk } from "next/font/google";
+import { Cinzel, DM_Sans } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/layout/SmoothScroll";
 import Reveal from "@/components/layout/Reveal";
@@ -8,22 +8,48 @@ import { BRAND, SITE_URL } from "@/lib/content/site";
 import { jsonLd } from "@/lib/seo/schema";
 
 /**
- * One typeface for the whole site.
+ * The text face for the whole site.
  *
- * Hanken Grotesk, 400 to 900, roman only. It is here for the Gotham register:
- * a geometric skeleton, a tall x-height, flat terminals and wide even-width
- * capitals, which is what gives that family its institutional, signage-like
- * authority. Gotham itself is licensed; the usual free stand-in is Montserrat,
- * which is on every second university site.
+ * DM Sans, which is what the group already sets its own pages in: the base
+ * style on jecrcuniversity.edu.in is DM Sans 400 at 16px over 24px, and the
+ * page inherits that rather than approximating it.
  *
- * Every level of hierarchy comes out of size, weight and tracking rather than
- * a second face, and nothing on this site is set in italic, so the italic cut
- * is never requested and never downloaded.
+ * Loaded as the variable cut, so the 500 to 800 the display helpers ask for
+ * cost nothing beyond the one file. Roman only: nothing on this site is set in
+ * italic, so the italic cut is never requested and never downloaded.
  */
-const hanken = Hanken_Grotesk({
-  variable: "--font-hanken",
+const dmSans = DM_Sans({
+  variable: "--font-dm",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal"],
+  display: "swap",
+});
+
+/**
+ * The wordmark face, and nothing else.
+ *
+ * The published lockup sets "JECRC UNIVERSITY" in Anavio, a classical Roman
+ * face from Greater Albion Typefounders, which is licensed and not on Google
+ * Fonts. Cinzel is the closest free equivalent, and not merely by genre: both
+ * descend from the same Roman inscriptional capitals, and set against the
+ * artwork at matched cap height Cinzel comes out at 562px to the mark's 552,
+ * with the same shallow-hooked J, the same slanted terminal on the C, the same
+ * straight splayed leg on the R and the same low stroke contrast. The other
+ * free candidates each fail on one of those: Cormorant's hairlines are far
+ * thinner than anything in the mark, Marcellus and Forum are both too narrow.
+ *
+ * Cinzel has no lowercase, which suits a mark set in capitals over a second
+ * line of small capitals of the same design.
+ *
+ * Loaded as the variable cut so both lines can carry the weights measured off
+ * the artwork rather than the nearest named step. One file covers both.
+ *
+ * Scoped to the wordmark. DM Sans still sets every heading, label and
+ * paragraph on the page; nothing else is allowed to reach for this.
+ */
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
+  subsets: ["latin"],
   style: ["normal"],
   display: "swap",
 });
@@ -118,7 +144,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-IN" className={hanken.variable}>
+    <html lang="en-IN" className={`${dmSans.variable} ${cinzel.variable}`}>
       <head>
         {/* The tour's first frames are the largest paint on the page and are
             fetched by script, so the connection is warmed before React runs. */}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import manifest from "@/lib/tour-manifest.json";
 import { APPLY_LINKS } from "@/lib/content/universities";
 import { BRAND, LOGO } from "@/lib/content/site";
@@ -28,7 +28,19 @@ export type Caption = {
   variant?: "hero" | "apply";
 };
 
-type Props = { captions?: Caption[] };
+/**
+ * A single apply stamp riding along mid-film.
+ *
+ * `campus` indexes APPLY_LINKS. There is no position field: every stamp lands
+ * on the same anchor, and only the moment changes.
+ */
+export type ApplyBeat = {
+  /** [fade-in point, fade-out point] as fractions of the tour, 0 to 1. */
+  at: [number, number];
+  campus: number;
+};
+
+type Props = { captions?: Caption[]; applyBeats?: ApplyBeat[] };
 
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 const smooth = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
@@ -46,12 +58,15 @@ const smooth = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
  * Frames come from `npm run tour:build <video>`. The full write-up, including
  * the measurements behind this choice, is in TOUR.md.
  */
-export default function ScrollTour({ captions = [] }: Props) {
+export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
   const section = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const cue = useRef<HTMLDivElement>(null);
   const capRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sealRefs = useRef<(SVGSVGElement | null)[]>([]);
+  const uid = useId();
   const [pct, setPct] = useState(0);
   const [primed, setPrimed] = useState(false);
 
@@ -218,6 +233,41 @@ export default function ScrollTour({ captions = [] }: Props) {
         el.style.transform = `translate3d(0, ${(1 - fadeIn) * 24}px, 0)`;
         el.style.visibility = o < 0.01 ? "hidden" : "visible";
       });
+      // Scrub velocity, smoothed. Two things ride on it, and both exist to
+      // make the stamp read as an object travelling with the film rather than
+      // a sticker on the glass: it leans into the direction of travel, and it
+      // squashes very slightly as it does.
+      const dp = p - lastP;
+      lastP = p;
+      vel += (dp - vel) * 0.25;
+      const lean = Math.max(-1, Math.min(1, vel * 60));
+
+      // Same ramps as the captions, on the same progress value, so a stamp and
+      // a caption never drift apart by a frame.
+      beatRefs.current.forEach((el, k) => {
+        const beat = applyBeats[k];
+        if (!el || !beat) return;
+        const [a, b] = beat.at;
+        const fadeIn = smooth(p, a, a + 0.035);
+        const fadeOut = 1 - smooth(p, b - 0.035, b);
+        const o = Math.min(fadeIn, fadeOut);
+        el.style.opacity = String(o);
+        // Overshoot on the way in: past 1 at 0.7 of the ramp, settling back.
+        // A stamp that arrives at exactly its final size looks placed; one
+        // that overshoots looks thrown.
+        const pop = fadeIn < 1 ? 0.86 + fadeIn * 0.19 : 1;
+        el.style.transform =
+          `translate3d(0, ${(1 - fadeIn) * 26}px, 0) scale(${pop}) rotate(${lean * -2.5}deg)`;
+        el.style.visibility = o < 0.01 ? "hidden" : "visible";
+      });
+
+      // The seal is the one element that proves the film is being scrubbed by
+      // the visitor rather than played on a clock: its rotation IS the scroll
+      // position. Push forward and it turns; drag back and it unwinds.
+      sealRefs.current.forEach((el) => {
+        if (el) el.style.transform = `rotate(${p * 900}deg)`;
+      });
+
       if (bar.current) bar.current.style.transform = `scaleX(${p})`;
       if (cue.current) cue.current.style.opacity = String(1 - smooth(p, 0, 0.04));
     };
@@ -246,6 +296,8 @@ export default function ScrollTour({ captions = [] }: Props) {
     // scrolling up is the exact reverse of scrolling down.
     let raf = 0;
     let running = false;
+    let lastP = 0;
+    let vel = 0;
 
     const tick = () => {
       if (!running) return;
@@ -399,6 +451,100 @@ export default function ScrollTour({ captions = [] }: Props) {
             </div>
           ))}
         </div>
+
+        {/* ---- the ask, mid-film ----
+            One anchor, three moments. An earlier pass alternated sides and
+            heights so the stamp would feel alive; what it actually did was
+            make the visitor re-find the only button on screen every time it
+            came back. Pinned to the bottom gutter it is learned once and then
+            simply expected, and the film keeps all the movement.
+
+            Two shells rather than one flat card. The outer is a translucent
+            white tray with a hairline; the inner is opaque brand red with a
+            lit top edge, on a concentric radius. The tray is what lets it sit
+            on a photograph at any exposure without either dissolving into a
+            bright frame or turning into a floating slab on a dark one.
+
+            No backdrop blur, deliberately: this sits over a canvas that
+            repaints every scrolled frame, so a blur here would be recomputed
+            hundreds of times a second on the exact device that can least
+            afford it. */}
+        {applyBeats.map((beat, i) => {
+          const link = APPLY_LINKS[beat.campus % APPLY_LINKS.length];
+          const ring = `${uid}-ring-${i}`;
+          return (
+            <div
+              key={`${link.id}-${beat.at[0]}`}
+              ref={(el) => {
+                beatRefs.current[i] = el;
+              }}
+              // Full-width strip on a phone, gutter-aligned card from `sm` up.
+              // The width is fixed rather than shrink-to-fit: three campus
+              // names of three different lengths would otherwise resize the
+              // card on every appearance, which reads as three controls.
+              className="pointer-events-auto absolute bottom-14 left-[max(var(--pad),env(safe-area-inset-left))] right-[max(var(--pad),env(safe-area-inset-right))] z-10 sm:bottom-16 sm:left-auto sm:w-[21.5rem]"
+              style={{ opacity: 0, visibility: "hidden" }}
+            >
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-cursor="Apply"
+                data-cursor-tone="crimson"
+                className="group block rounded-[1.75rem] bg-white/10 p-1.5 ring-1 ring-white/20 shadow-[0_1px_2px_rgba(0,0,0,0.16),0_14px_30px_-12px_rgba(0,0,0,0.45),0_40px_80px_-36px_rgba(0,0,0,0.6)] transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/16 hover:ring-white/35 active:scale-[0.98]"
+              >
+                <span className="flex items-center gap-3.5 rounded-[1.375rem] bg-crimson py-3 pl-3 pr-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:bg-crimson-deep sm:gap-4 sm:py-3.5">
+                  {/* The seal. Its rotation is the scroll position, so it is
+                      the one element on screen that answers "am I driving
+                      this?" the instant you move. */}
+                  <span className="relative grid h-15 w-15 shrink-0 place-items-center sm:h-17 sm:w-17">
+                    <svg
+                      ref={(el) => {
+                        sealRefs.current[i] = el;
+                      }}
+                      viewBox="0 0 100 100"
+                      aria-hidden
+                      className="absolute inset-0 h-full w-full"
+                    >
+                      <defs>
+                        <path
+                          id={ring}
+                          d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"
+                          fill="none"
+                        />
+                      </defs>
+                      {/* Two repetitions, not three: at this radius a third
+                          pass overruns the circumference and the words start
+                          overprinting each other. */}
+                      <text className="fill-paper text-[15px] font-bold uppercase tracking-[0.13em]">
+                        <textPath href={`#${ring}`}>Apply now · Apply now ·</textPath>
+                      </text>
+                    </svg>
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-paper" />
+                  </span>
+
+                  <span className="min-w-0">
+                    <span className="u-eyebrow block text-paper/70">Admissions 2026</span>
+                    <span className="u-grotesk mt-0.5 block truncate text-[1.3rem] leading-tight text-paper sm:text-[1.45rem]">
+                      {link.label}
+                    </span>
+                  </span>
+
+                  {/* The arrow gets its own enclosure flush with the inner
+                      padding rather than floating beside the text, so the card
+                      has an obvious place to aim at and somewhere to move when
+                      you reach it. */}
+                  <span
+                    aria-hidden
+                    className="ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105 group-hover:bg-paper"
+                  >
+                    <ArrowUpRight className="h-4.5 w-4.5 text-paper transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-crimson" />
+                  </span>
+                </span>
+              </a>
+            </div>
+          );
+        })}
 
         {/* Scroll cue, gone the moment the film starts moving. */}
         <div

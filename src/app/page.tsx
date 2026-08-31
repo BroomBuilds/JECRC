@@ -8,7 +8,7 @@ import ComingSoon from "@/components/sections/ComingSoon";
 import Majors from "@/components/sections/Majors";
 import Ledger from "@/components/sections/Ledger";
 import Faq from "@/components/sections/Faq";
-import { TOUR_CAPTIONS } from "@/lib/content/tour";
+import { TOUR_APPLY_BEATS, TOUR_CAPTIONS } from "@/lib/content/tour";
 import { PROGRAMMES } from "@/lib/content/schools";
 
 /** The collage the scratch band reveals: all eight, as two rows of four. */
@@ -38,7 +38,7 @@ export default function HomePage() {
       <Navbar />
       <ApplyBar />
       <main>
-        <ScrollTour captions={TOUR_CAPTIONS} />
+        <ScrollTour captions={TOUR_CAPTIONS} applyBeats={TOUR_APPLY_BEATS} />
         <ScratchReveal images={SCRATCH_IMAGES} />
         <Ambassador />
         <Majors />
