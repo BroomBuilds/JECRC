@@ -1,75 +1,163 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { ANNOUNCEMENT } from "@/lib/content/announcement";
 import { ArrowRight } from "@/components/ui/Icons";
 
 /**
- * Coming-soon banner.
+ * Two new universities.
  *
- * Full-bleed brand red between two pale sections. It is the only saturated band
- * on the page, which is what makes it read as an announcement rather than
- * another content block. Returns null when the announcement is switched off, so
- * pulling it needs no change to the page.
+ * The band carries an announcement whose substance is not public yet, so it is
+ * built around the absence rather than trying to hide it. Every field reads
+ * "To be announced" at the size the real answer will occupy: the shape of the
+ * news is already on the page, waiting to be filled.
+ *
+ * Laid out as one row, not a stack. The previous pass ran a narrow headline
+ * column down the left with the plates below it and left most of the band
+ * empty; here the headline, the paragraph and the two plates share a single
+ * four-column grid, and the vertical padding is cut to match. Same content,
+ * roughly half the height.
+ *
+ * Red, with a pointer-tracked light so the ground has a direction, sitting
+ * between two pale sections. Returns null when the announcement is off.
  */
 export default function ComingSoon() {
+  const band = useRef<HTMLElement>(null);
+  const glow = useRef<HTMLDivElement>(null);
+
+  // The pointer light is written straight to style rather than through state:
+  // it changes on every pointermove and React owns nothing else about it.
+  useEffect(() => {
+    const el = band.current;
+    const g = glow.current;
+    if (!el || !g) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    let x = 0;
+    let y = 0;
+
+    const paint = () => {
+      frame = 0;
+      g.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    };
+    const onMove = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      x = e.clientX - r.left;
+      y = e.clientY - r.top;
+      if (!frame) frame = requestAnimationFrame(paint);
+    };
+
+    el.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      el.removeEventListener("pointermove", onMove);
+    };
+  }, []);
+
   if (!ANNOUNCEMENT.live) return null;
 
   return (
-    <section aria-labelledby="coming-soon-title" className="bg-crimson text-paper">
-      <div className="u-shell grid gap-12 py-20 md:py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-20 lg:py-28">
-        <div>
-          <span data-reveal className="u-eyebrow inline-flex items-center gap-3 text-white/85">
-            <span aria-hidden className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-paper" />
-            </span>
-            {ANNOUNCEMENT.eyebrow}
-          </span>
+    <section
+      ref={band}
+      id="whats-next"
+      aria-labelledby="coming-soon-title"
+      data-cursor-invert
+      style={{ scrollMarginTop: "6.5rem" }}
+      className="relative isolate overflow-hidden bg-crimson text-paper"
+    >
+      {/* ---- depth ---- */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-45"
+        style={{
+          background:
+            "linear-gradient(118deg, rgba(255,255,255,0.2) 0%, transparent 34%, transparent 64%, rgba(0,0,0,0.3) 100%)",
+        }}
+      />
+      <div
+        ref={glow}
+        aria-hidden
+        className="pointer-events-none absolute -left-[20rem] -top-[20rem] h-[40rem] w-[40rem] opacity-70 mix-blend-screen blur-[90px] will-change-transform"
+        style={{ background: "radial-gradient(circle, rgba(255,140,130,0.55) 0%, transparent 68%)" }}
+      />
 
-          <h2
-            id="coming-soon-title"
-            data-reveal
-            style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-            className="u-serif mt-6 max-w-[15ch] text-[2.75rem] sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.2vw,4.5rem)]"
-          >
-            {ANNOUNCEMENT.title}
-          </h2>
-
-          <p
-            data-reveal
-            style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
-            className="mt-8 max-w-[48ch] text-[16px] leading-[1.7] text-white/85 md:text-[17px]"
-          >
-            {ANNOUNCEMENT.detail}
-          </p>
-
-          <a
-            data-reveal
-            style={{ "--reveal-delay": "200ms" } as React.CSSProperties}
-            href={ANNOUNCEMENT.cta.href}
-            className="u-pill group mt-10 border-paper bg-paper text-crimson hover:bg-ink hover:text-paper"
-          >
-            {ANNOUNCEMENT.cta.label}
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </a>
-        </div>
-
-        {/* Dividers are borders on the rows, not a background behind a 1px gap:
-            the rows fade in one after another, and a background would show
-            through the ones that have not arrived yet as a pale band. */}
-        <ul className="flex flex-col self-center overflow-hidden rounded-lg border border-white/25">
-          {ANNOUNCEMENT.items.map((item, i) => (
-            <li
-              key={item.label}
-              data-reveal
-              style={{ "--reveal-delay": `${110 + i * 80}ms` } as React.CSSProperties}
-              className="flex items-center justify-between gap-6 border-b border-white/25 px-6 py-5 last:border-b-0"
-            >
-              <span className="text-[15px] font-semibold leading-snug">{item.label}</span>
-              <span className="u-eyebrow shrink-0 rounded-full border border-white/40 px-3 py-1.5 text-white/85">
-                {item.state}
+      <div className="u-shell relative py-16 md:py-20 lg:py-24">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.35fr)] lg:items-center lg:gap-16">
+          {/* ---- the news ---- */}
+          <div>
+            <span data-reveal className="u-eyebrow inline-flex items-center gap-3 text-white/85">
+              <span aria-hidden className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-paper" />
               </span>
-            </li>
-          ))}
-        </ul>
+              {ANNOUNCEMENT.eyebrow}
+            </span>
+
+            <h2
+              id="coming-soon-title"
+              data-reveal
+              style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
+              className="u-display mt-6 max-w-[13ch] text-[2.5rem] sm:text-[3.25rem] lg:text-[clamp(2.75rem,3.8vw,4rem)]"
+            >
+              {ANNOUNCEMENT.title}{" "}
+              <span className="u-display-strong">{ANNOUNCEMENT.titleAccent}</span>
+            </h2>
+
+            <p
+              data-reveal
+              style={{ "--reveal-delay": "130ms" } as React.CSSProperties}
+              className="mt-6 max-w-[42ch] text-[15.5px] leading-[1.65] text-white/85 md:text-[16.5px]"
+            >
+              {ANNOUNCEMENT.detail}
+            </p>
+
+            <a
+              data-reveal
+              style={{ "--reveal-delay": "190ms" } as React.CSSProperties}
+              href={ANNOUNCEMENT.cta.href}
+              className="u-pill group mt-8 border-paper bg-paper text-crimson hover:bg-crimson-deep hover:border-crimson-deep hover:text-paper"
+            >
+              {ANNOUNCEMENT.cta.label}
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </a>
+          </div>
+
+          {/* ---- the two plates ---- */}
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {ANNOUNCEMENT.campuses.map((c, i) => (
+              <li
+                key={c.no}
+                data-reveal
+                style={{ "--reveal-delay": `${140 + i * 100}ms` } as React.CSSProperties}
+                className="group relative overflow-hidden rounded-xl border border-white/25 bg-white/[0.08] p-6 transition-colors duration-500 hover:border-white/55 hover:bg-white/[0.14]"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="u-eyebrow text-white/70">{ANNOUNCEMENT.kicker}</p>
+                  <span aria-hidden className="u-figure text-[1.5rem] text-white/25">
+                    {c.no}
+                  </span>
+                </div>
+
+                <h3 className="u-display mt-4 max-w-[10ch] text-[1.5rem] leading-[1.1] md:text-[1.8rem]">
+                  {c.name}
+                </h3>
+
+                <dl className="mt-6 flex flex-col">
+                  {c.facts.map((f) => (
+                    <div
+                      key={f.label}
+                      className="flex items-baseline justify-between gap-3 border-t border-white/20 py-3"
+                    >
+                      <dt className="u-eyebrow text-white/60">{f.label}</dt>
+                      <dd className="text-[13.5px] font-semibold text-paper">{f.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

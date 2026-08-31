@@ -1,31 +1,27 @@
 import Image from "next/image";
 import { FOOTER_NAV, type NavItem } from "@/lib/content/navigation";
 import { BRAND, CONTACT, LOGO, SOCIAL } from "@/lib/content/site";
+import { APPLY_LINKS } from "@/lib/content/universities";
 import { SOCIAL_ICONS } from "@/components/ui/Icons";
+import ScrollTopButton from "@/components/ui/ScrollTopButton";
 
 /**
- * The footer, rebuilt on the arts.vcu.edu anatomy.
+ * The footer, on the arts.vcu.edu anatomy.
  *
- * Five stacked bands inside one black block, each separated by a hairline:
+ * Five bands separated by hairlines: identity and social marks, three
+ * full-width pills, four link columns with the first set noticeably heavier,
+ * the statutory paragraph, then the ribbon. The weight jump between column one
+ * and the rest is the whole hierarchy; every column at one size turns a footer
+ * into a wall.
  *
- *   1. wordmark left, social marks as outlined circles right
- *   2. three full-width outlined pills, equal columns
- *   3. four link columns, the first set noticeably heavier than the rest
- *   4. the statutory paragraph, small and quiet
- *   5. the ribbon: identity and copyright
- *
- * The weight jump between column one and columns two to four is the whole
- * hierarchy. Every column at the same size turns a footer into a wall.
+ * Black ground, white lockup, white rules. This is the one place on the page
+ * that inverts to a flat black, and it stays that way: an earlier pass tinted
+ * it oxblood and ran red through every rule, which turned the quietest part of
+ * the page into the loudest.
  */
 
 const PRIMARY: NavItem[] = FOOTER_NAV.study;
 const COLUMNS: NavItem[][] = [FOOTER_NAV.campuses, FOOTER_NAV.institute];
-
-const ACTIONS: NavItem[] = [
-  { label: "Visit", href: "#admissions" },
-  { label: "Apply", href: "#admissions" },
-  { label: "Connect with us", href: "#admissions" },
-];
 
 const ADDRESSES = [
   {
@@ -46,21 +42,27 @@ const rel = (item: NavItem) =>
 
 export default function Footer() {
   return (
-    <footer className="bg-obsidian text-paper">
-      <div className="u-shell py-14 md:py-16">
+    <footer data-cursor-invert className="bg-obsidian text-paper">
+      <div className="u-shell py-14 pb-[max(3.5rem,env(safe-area-inset-bottom))] md:py-16">
         {/* ---- 1. identity ---- */}
         <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:justify-between">
-          <a href="#top" aria-label="JECRC, back to top">
+          {/* The navbar's lockup, red artwork on its white plate, rather than
+              the flattened white one. It is the mark people just scrolled past
+              at the top of the page, and the plate is what carries the red. */}
+          <ScrollTopButton className="w-fit">
             <Image
-              src={LOGO.lockupMono}
+              src={LOGO.lockup}
               alt={`${BRAND.name} and JECRC Medical College Hospital and Research Centre`}
               width={557}
               height={258}
-              className="h-auto w-52 md:w-60"
+              className="h-auto w-52 rounded-md md:w-60"
             />
-          </a>
+          </ScrollTopButton>
 
-          <ul className="flex items-center gap-3">
+          {/* Wraps rather than pushing the page wide: five 44px targets plus
+              gaps need 268px, and a foldable cover screen has 244px of
+              content. */}
+          <ul className="-mx-1 flex flex-wrap items-center">
             {SOCIAL.map((s) => {
               const Icon = SOCIAL_ICONS[s.label as keyof typeof SOCIAL_ICONS];
               return (
@@ -70,7 +72,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${s.label}, opens in a new tab`}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 transition-colors duration-300 hover:border-paper hover:bg-paper hover:text-obsidian"
+                    className="m-1 flex h-11 w-11 items-center justify-center rounded-full border border-white/30 transition-colors duration-300 hover:border-paper hover:bg-paper hover:text-obsidian"
                   >
                     <Icon className="h-4.5 w-4.5" />
                   </a>
@@ -82,16 +84,17 @@ export default function Footer() {
 
         <hr className="mt-12 border-0 border-t border-white/15" />
 
-        {/* ---- 2. actions ---- */}
+        {/* ---- 2. the three portals ---- */}
         <ul className="mt-12 grid gap-4 md:grid-cols-3">
-          {ACTIONS.map((a) => (
-            <li key={a.label}>
+          {APPLY_LINKS.map((link) => (
+            <li key={link.id}>
               <a
-                href={a.href}
-                {...rel(a)}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="u-pill w-full py-4 text-paper hover:bg-paper hover:text-obsidian"
               >
-                {a.label}
+                Apply · {link.label}
               </a>
             </li>
           ))}
@@ -106,7 +109,7 @@ export default function Footer() {
                   <a
                     href={item.href}
                     {...rel(item)}
-                    className="u-underline text-[20px] font-bold leading-tight tracking-[-0.02em] md:text-[22px]"
+                    className="u-underline inline-flex min-h-[44px] items-center text-[20px] font-bold leading-tight tracking-[-0.025em] md:text-[22px]"
                   >
                     {item.label}
                   </a>
@@ -123,7 +126,7 @@ export default function Footer() {
                     <a
                       href={item.href}
                       {...rel(item)}
-                      className="u-underline text-[16px] leading-snug text-white/80 transition-colors duration-300 hover:text-paper md:text-[17px]"
+                      className="u-underline inline-flex min-h-[44px] items-center text-[16px] leading-snug text-paper/70 transition-colors duration-300 hover:text-paper md:text-[17px]"
                     >
                       {item.label}
                     </a>
@@ -135,23 +138,23 @@ export default function Footer() {
 
           <div className="flex flex-col gap-6">
             <div>
-              <p className="u-eyebrow text-white/45">Admissions</p>
-              <p className="mt-3 flex flex-col gap-1 text-[16px] text-white/80">
-                <a href={CONTACT.admissionsPhoneHref} className="u-underline w-fit text-paper">
+              <p className="u-eyebrow text-paper/45">Admissions</p>
+              <p className="mt-1 flex flex-col text-[16px] text-paper/70">
+                <a href={CONTACT.admissionsPhoneHref} className="u-underline inline-flex min-h-[44px] w-fit items-center text-paper">
                   {CONTACT.admissionsPhone}
                 </a>
-                <a href={CONTACT.emailHref} className="u-underline w-fit">
+                <a href={CONTACT.emailHref} className="u-underline inline-flex min-h-[44px] w-fit items-center">
                   {CONTACT.email}
                 </a>
               </p>
             </div>
             <div>
-              <p className="u-eyebrow text-white/45">Alwar NCR</p>
-              <p className="mt-3 flex flex-col gap-1 text-[16px] text-white/80">
-                <a href={CONTACT.ncrPhoneHref} className="u-underline w-fit text-paper">
+              <p className="u-eyebrow text-paper/45">Alwar NCR</p>
+              <p className="mt-1 flex flex-col text-[16px] text-paper/70">
+                <a href={CONTACT.ncrPhoneHref} className="u-underline inline-flex min-h-[44px] w-fit items-center text-paper">
                   {CONTACT.ncrPhone}
                 </a>
-                <a href={CONTACT.ncrEmailHref} className="u-underline w-fit break-all">
+                <a href={CONTACT.ncrEmailHref} className="u-underline inline-flex min-h-[44px] w-fit items-center break-all">
                   {CONTACT.ncrEmail}
                 </a>
               </p>
@@ -163,8 +166,8 @@ export default function Footer() {
         <div className="mt-16 grid gap-8 sm:grid-cols-2">
           {ADDRESSES.map((a) => (
             <div key={a.label}>
-              <p className="u-eyebrow text-white/45">{a.label}</p>
-              <address className="mt-3 max-w-[46ch] text-[13.5px] not-italic leading-[1.7] text-white/60">
+              <p className="u-eyebrow text-paper/45">{a.label}</p>
+              <address className="mt-3 max-w-[46ch] text-[13.5px] not-italic leading-[1.7] text-paper/55">
                 {a.lines.map((line) => (
                   <span key={line} className="block">
                     {line}
@@ -175,7 +178,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <p className="mt-12 max-w-[92ch] text-[13px] leading-[1.7] text-white/55">
+        <p className="mt-12 max-w-[92ch] border-t border-white/15 pt-10 text-[13px] leading-[1.7] text-paper/50">
           JECRC University is a private university established under an Act of the Rajasthan State
           Legislature and recognised by the UGC under sections 2(f) and 12(B) of the UGC Act 1956.
           Technical programmes conform to AICTE directives. JECRC Foundation is approved by AICTE
@@ -185,8 +188,8 @@ export default function Footer() {
         <hr className="mt-12 border-0 border-t border-white/15" />
 
         {/* ---- 5. ribbon ---- */}
-        <div className="mt-8 flex flex-col gap-4 text-[13px] text-white/60 md:flex-row md:items-center md:justify-between">
-          <p className="font-semibold text-white/80">
+        <div className="mt-8 flex flex-col gap-4 text-[13px] text-paper/55 md:flex-row md:items-center md:justify-between">
+          <p className="font-semibold text-paper/80">
             {BRAND.group} · Jaipur and Alwar NCR, Rajasthan, India
           </p>
           <p>

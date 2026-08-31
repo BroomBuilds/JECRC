@@ -48,5 +48,8 @@ export const LOGO = {
   lockup: "/brand/jecrc-lockup.png",
   /** White artwork on transparent, derived by `npm run brand:mono`. For dark ones. */
   lockupMono: "/brand/jecrc-lockup-mono.png",
-  mark: "/brand/jecrc-mark.png",
+  /** Brand red on transparent, for the oxblood footer. Same script, `#de1819`. */
+  lockupRed: "/brand/jecrc-lockup-red.png",
+  /** The crest alone, cut out of the red lockup by `npm run brand:crest`. */
+  crest: "/brand/jecrc-crest.png",
 } as const;

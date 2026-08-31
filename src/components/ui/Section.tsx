@@ -83,7 +83,7 @@ export function SectionHeading({
       <Tag
         data-reveal
         style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-        className="u-serif mt-6 max-w-[17ch] text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
+        className="u-display mt-6 max-w-[17ch] pb-[0.12em] text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
       >
         {title}
       </Tag>
