@@ -1,0 +1,15 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "main",
+    "v2-landing"
+  ],
+  "parent": {
+    "main": null,
+    "v2-landing": "main"
+  },
+  "order": [
+    "main",
+    "v2-landing"
+  ]
+}

@@ -388,14 +388,29 @@ export default function ScratchReveal({ images }: { images: string[] }) {
 
       {/* ---- content ---- */}
       <div className="relative z-10 u-shell py-24 md:py-32 lg:py-40">
+        {/* The name, set the way the lockup sets it: the word over a
+            letterspaced second line at roughly the same width. An earlier pass
+            had a lowercase "jecrc" in the grotesk, which read as a fashion
+            logotype rather than the university's own mark.
+
+            Two spans in one paragraph with the accessible name spelled out, so
+            it is announced as "JECRC University" and not as two fragments. */}
         <p
-          // Tight leading with explicit padding rather than a looser line box:
-          // the wordmark should sit as low as the grotesque allows, but the
-          // descender on the j overflows a sub-1 line box and lands on the
-          // statement underneath.
-          className="u-grotesk-black select-none pb-[0.16em] text-[22vw] leading-[0.85] text-ink lg:text-[15.5vw]"
+          aria-label="JECRC University"
+          className="select-none text-crimson"
         >
-          jecrc
+          {/* The second line is 0.4706 of the first, the cap-height ratio
+              measured off the lockup. The J descends in this face, so the two
+              lines are not closed up as tightly as a grotesk would allow. */}
+          <span aria-hidden className="u-wordmark block text-[19vw] leading-[0.92] lg:text-[13vw]">
+            JECRC
+          </span>
+          <span
+            aria-hidden
+            className="u-wordmark-sub block text-[8.9vw] leading-[1.05] lg:text-[6.1vw]"
+          >
+            UNIVERSITY
+          </span>
         </p>
 
         <p className="u-display mt-6 max-w-[22ch] text-[9vw] leading-[1.06] text-ink sm:text-[6.5vw] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">

@@ -8,13 +8,13 @@
    That is the arrangement on arts.vcu.edu, and the contrast is what
    makes those two bands land.
 
-   One typeface, Hanken Grotesk, and nothing else. Hierarchy comes from
-   size, weight and tracking rather than from a second face.
+   One text face, DM Sans, and nothing else. Hierarchy comes from size,
+   weight and tracking rather than from a second face. The wordmark is the
+   single exception, and it is set in the logo's own face.
 
-   It is here for the Gotham register: geometric skeleton, tall x-height,
-   flat terminals, wide even-width capitals, and the institutional
-   neutrality that comes with them. Gotham itself is licensed, and the
-   usual free stand-in is Montserrat, which is on every second site.
+   DM Sans is not a lookalike chosen for its register: the group already
+   sets its own pages in it, at 400 over 16px/24px, so the site inherits
+   rather than guesses.
 
    The rule, opposite to a high-contrast serif: the bigger it gets the
    HEAVIER it gets. A geometric sans has no stroke contrast to carry a
@@ -46,14 +46,16 @@
   --color-quiet: #74747a;
 
   /* --- brand, sampled from jecrcuniversity.edu.in ------------ */
-  --color-crimson: #de1819;
+  --color-crimson: #df1919;
   --color-crimson-lit: #ff3a30;
   --color-crimson-deep: #a10f10;
   --color-blush: #fdecec;
 
   /* --- type -------------------------------------------------- */
-  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-dm), "Helvetica Neue", Arial, sans-serif;
+  /* Wordmark only. Never body, never headings. */
+  --font-wordmark: var(--font-cinzel), ui-serif, Georgia, "Times New Roman", serif;
 
   /* --- motion ------------------------------------------------ */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -183,13 +185,50 @@ html.lenis, html.lenis body { height: auto; }
     letter-spacing: -0.02em;
   }
 
-  /* The wordmark cut. Geometric caps and bowls tighten as they grow, so
-     the tracking comes off hard at this size. */
+  /* The heaviest cut, for oversized display figures. Geometric caps and
+     bowls tighten as they grow, so the tracking comes off hard at this
+     size. Not the wordmark: that is `.u-wordmark`, in the logo's face. */
   .u-grotesk-black {
     font-family: var(--font-sans);
     font-weight: 800;
     line-height: 0.9;
     letter-spacing: -0.05em;
+  }
+
+  /* ---- the wordmark ------------------------------------------------
+     Everything here is measured off the published lockup rather than
+     chosen. Width over cap height is the comparator, not stem thickness:
+     the mark survives in the artwork as a 34px-tall raster, and how thick
+     a stem comes out of that depends on the upscaling and the threshold,
+     while a width-to-height ratio is pure geometry and survives both.
+
+     Both ratios are taken on ECRC rather than JECRC. The J drops below the
+     baseline in the artwork and in Cinzel alike, so measuring the whole word
+     divides the width by an ink height that is not the cap height, and every
+     number that comes out of it is wrong by the depth of one descender.
+
+     On ECRC the artwork runs 3.3824 widths per cap height. Cinzel is 3.6530
+     at weight 500, so the mark is tighter than the face, not looser, and the
+     tracking below is negative: 0.2706 cap-widths over three gaps, and a cap
+     height that is 0.73 of the em.
+
+     The second line needs none. It measures 8.0527 in the artwork against
+     Cinzel's 8.1136 at weight 400, so its spaced-out look comes free with the
+     face. At 0.4706 of the first line's cap height that puts it at 1.03 of
+     the name's width, which is where the lockup has it. */
+  .u-wordmark {
+    font-family: var(--font-wordmark);
+    font-variation-settings: "wght" 500;
+    /* Fallback for the static cut if the variable file is unavailable. */
+    font-weight: 500;
+    letter-spacing: -0.066em;
+  }
+
+  .u-wordmark-sub {
+    font-family: var(--font-wordmark);
+    font-variation-settings: "wght" 400;
+    font-weight: 400;
+    letter-spacing: 0;
   }
 
   /* Display. Heavy on purpose: a geometric sans has no stroke contrast,
