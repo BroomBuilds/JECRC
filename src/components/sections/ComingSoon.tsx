@@ -82,7 +82,7 @@ export default function ComingSoon() {
         style={{ background: "radial-gradient(circle, rgba(255,140,130,0.55) 0%, transparent 68%)" }}
       />
 
-      <div className="u-shell relative py-16 md:py-20 lg:py-24">
+      <div className="u-shell relative py-14 md:py-20 lg:py-24">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.35fr)] lg:items-center lg:gap-16">
           {/* ---- the news ---- */}
           <div>
@@ -98,7 +98,7 @@ export default function ComingSoon() {
               id="coming-soon-title"
               data-reveal
               style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-              className="u-display mt-6 max-w-[13ch] text-[2.5rem] sm:text-[3.25rem] lg:text-[clamp(2.75rem,3.8vw,4rem)]"
+              className="u-display mt-5 max-w-[13ch] text-[1.95rem] sm:mt-6 sm:text-[2.7rem] lg:text-[clamp(2.75rem,3.8vw,4rem)]"
             >
               {ANNOUNCEMENT.title}{" "}
               <span className="u-display-strong">{ANNOUNCEMENT.titleAccent}</span>
@@ -139,7 +139,7 @@ export default function ComingSoon() {
                   </span>
                 </div>
 
-                <h3 className="u-display mt-4 max-w-[10ch] text-[1.5rem] leading-[1.1] md:text-[1.8rem]">
+                <h3 className="u-display mt-4 max-w-[10ch] text-[1.3rem] leading-[1.15] md:text-[1.8rem]">
                   {c.name}
                 </h3>
 

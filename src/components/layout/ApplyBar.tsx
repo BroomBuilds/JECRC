@@ -66,7 +66,7 @@ export default function ApplyBar() {
       inert={!shown}
       aria-hidden={!shown}
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-[transform,opacity] duration-500 ease-out-expo md:pb-6",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center px-[max(1rem,env(safe-area-inset-left))] pb-[max(1rem,env(safe-area-inset-bottom))] transition-[transform,opacity] duration-500 ease-out-expo md:pb-6",
         shown ? "translate-y-0 opacity-100" : "translate-y-[130%] opacity-0"
       )}
     >
@@ -103,17 +103,27 @@ export default function ApplyBar() {
         </ul>
       </div>
 
-      {/* ---- the capsule ---- */}
+      {/* ---- the capsule ----
+          Two shells, the same anatomy as the stamp riding along inside the
+          film: a paper tray with a hairline, an opaque red pill sitting
+          concentric inside it. The phone gets the full width of the tray
+          rather than a shrink-to-fit lozenge with its label hidden, which is
+          what it was before: a bare "Apply now" pill floating in the middle of
+          the screen reads as a stray control, and it wasted the one line of
+          copy that says WHY to press it. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="pointer-events-auto flex items-center gap-4 rounded-full border border-rule bg-paper py-2 pl-6 pr-2 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)] transition-colors duration-300 hover:border-crimson"
+        className="pointer-events-auto flex w-full max-w-[26rem] items-center gap-3 rounded-full border border-rule bg-paper py-2 pl-5 pr-2 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)] transition-colors duration-300 hover:border-crimson sm:w-auto sm:gap-4 sm:pl-6"
       >
-        <span className="hidden text-[14px] font-medium text-graphite sm:inline">
-          Admissions 2026 are open
+        <span className="min-w-0 flex-1 text-left sm:flex-none">
+          <span className="u-eyebrow block truncate text-crimson sm:hidden">Admissions 2026</span>
+          <span className="hidden text-[14px] font-medium text-graphite sm:inline">
+            Admissions 2026 are open
+          </span>
         </span>
-        <span className="u-eyebrow flex items-center gap-2 rounded-full bg-crimson px-5 py-3 text-paper">
+        <span className="u-eyebrow flex shrink-0 items-center gap-2 rounded-full bg-crimson px-5 py-3 text-paper">
           Apply now
           <ChevronDown
             className={cn("h-3.5 w-3.5 transition-transform duration-300", open && "rotate-180")}

@@ -203,7 +203,27 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
     };
 
+    // The denominator the film is scrubbed against. Deliberately NOT
+    // `window.innerHeight` read fresh every frame.
+    //
+    // A phone's URL bar slides away as you scroll down and slides back as you
+    // scroll up, and `innerHeight` grows and shrinks by 60 to 130px with it.
+    // Dividing by a denominator that moves mid-scroll makes the film jump
+    // forward the instant the chrome retracts, which is the lurch you feel a
+    // few screens in. So this is measured once and only re-measured on a real
+    // resize: a rotation or a width change, or a height change far larger than
+    // any browser toolbar.
+    //
+    // 200px is the calibration knob. Toolbars run to about 130px on the
+    // tallest Android chrome; a genuine window resize is almost always more.
+    const TOOLBAR_SLACK = 200;
+    let lastW = window.innerWidth;
+    let stageH = window.innerHeight;
+
     const resize = () => {
+      // The canvas always matches the live viewport, because the stage is
+      // `h-dvh` and tracks it too. Sizing the bitmap to a frozen height is
+      // what leaves an unpainted band under the film.
       const w = Math.round(window.innerWidth * dpr);
       const h = Math.round(window.innerHeight * dpr);
       if (cv.width !== w || cv.height !== h) {
@@ -211,9 +231,15 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         cv.height = h;
         dirty = true;
       }
+      if (window.innerWidth !== lastW || Math.abs(window.innerHeight - stageH) > TOOLBAR_SLACK) {
+        lastW = window.innerWidth;
+        stageH = window.innerHeight;
+      }
     };
     resize();
     window.addEventListener("resize", resize);
+    // iOS fires this and not always `resize` when the toolbar collapses.
+    window.visualViewport?.addEventListener("resize", resize);
 
     // ---- overlay, driven by the same progress value ----------------------
     // Written straight to style, not through state: this runs every frame and
@@ -287,6 +313,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       return () => {
         disposed = true;
         window.removeEventListener("resize", resize);
+        window.visualViewport?.removeEventListener("resize", resize);
       };
     }
 
@@ -304,7 +331,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       raf = requestAnimationFrame(tick);
 
       const rect = sec.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
+      const total = rect.height - stageH;
       const p = total > 0 ? clamp01(-rect.top / total) : 0;
 
       // Snap to a frame that was actually fetched, otherwise `nearest` would
@@ -342,12 +369,13 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       cancelAnimationFrame(raf);
       io.disconnect();
       window.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("resize", resize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <section ref={section} id="tour" style={{ height: TOUR_HEIGHT }} className="relative">
+    <section ref={section} id="tour" style={{ height: TOUR_HEIGHT }} className="relative bg-ink">
       <span id="top" aria-hidden className="absolute top-0" />
 
       {/* The page's one h1. It lives out here rather than inside a caption
@@ -358,7 +386,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         Foundation.
       </h1>
 
-      <div className="sticky top-0 h-svh w-full overflow-hidden bg-ink">
+      <div className="sticky top-0 h-dvh w-full overflow-hidden bg-ink">
         {/* Poster underlay, so there is never a blank frame. */}
         <Image
           src={manifest.poster}
@@ -433,14 +461,14 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
               )}
 
               {c.variant === "apply" && (
-                <div className="pointer-events-auto mt-9 flex w-full max-w-2xl flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+                <div className="pointer-events-auto mt-7 flex w-full max-w-2xl flex-col items-stretch gap-2.5 sm:mt-9 sm:flex-row sm:justify-center sm:gap-3">
                   {APPLY_LINKS.map((link) => (
                     <a
                       key={link.id}
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-6 py-3.5 backdrop-blur-md transition-colors duration-300 hover:border-crimson hover:bg-crimson"
+                      className="group inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-5 py-3 backdrop-blur-md transition-colors duration-300 hover:border-crimson hover:bg-crimson sm:px-6 sm:py-3.5"
                     >
                       <span className="u-eyebrow whitespace-nowrap text-paper">Apply · {link.label}</span>
                       <ArrowUpRight className="h-4 w-4 text-paper/70 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -482,7 +510,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
               // The width is fixed rather than shrink-to-fit: three campus
               // names of three different lengths would otherwise resize the
               // card on every appearance, which reads as three controls.
-              className="pointer-events-auto absolute bottom-14 left-[max(var(--pad),env(safe-area-inset-left))] right-[max(var(--pad),env(safe-area-inset-right))] z-10 sm:bottom-16 sm:left-auto sm:w-[21.5rem]"
+              className="pointer-events-auto absolute bottom-[calc(2.25rem+env(safe-area-inset-bottom))] left-[max(var(--pad),env(safe-area-inset-left))] right-[max(var(--pad),env(safe-area-inset-right))] z-10 sm:bottom-16 sm:left-auto sm:w-86"
               style={{ opacity: 0, visibility: "hidden" }}
             >
               <a
@@ -491,13 +519,13 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
                 rel="noopener noreferrer"
                 data-cursor="Apply"
                 data-cursor-tone="crimson"
-                className="group block rounded-[1.75rem] bg-white/10 p-1.5 ring-1 ring-white/20 shadow-[0_1px_2px_rgba(0,0,0,0.16),0_14px_30px_-12px_rgba(0,0,0,0.45),0_40px_80px_-36px_rgba(0,0,0,0.6)] transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/16 hover:ring-white/35 active:scale-[0.98]"
+                className="group block rounded-[1.5rem] bg-white/10 p-1 ring-1 ring-white/20 sm:rounded-[1.75rem] sm:p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.16),0_14px_30px_-12px_rgba(0,0,0,0.45),0_40px_80px_-36px_rgba(0,0,0,0.6)] transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/16 hover:ring-white/35 active:scale-[0.98]"
               >
-                <span className="flex items-center gap-3.5 rounded-[1.375rem] bg-crimson py-3 pl-3 pr-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:bg-crimson-deep sm:gap-4 sm:py-3.5">
+                <span className="flex items-center gap-3 rounded-[1.15rem] bg-crimson p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:bg-crimson-deep sm:gap-4 sm:rounded-[1.375rem] sm:p-3 sm:py-3.5">
                   {/* The seal. Its rotation is the scroll position, so it is
                       the one element on screen that answers "am I driving
                       this?" the instant you move. */}
-                  <span className="relative grid h-15 w-15 shrink-0 place-items-center sm:h-17 sm:w-17">
+                  <span className="relative grid h-13 w-13 shrink-0 place-items-center sm:h-17 sm:w-17">
                     <svg
                       ref={(el) => {
                         sealRefs.current[i] = el;
@@ -525,7 +553,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
 
                   <span className="min-w-0">
                     <span className="u-eyebrow block text-paper/70">Admissions 2026</span>
-                    <span className="u-grotesk mt-0.5 block truncate text-[1.3rem] leading-tight text-paper sm:text-[1.45rem]">
+                    <span className="u-grotesk mt-0.5 block truncate text-[1.1rem] leading-tight text-paper sm:text-[1.45rem]">
                       {link.label}
                     </span>
                   </span>
@@ -536,9 +564,9 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
                       you reach it. */}
                   <span
                     aria-hidden
-                    className="ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105 group-hover:bg-paper"
+                    className="ml-auto grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 sm:h-11 sm:w-11 transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105 group-hover:bg-paper"
                   >
-                    <ArrowUpRight className="h-4.5 w-4.5 text-paper transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-crimson" />
+                    <ArrowUpRight className="h-4 w-4 text-paper transition sm:h-4.5 sm:w-4.5 duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-crimson" />
                   </span>
                 </span>
               </a>

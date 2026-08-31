@@ -38,7 +38,7 @@ export default function Faq() {
     <section
       id="faq"
       style={{ scrollMarginTop: "6.5rem" }}
-      className="relative overflow-hidden bg-paper py-20 md:py-28 lg:py-32"
+      className="relative overflow-hidden bg-paper py-16 md:py-28 lg:py-32"
     >
       <div className="u-shell grid gap-12 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)] lg:gap-20">
         {/* ---- the argument, held on the left ---- */}
@@ -49,14 +49,14 @@ export default function Faq() {
           <h2
             data-reveal
             style={{ "--reveal-delay": "60ms" } as React.CSSProperties}
-            className="u-display mt-6 max-w-[11ch] text-[2.75rem] text-ink sm:text-[3.5rem] lg:text-[clamp(3rem,3.8vw,4rem)]"
+            className="u-display mt-5 max-w-[11ch] text-[2rem] text-ink sm:mt-6 sm:text-[2.9rem] lg:text-[clamp(3rem,3.8vw,4rem)]"
           >
             Ask us <span className="u-display-strong text-crimson">anything</span>
           </h2>
           <p
             data-reveal
             style={{ "--reveal-delay": "120ms" } as React.CSSProperties}
-            className="mt-7 max-w-[34ch] text-[16px] leading-[1.7] text-graphite"
+            className="mt-6 max-w-[34ch] text-[15.5px] leading-[1.7] text-graphite md:mt-7 md:text-[16px]"
           >
             The eight things people ask before they apply, answered in full. Anything else and the
             admissions desk picks up.
