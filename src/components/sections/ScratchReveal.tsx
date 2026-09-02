@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { APPLY_LINKS } from "@/lib/content/universities";
 import { ArrowRight } from "@/components/ui/Icons";
@@ -8,11 +7,11 @@ import { ArrowRight } from "@/components/ui/Icons";
 /**
  * The scratch band.
  *
- * A collage sits at the bottom of the stack. Over it lies a canvas whose CSS
+ * A board sits at the bottom of the stack. Over it lies a canvas whose CSS
  * background is white and whose blend mode is `screen`. Screen against white is
  * white, so the band reads as blank paper; paint BLACK into the canvas and
  * screen against black is the backdrop, so wherever the brush has been, the
- * collage shows through. No masks, no clip paths, no second copy of the images.
+ * board shows through. No masks, no clip paths, no second copy of the image.
  *
  * The brush is a core disc of about 52px with a dozen small satellites strung
  * out VERTICALLY, radii five to thirteen, all breathing on one slow phase. The
@@ -31,15 +30,23 @@ import { ArrowRight } from "@/components/ui/Icons";
  *
  * A finger dragged across the band scrolls the page, and taking that away with
  * `touch-action: none` would trap the visitor inside a decorative section. So a
- * coarse pointer gets the honest equivalent: the band PINS, exactly the way the
- * film above it pins, and the sheet lifts as you scrub.
+ * coarse pointer does not scratch at all: the sheet tears itself off, once, on
+ * a 900ms clock, the first time half the band is on screen.
  *
- * That pin is the whole point. An earlier pass drove the reveal off the band's
- * ordinary travel through the viewport, which meant it was already most of the
- * way open by the time it was centred and readable: the visitor arrived after
- * the event and the interaction read as broken. Pinned, the reveal happens
- * while they are looking at it, it runs both ways under the thumb, and it is
- * the same gesture and the same grammar as the tour.
+ * It got there the long way. First the reveal rode the band's ordinary travel
+ * through the viewport, which meant it was mostly open before the band was
+ * centred and readable — the visitor arrived after the event. Then it PINNED
+ * and scrubbed, which fixed that and cost more: the band became the one place
+ * on the page where scrolling did not move the page, and it charged that toll
+ * on every pass, in both directions, long after there was anything left to
+ * see. Latching the scrub so it could not re-cover the board made the dead
+ * travel worse rather than better, because now nothing happened inside it.
+ *
+ * A one-shot on a clock keeps the only thing the pin was actually buying — the
+ * reveal happening while the visitor is looking at it, which is what the
+ * observer's 0.5 threshold is for — and gives back the scroll. The section is
+ * an ordinary block before and after, and there is no second run to guard
+ * against because there is no second run.
  *
  * On a fine pointer it keeps score instead. A coarse occupancy grid records
  * which cells the brush has touched, and once enough of the band is open the
@@ -74,12 +81,15 @@ const THRESHOLD = 0.42;
 const FLOOD = 0.055;
 
 /**
- * Fraction of the pin spent opening the sheet, on a phone. The remainder is
- * the beat where the collage is simply there to be looked at before the band
- * lets go: a reveal that finishes on the last pixel of its own pin is a reveal
- * nobody sees finished.
+ * How long the sheet takes to come off on a phone, in milliseconds.
+ *
+ * A clock rather than a fraction of a pin, because there is no pin any more.
+ * This is the knob: the number has to stand in for a gesture that used to take
+ * as long as the visitor's own thumb took to travel 80vh, which is a second
+ * and a half to two seconds of deliberate scrolling. 900ms was half that and
+ * read as a cut rather than a tear.
  */
-const SWEEP = 0.95;
+const SWEEP_MS = 1800;
 /** Depth of the soft edge on the travelling tear, as a fraction of the stage. */
 const TEAR = 0.12;
 
@@ -100,7 +110,13 @@ const makeSatellites = (): Sat[] =>
     };
   });
 
-export default function ScratchReveal({ images }: { images: string[] }) {
+export default function ScratchReveal({
+  image,
+  imagePortrait,
+}: {
+  image: string;
+  imagePortrait?: string;
+}) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -155,26 +171,37 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     }
 
     if (coarse) {
-      // ---- pinned, scrubbed ------------------------------------------------
-      // Progress is the stage's travel inside its own container, which is the
-      // section's padding-bottom and nothing else. Measuring it that way keeps
-      // it independent of `innerHeight`, so a URL bar sliding away cannot move
-      // the reveal the way it used to move the film.
+      // ---- played once, on arrival ------------------------------------------
+      // No pin, no scrub. This used to stick the stage to the top and scrub the
+      // reveal against 80vh of spacer underneath it, which made the band the
+      // one place on the page where scrolling did not move the page. Fine the
+      // first time, when something is happening; on every pass after that it
+      // was a screen and a half of dead travel over a board that was already
+      // open, in both directions.
+      //
+      // The latch that fixed the re-covering made that worse rather than
+      // better: the pin was still there, and now nothing happened inside it.
+      //
+      // So the tear is a one-shot on a clock instead, fired the first time the
+      // band is properly on screen, and the section is an ordinary block
+      // before and after. It is latched by construction — there is no second
+      // run to guard against — and everything the pin used to buy (the reveal
+      // happening while the visitor is looking at it, rather than before they
+      // arrive) is bought by the threshold on the observer instead.
       let frame = 0;
+      let raf = 0;
+      let done = false;
 
-      const paint = () => {
-        frame = 0;
-        const r = sec.getBoundingClientRect();
+      /** Paint the sheet at `open`, 0 covered to 1 gone. */
+      const draw = (open: number) => {
         const { w, h } = fit();
-        const travel = r.height - h;
         ctx.clearRect(0, 0, w, h);
-        if (travel <= 0) {
+        if (open <= 0) return;
+        if (open >= 1) {
           ctx.fillStyle = "#000";
           ctx.fillRect(0, 0, w, h);
           return;
         }
-        const open = clamp01(clamp01(-r.top / travel) / SWEEP);
-        if (open <= 0) return;
 
         // The tear runs past the bottom edge so the last of the sheet leaves
         // the screen instead of dissolving in place.
@@ -186,7 +213,7 @@ export default function ScratchReveal({ images }: { images: string[] }) {
         if (solid > 0) ctx.fillRect(0, 0, w, solid);
 
         // Soft trailing edge. Semi-transparent black over the canvas's own
-        // white background is grey, and screen against grey lifts the collage
+        // white background is grey, and screen against grey lifts the board
         // rather than cutting to it, so the sheet tears rather than wipes.
         if (y > solid) {
           const g = ctx.createLinearGradient(0, solid, 0, y);
@@ -195,26 +222,66 @@ export default function ScratchReveal({ images }: { images: string[] }) {
           ctx.fillStyle = g;
           ctx.fillRect(0, solid, w, y - solid);
         }
-        // No setState here on purpose. This runs on every scrolled frame, and
-        // the only thing `progress` drives is the fine-pointer prompt, which
-        // is not rendered on a coarse one.
       };
 
-      const onScroll = () => {
-        if (!frame) frame = requestAnimationFrame(paint);
+      draw(0);
+
+      const run = () => {
+        const t0 = performance.now();
+        const tick = (now: number) => {
+          const t = clamp01((now - t0) / SWEEP_MS);
+          // Smoothstep, not the out-expo this started on. An out-expo is half
+          // done in a tenth of its duration, which is right for something
+          // ARRIVING — the masthead at the top of the page uses one — and
+          // wrong for a sheet being drawn off, which is a steady pull with a
+          // soft start and a soft stop. Under a thumb the old scrub was
+          // linear in scroll, and this is the nearest curve to that which
+          // still has ends.
+          draw(t * t * (3 - 2 * t));
+          if (t < 1) {
+            raf = requestAnimationFrame(tick);
+            return;
+          }
+          raf = 0;
+          done = true;
+          draw(1);
+          setCleared(true);
+          setProgress(1);
+        };
+        raf = requestAnimationFrame(tick);
       };
-      paint();
-      window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", onScroll);
-      window.visualViewport?.addEventListener("resize", onScroll);
-      const ro = new ResizeObserver(onScroll);
+
+      // A resize clears the backing store, so whatever state the sheet is in
+      // has to be redrawn. Mid-run the loop is about to do that anyway.
+      const onResize = () => {
+        if (frame || raf) return;
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          draw(done ? 1 : 0);
+        });
+      };
+
+      const io = new IntersectionObserver(
+        ([entry]) => {
+          // Half the band on screen, so the tear runs while it is being
+          // looked at rather than finishing above the fold.
+          if (!done && !raf && entry.intersectionRatio >= 0.5) run();
+        },
+        { threshold: [0, 0.5, 1] }
+      );
+      io.observe(st);
+
+      window.addEventListener("resize", onResize);
+      window.visualViewport?.addEventListener("resize", onResize);
+      const ro = new ResizeObserver(onResize);
       ro.observe(st);
       return () => {
         cancelAnimationFrame(frame);
+        cancelAnimationFrame(raf);
+        io.disconnect();
         ro.disconnect();
-        window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", onScroll);
-        window.visualViewport?.removeEventListener("resize", onScroll);
+        window.removeEventListener("resize", onResize);
+        window.visualViewport?.removeEventListener("resize", onResize);
       };
     }
 
@@ -395,17 +462,11 @@ export default function ScratchReveal({ images }: { images: string[] }) {
   }, []);
 
   return (
-    /* The spacer below the stage IS the pin: the stage sticks to the top and
-       the section keeps travelling for another 85vh underneath it, which is
-       the scroll the sheet is scrubbed against. On a fine pointer the spacer
-       is not rendered, the stage has nowhere to travel, and the coin does the
-       work instead.
-
-       It has to be a real box and not padding on the section. A sticky
-       element is constrained to its containing block, which is the CONTENT
-       box of the nearest block-container ancestor: padding-bottom sits
-       outside it, so `pb-[85vh]` here made the section taller and gave the
-       pin exactly zero travel. */
+    /* An ordinary block, on every pointer.
+       It used to pin on a coarse one: the stage stuck to the top and a spacer
+       underneath gave the reveal 80vh of travel to be scrubbed against. That
+       spacer is gone along with the scrub, and with it the one place on the
+       page where scrolling stopped moving the page. */
     <section
       ref={section}
       id="build"
@@ -414,22 +475,30 @@ export default function ScratchReveal({ images }: { images: string[] }) {
     >
       <div
         ref={stage}
-        className="relative isolate flex flex-col justify-end overflow-hidden bg-paper pointer-coarse:sticky pointer-coarse:top-0 pointer-coarse:min-h-dvh"
+        className="relative isolate flex flex-col justify-end overflow-hidden bg-paper pointer-coarse:min-h-dvh"
       >
-        {/* ---- the collage, bottom of the stack ---- */}
-        <div aria-hidden className="absolute inset-0 grid grid-cols-2 md:grid-cols-4">
-          {images.map((src, i) => (
-            <div key={src + i} className="relative">
-              <Image
-                src={src}
-                alt=""
-                fill
-                sizes="(min-width: 768px) 25vw, 50vw"
-                className="object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        {/* ---- the board, bottom of the stack ----
+            One picture, full bleed. Was a two-by-four grid of eight; a contact
+            sheet is eight pictures of a place in an order nobody chose, and
+            the sheet reads better coming off one frame.
+
+            Art-directed rather than merely responsive, which is why this is a
+            `<picture>` and not next/image. The board is a landscape
+            arrangement and a phone is a tall frame: `object-cover` on the wide
+            crop throws away the left two thirds, which is where most of the
+            photographs are. Two files, one fetch, the browser picking. Both
+            are hand-sized webp already, so the optimiser had nothing left to
+            do here anyway. */}
+        <picture>
+          {imagePortrait && <source media="(max-width: 767px)" srcSet={imagePortrait} />}
+          <img
+            src={image}
+            alt=""
+            aria-hidden
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </picture>
 
         {/* ---- the paper, and the brush that takes it away ----
             Screen against the white background is white, so this reads as blank
@@ -448,21 +517,38 @@ export default function ScratchReveal({ images }: { images: string[] }) {
             Two different washes, because the two layouts read in different
             directions. On a desktop the copy holds the left column, so the
             wash runs left to right and the pictures keep the right half. On a
-            phone the copy is bottom-anchored under a full-bleed collage, so it
-            runs bottom to top and the pictures keep the top third: a
-            left-to-right wash on a 390px screen is just an opaque band over
-            the entire reveal. */}
+            phone the copy is bottom-anchored under a full-bleed board, so it
+            runs bottom to top and the pictures keep the top: a left-to-right
+            wash on a 390px screen is just an opaque band over the entire
+            reveal.
+
+            Both were tuned for type and against the picture, and it showed.
+            The phone's held a solid white third and was still at 0.9 halfway
+            up; the desktop's sat at 0.85 across the middle of a 52% column.
+            The board a visitor has just opened was arriving pale, and a reveal
+            you wait for should not hand back a washed photograph.
+
+            So both decay early, and each holds full opacity only over the
+            sliver the copy actually sits on: the bottom twelfth on a phone,
+            the first third of the column on a desktop. What buys the contrast
+            back is not the wash but the halo on the type itself, a few lines
+            down — paid for over the letterforms rather than over the whole
+            board. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 hidden pointer-coarse:block"
           style={{
             background:
-              "linear-gradient(to top, #fff 0%, #fff 32%, rgba(255,255,255,0.9) 52%, rgba(255,255,255,0.55) 74%, rgba(255,255,255,0.12) 92%, rgba(255,255,255,0) 100%)",
+              "linear-gradient(to top, #fff 0%, #fff 8%, rgba(255,255,255,0.78) 24%, rgba(255,255,255,0.46) 42%, rgba(255,255,255,0.16) 62%, rgba(255,255,255,0) 80%)",
           }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-full bg-linear-to-r from-paper via-paper/85 to-transparent pointer-coarse:hidden md:w-[62%] lg:w-[52%]"
+          className="pointer-events-none absolute inset-y-0 left-0 w-full pointer-coarse:hidden md:w-[56%] lg:w-[48%]"
+          style={{
+            background:
+              "linear-gradient(to right, #fff 0%, rgba(255,255,255,0.95) 32%, rgba(255,255,255,0.6) 62%, rgba(255,255,255,0) 100%)",
+          }}
         />
 
         {/* ---- content ---- */}
@@ -478,7 +564,21 @@ export default function ScratchReveal({ images }: { images: string[] }) {
               `aria-label` is prohibited on a paragraph, and a screen reader
               given two decorative fragments would announce "JECRC" and
               "UNIVERSITY" as separate strings. */}
-          <p className="select-none text-crimson">
+          {/* A white glow rather than more wash. The washes above were pulled
+              back hard so the board actually shows, which leaves the two
+              largest pieces of type sitting on photographs at the far end of
+              their gradients. A halo carried by the letterforms themselves
+              buys the contrast back over exactly the pixels that need it,
+              instead of spending another twenty percent of the picture on a
+              rectangle. Invisible before the sheet comes off: white on white.
+
+              Three stops rather than one. A single wide blur is a smudge that
+              lifts everything nearby by a little; a tight opaque core with two
+              wider falloffs behind it reads as the letter sitting ON the
+              board. A phone gets the tighter, harder version, because its copy
+              is bottom-anchored over the busiest part of the picture where the
+              desktop's sits on the palest. */}
+          <p className="select-none text-crimson [text-shadow:0_0_6px_#fff,0_0_16px_#fff,0_1px_34px_rgba(255,255,255,0.9)] pointer-coarse:[text-shadow:0_0_5px_#fff,0_0_11px_#fff,0_0_22px_rgba(255,255,255,0.95)]">
             <span className="sr-only">JECRC University</span>
             {/* The second line is 0.4706 of the first, the cap-height ratio
                 measured off the lockup. The J descends in this face, so the two
@@ -494,7 +594,7 @@ export default function ScratchReveal({ images }: { images: string[] }) {
             </span>
           </p>
 
-          <p className="u-display mt-5 max-w-[30ch] text-[6.4vw] leading-[1.15] text-ink sm:text-[4.6vw] md:mt-6 md:leading-[1.06] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
+          <p className="u-display mt-5 max-w-[30ch] text-[6.4vw] leading-[1.15] text-ink [text-shadow:0_0_6px_#fff,0_0_15px_#fff,0_1px_30px_rgba(255,255,255,0.9)] pointer-coarse:[text-shadow:0_0_5px_#fff,0_0_10px_#fff,0_0_20px_rgba(255,255,255,0.95)] sm:text-[4.6vw] md:mt-6 md:leading-[1.06] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
             Twenty-six years of building people who build things. Find the campus, the school and
             the year that fits.
           </p>
@@ -541,8 +641,6 @@ export default function ScratchReveal({ images }: { images: string[] }) {
           </div>
         </div>
       </div>
-
-      <div aria-hidden className="hidden h-[80vh] pointer-coarse:block" />
     </section>
   );
 }

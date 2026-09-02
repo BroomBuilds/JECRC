@@ -28,6 +28,30 @@ export const ANNOUNCEMENT = {
   detail:
     "Two more universities join JECRC. Names, cities and the first intake are announced shortly. Everything below fills in as each one is confirmed.",
   cta: { label: "Get told first", href: "#apply" },
+  /**
+   * The medical college, which is the one part of what is next that is not a
+   * placeholder: it is designed, it is named on its own elevation, and there
+   * are renders of it. So it gets the pictures and the two universities keep
+   * the plates, rather than the whole band waiting on news nobody has yet.
+   *
+   * Nothing here states a date, a bed count or an intake. The renders are
+   * architectural visualisations and the copy says exactly that; the moment
+   * anyone writes "opening 2027" into this file it stops being honest.
+   */
+  medical: {
+    eyebrow: "Under construction",
+    name: "JECRC Medical College and Hospital",
+    place: "Jaipur",
+    detail:
+      "A teaching hospital and medical college on the group's own campus, drawn and under way. Programmes and first intake are announced when they are confirmed.",
+    /** Architect's visualisations, not photographs. Said out loud in the caption. */
+    credit: "Architectural visualisation",
+    views: [
+      { src: "/media/medical/elevation.webp", label: "Front elevation" },
+      { src: "/media/medical/arrival.webp", label: "The drop-off, evening" },
+      { src: "/media/medical/entrance.webp", label: "Lower ground entry" },
+    ],
+  },
   campuses: [
     {
       no: "01",

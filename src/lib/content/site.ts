@@ -61,4 +61,14 @@ export const LOGO = {
   lockupRed: "/brand/jecrc-lockup-red.webp",
   /** The crest alone, cut out of the red lockup by `npm run brand:crest`. */
   crest: "/brand/jecrc-crest.webp",
+  /**
+   * The crest at 402 by 464, for the tour's closing lockup.
+   *
+   * Cut from `ref/JU logo.png`, the university's own 1500px lockup, on its
+   * alpha bounding box. `crest` above it is a different animal: that one is
+   * derived from the 557px two-up artwork and tops out at 80 by 89, which is
+   * fine at favicon size and mush at the size the ending sets the mark. This
+   * is the same crest with the detail still in it.
+   */
+  crestLarge: "/brand/jecrc-crest-lg.png",
 } as const;

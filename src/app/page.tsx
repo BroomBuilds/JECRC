@@ -9,17 +9,23 @@ import Majors from "@/components/sections/Majors";
 import Ledger from "@/components/sections/Ledger";
 import Faq from "@/components/sections/Faq";
 import { TOUR_APPLY_BEATS, TOUR_CAPTIONS } from "@/lib/content/tour";
-import { PROGRAMMES } from "@/lib/content/schools";
 
-/** The collage the scratch band reveals: all eight, as two rows of four. */
-const SCRATCH_IMAGES = PROGRAMMES.map((p) => p.image);
+/**
+ * The board the scratch band reveals. Swap the files, not the code.
+ *
+ * Two crops rather than one. The landscape board puts its photographs across
+ * the left two thirds, which is exactly where a phone's `object-cover` throws
+ * them away; the portrait poster is the same board reset for a tall frame.
+ */
+const SCRATCH_IMAGE = "/media/scratch-bg.webp";
+const SCRATCH_IMAGE_PORTRAIT = "/media/scratch-bg-portrait.webp";
 
 /**
  * Section order is the argument the page makes:
  *
  *   film        establish the place
- *   scratch     the promise, and the only place the visitor plays with it
  *   ambassador  the moment
+ *   scratch     the promise, and the only place the visitor plays with it
  *   schools     what you would study that you could not study elsewhere
  *   numbers     what it is worth
  *   coming soon what is next, once the case for today is made
@@ -39,8 +45,8 @@ export default function HomePage() {
       <ApplyBar />
       <main>
         <ScrollTour captions={TOUR_CAPTIONS} applyBeats={TOUR_APPLY_BEATS} />
-        <ScratchReveal images={SCRATCH_IMAGES} />
         <Ambassador />
+        <ScratchReveal image={SCRATCH_IMAGE} imagePortrait={SCRATCH_IMAGE_PORTRAIT} />
         <Majors />
         <Ledger />
         <ComingSoon />
