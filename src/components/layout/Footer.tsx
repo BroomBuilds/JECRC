@@ -138,7 +138,7 @@ export default function Footer() {
 
           <div className="flex flex-col gap-6">
             <div>
-              <p className="u-eyebrow text-paper/45">Admissions</p>
+              <p className="u-eyebrow text-paper/55">Admissions</p>
               <p className="mt-1 flex flex-col text-[16px] text-paper/70">
                 <a href={CONTACT.admissionsPhoneHref} className="u-underline inline-flex min-h-[44px] w-fit items-center text-paper">
                   {CONTACT.admissionsPhone}
@@ -149,7 +149,7 @@ export default function Footer() {
               </p>
             </div>
             <div>
-              <p className="u-eyebrow text-paper/45">Alwar NCR</p>
+              <p className="u-eyebrow text-paper/55">Alwar NCR</p>
               <p className="mt-1 flex flex-col text-[16px] text-paper/70">
                 <a href={CONTACT.ncrPhoneHref} className="u-underline inline-flex min-h-[44px] w-fit items-center text-paper">
                   {CONTACT.ncrPhone}
@@ -166,7 +166,7 @@ export default function Footer() {
         <div className="mt-16 grid gap-8 sm:grid-cols-2">
           {ADDRESSES.map((a) => (
             <div key={a.label}>
-              <p className="u-eyebrow text-paper/45">{a.label}</p>
+              <p className="u-eyebrow text-paper/55">{a.label}</p>
               <address className="mt-3 max-w-[46ch] text-[13.5px] not-italic leading-[1.7] text-paper/55">
                 {a.lines.map((line) => (
                   <span key={line} className="block">

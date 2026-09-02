@@ -474,7 +474,12 @@ export default function ScratchReveal({ images }: { images: string[] }) {
 
               Two spans in one paragraph with the accessible name spelled out, so
               it is announced as "JECRC University" and not as two fragments. */}
-          <p aria-label="JECRC University" className="select-none text-crimson">
+          {/* The accessible name is a hidden span rather than an aria-label:
+              `aria-label` is prohibited on a paragraph, and a screen reader
+              given two decorative fragments would announce "JECRC" and
+              "UNIVERSITY" as separate strings. */}
+          <p className="select-none text-crimson">
+            <span className="sr-only">JECRC University</span>
             {/* The second line is 0.4706 of the first, the cap-height ratio
                 measured off the lockup. The J descends in this face, so the two
                 lines are not closed up as tightly as a grotesk would allow. */}

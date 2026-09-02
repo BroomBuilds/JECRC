@@ -74,9 +74,9 @@ version essentially never does, in either direction.
 `scripts/build-tour.mjs` is a thin, well-behaved wrapper around ffmpeg:
 
 ```
-video ──ffmpeg──> public/media/tour/1600/f0001.webp … f0240.webp   (desktop)
-              └─> public/media/tour/900/f0001.webp  … f0240.webp   (phones)
-              └─> public/media/tour/poster.jpg
+video ──ffmpeg──> public/media/tour/1100/f0001.webp … f0828.webp   (desktop)
+              └─> public/media/tour/640/f0001.webp  … f0828.webp   (phones)
+              └─> public/media/tour/poster.webp
               └─> public/media/tour/manifest.json  (+ copy into src/lib/)
 ```
 
@@ -101,9 +101,19 @@ frames  =  duration × fps
 pixels per frame  =  (TOUR_VH / 100 × viewport height) / frames
 ```
 
-At the defaults (30 s, 8 fps, `TOUR_VH = 900`, an 800 px window) that is 240 frames over
-7,200 px, or **30 px of scroll per frame**. Around 25–40 px reads as continuous motion. Below
-~15 px you are paying for frames nobody perceives; above ~60 px it starts to feel steppy.
+What ships (`ref/website-video.mp4`, 33.12 s at 25 fps, `--fps 25`) is 828 frames. At
+`TOUR_VH = 1500` on a 900 px window that is 12,600 px of travel, or **15 px of scroll per
+frame**; phones take every second frame against a 900 px tour and land at 13 px. Measured on
+the shipped build, a 900 px drag draws 60 distinct frames on desktop and 61 on a phone, and
+the same drag reversed is pixel-identical at all 61 positions.
+
+Above ~60 px it feels steppy and around 25–40 px reads as continuous, so 15 px is deliberately
+past the point of diminishing returns: this is the page's one set piece, and the loader below
+means nobody downloads a frame they do not scroll past. **`--fps 12` halves the frame count,
+the bytes and the density in one flag** if that trade ever needs making — but keep it an
+integer divisor of the source rate (25 → 12.5 → 6.25). A non-divisor makes ffmpeg pick the
+nearest source frame for each output slot, so the *content* intervals come out uneven while
+the scroll mapping stays uniform, and that reads as judder no easing can fix.
 
 ---
 
@@ -187,11 +197,42 @@ always maps to exactly one frame index, which is why scrolling up is bit-for-bit
 of scrolling down, verified by hashing the canvas at 25 positions on the way down and again
 on the way up: **25/25 identical**.
 
-### 4e. Never a blank frame
+### 4e. What gets fetched, and when
+
+The whole film is ~28 MB at the desktop size. Fetching all of it on load would be the single
+most expensive thing this page does, and most of it would be spent on people who never reach
+the second beat. So it arrives in three phases and only the first is unconditional:
+
+| phase | what | when |
+|---|---|---|
+| PRIME | a wide stride across the whole film, ~26 frames | immediately |
+| COARSE | one more pass at twice the density | first scroll, wheel, key or touch |
+| WINDOW | the rest, ±90 track positions around the playhead, forward first | same gesture, then travels with the playhead |
+
+The window is what makes the scrub smooth; the strided passes are what make an arbitrary jump
+land on something. Measured payload, 1440 px viewport:
+
+| visitor | frames | tour bytes | page total |
+|---|---|---|---|
+| opened, never scrolled | 26 | 0.90 MB | 1.86 MB |
+| scrolled two screens | 192 | 5.14 MB | 6.10 MB |
+| watched the whole film | 806 | 28.19 MB | 30.57 MB |
+| watched the whole film, phone | 415 | 6.48 MB | 8.86 MB |
+
+Gating on a gesture rather than on `load` is the difference between a 1.9 MB page and a
+3.6 MB one for the visitor who bounces. The rAF loop also opens the taps if it ever finds the
+playhead off zero, which covers a flick that lands between the HTML arriving and the component
+mounting — there is no scroll event left to hear by then, but the film is plainly not at the
+top, and that is the same evidence.
+
+### 4f. Never a blank frame
 
 Three fallbacks stack up:
 
-1. A poster `<img>` sits under the canvas until the first pass has loaded.
+1. The poster `<img>` sits OVER the canvas and fades out once there are real frames. Not under
+   it: the 2D context is requested with `alpha: false` for draw speed, and an opaque canvas is
+   **black** until something is drawn into it, so underneath the poster it covered the poster
+   completely. That cost 3.7 s of LCP render delay on a throttled phone before it was caught.
 2. `nearest(i)` walks outward from the requested index to the closest frame that *is* loaded,
    so a half-loaded tour shows the nearest real picture rather than nothing.
 3. Under `prefers-reduced-motion: reduce` the whole loop is skipped: one frame is loaded,
@@ -227,11 +268,16 @@ invisible headline.
 
 ## 6. Costs, honestly
 
-- **Weight.** The placeholder is ~19 MB of WebP across two sizes. The real film, being AI-generated
-  and smoother, should compress better at the same settings. Serve it from a CDN; the frames are
-  immutable and cache forever.
-- **Requests.** 240 per size. Fine over HTTP/2, and they arrive coarse-to-fine so the tour is
-  usable long before the last one lands.
+- **Weight.** 28.6 MB at 1100 px and 12.9 MB at 640 px on disk, 828 frames each. What any one
+  visitor actually pays is in the table in 4e. Serve it from a CDN; the frames are immutable
+  and cache forever.
+- **Requests.** 828 per size, but only the ones scrolled past. Fine over HTTP/2, and they
+  arrive coarse-to-fine so the tour is usable long before the last one lands.
+- **AVIF would halve it.** Measured on this footage, 12.0 KB/frame against WebP's 24.8 at the
+  same width and comparable quality. Not taken: it needs a WebP tier alongside it for the
+  browsers that lack it, which doubles the build and the disk, and AVIF decode is the slower
+  of the two on exactly the phones that would benefit most from the bytes. Worth revisiting
+  when the support floor moves.
 - **Memory.** A few hundred decoded bitmaps is real memory pressure. The DPR cap and the two-size
   ladder keep it reasonable; if you push past ~400 frames, drop the widths.
 - **Not free on first load.** There is a genuine loading state, shown as a percentage. A video
