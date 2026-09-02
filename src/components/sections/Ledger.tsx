@@ -59,17 +59,19 @@ export default function Ledger() {
               key={f.label}
               data-reveal
               style={{ "--reveal-delay": `${i * 100}ms` } as React.CSSProperties}
-              className="border-b border-rule py-9 last:border-b-0 md:border-b-0 md:py-16 md:odd:border-r md:odd:pr-12 md:even:pl-12"
+              className="flex flex-col border-b border-rule py-9 last:border-b-0 md:border-b-0 md:py-16 md:odd:border-r md:odd:pr-12 md:even:pl-12"
             >
-              <dd className="u-figure text-[13.5vw] text-ink sm:text-[11vw] lg:text-[clamp(6rem,9vw,10.5rem)]">
+              <dt className="u-grotesk order-2 mt-4 text-[1.1rem] text-ink md:mt-6 md:text-[1.6rem]">
+                {f.label}
+              </dt>
+              <dd className="u-figure order-1 text-[13.5vw] text-ink sm:text-[11vw] lg:text-[clamp(6rem,9vw,10.5rem)]">
                 {f.value}
                 {f.unit && <span className="text-crimson">{f.unit}</span>}
               </dd>
-              <dt className="u-grotesk mt-4 text-[1.1rem] text-ink md:mt-6 md:text-[1.6rem]">{f.label}</dt>
               {f.detail && (
-                <p className="mt-3 max-w-[34ch] text-[14.5px] leading-[1.65] text-quiet">
+                <dd className="order-3 mt-3 max-w-[34ch] text-[14.5px] leading-[1.65] text-quiet">
                   {f.detail}
-                </p>
+                </dd>
               )}
             </div>
           ))}
@@ -85,19 +87,19 @@ export default function Ledger() {
               key={f.label}
               data-reveal
               style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}
-              className="group border-b border-rule py-8 transition-colors duration-500 hover:bg-bone sm:odd:border-r sm:odd:pr-6 sm:even:pl-6 lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0 lg:odd:pr-6 lg:even:pl-6"
+              className="group flex flex-col border-b border-rule py-8 transition-colors duration-500 hover:bg-bone sm:odd:border-r sm:odd:pr-6 sm:even:pl-6 lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0 lg:odd:pr-6 lg:even:pl-6"
             >
-              <dd className="u-figure text-[2.5rem] text-ink md:text-[4rem]">
+              <dt className="order-2 mt-4 text-[15px] font-semibold tracking-[-0.01em] text-ink">
+                {f.label}
+              </dt>
+              <dd className="u-figure order-1 text-[2.5rem] text-ink md:text-[4rem]">
                 {f.value}
                 {f.unit && <span className="text-crimson">{f.unit}</span>}
               </dd>
-              <dt className="mt-4 text-[15px] font-semibold tracking-[-0.01em] text-ink">
-                {f.label}
-              </dt>
               {f.detail && (
-                <p className="mt-2 max-w-[30ch] text-[13.5px] leading-[1.6] text-quiet">
+                <dd className="order-3 mt-2 max-w-[30ch] text-[13.5px] leading-[1.6] text-quiet">
                   {f.detail}
-                </p>
+                </dd>
               )}
             </div>
           ))}
@@ -146,7 +148,7 @@ export default function Ledger() {
                   {RECRUITERS.map((name) => (
                     <span
                       key={`${copy}-${name}`}
-                      className="u-grotesk whitespace-nowrap text-[1.15rem] text-ink/25 transition-colors md:text-[2rem]"
+                      className="u-grotesk whitespace-nowrap text-[1.15rem] text-ink/60 transition-colors md:text-[2rem]"
                     >
                       {name}
                     </span>

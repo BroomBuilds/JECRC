@@ -9,14 +9,14 @@
  *   --start <sec>    trim from                              (default 0)
  *   --end <sec>      trim to                                (default end of file)
  *   --widths <list>  output widths, comma separated         (default 1600,900)
- *   --quality <n>    WebP quality 0-100                     (default 58)
+ *   --quality <n>    WebP quality 0-100                     (default 50)
  *   --format <fmt>   webp | jpg                             (default webp)
- *   --max <n>        hard cap on frame count                (default 400)
+ *   --max <n>        hard cap on frame count                (default 900)
  *   --out <dir>      output dir  (default public/media/tour)
  *
  * Writes:
  *   public/media/tour/<width>/f0001.webp …
- *   public/media/tour/poster.jpg
+ *   public/media/tour/poster.webp
  *   public/media/tour/manifest.json    <- the component reads only this
  *
  * Requires ffmpeg on PATH.
@@ -42,9 +42,9 @@ const fps      = Number(opt("fps", 10));
 const start    = Number(opt("start", 0));
 const endArg   = opt("end", null);
 const widths   = String(opt("widths", "1600,900")).split(",").map((n) => parseInt(n, 10));
-const quality  = Number(opt("quality", 58));
+const quality  = Number(opt("quality", 50));
 const format   = String(opt("format", "webp"));
-const maxFrames= Number(opt("max", 400));
+const maxFrames= Number(opt("max", 900));
 const outDir   = resolve(opt("out", "public/media/tour"));
 
 if (!existsSync(input)) {
@@ -89,8 +89,8 @@ for (const w of widths) {
   if (start > 0) args.push("-ss", String(start));
   args.push("-i", input);
   if (endArg !== null || span < srcDuration) args.push("-t", String(span));
-  args.push("-vf", `fps=${effFps},scale=${w}:-2`);
-  if (format === "webp") args.push("-c:v","libwebp","-quality",String(quality),"-compression_level","5","-preset","picture");
+  args.push("-vf", `fps=${effFps},scale=${w}:-2:flags=lanczos`);
+  if (format === "webp") args.push("-c:v","libwebp","-quality",String(quality),"-compression_level","6","-preset","picture");
   else args.push("-q:v", String(Math.max(2, Math.round((100 - quality) / 8))));
   args.push(join(dir, `f%04d.${format}`));
 
@@ -119,7 +119,9 @@ if (stills > 0) {
 }
 
 // poster = first frame, used before anything has loaded
-execFileSync("ffmpeg", ["-v","error","-y","-ss",String(start),"-i",input,"-vframes","1","-q:v","3",join(outDir,"poster.jpg")]);
+execFileSync("ffmpeg", ["-v","error","-y","-ss",String(start),"-i",input,"-vframes","1",
+  "-vf","scale=1400:-2:flags=lanczos","-c:v","libwebp","-quality","62",
+  "-compression_level","6","-preset","picture", join(outDir,"poster.webp")]);
 
 const count = Math.min(...sizes.map((s) => s.count));
 const manifest = {
@@ -129,7 +131,7 @@ const manifest = {
   format,
   pad: 4,
   base: "/media/tour",
-  poster: "/media/tour/poster.jpg",
+  poster: "/media/tour/poster.webp",
   aspect: srcW / srcH,
   sizes: sizes.map(({ width, height, dir }) => ({ width, height, dir })),
   builtFrom: input.split("/").pop(),

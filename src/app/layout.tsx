@@ -148,7 +148,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         {/* The tour's first frames are the largest paint on the page and are
             fetched by script, so the connection is warmed before React runs. */}
-        <link rel="preload" as="image" href="/media/tour/poster.jpg" fetchPriority="high" />
+        <link rel="preload" as="image" type="image/webp" href="/media/tour/poster.webp" fetchPriority="high" />
         <script
           type="application/ld+json"
           // Server-rendered from lib/seo/schema.ts, which is built from the

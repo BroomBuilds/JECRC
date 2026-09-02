@@ -43,7 +43,7 @@
   /* --- ink --------------------------------------------------- */
   --color-ink: #0a0a0b;
   --color-graphite: #4a4a4e;
-  --color-quiet: #74747a;
+  --color-quiet: #6e6e74;
 
   /* --- brand, sampled from jecrcuniversity.edu.in ------------ */
   --color-crimson: #df1919;
@@ -360,7 +360,7 @@ html.lenis, html.lenis body { height: auto; }
 
 @media (hover: hover) and (pointer: fine) {
   [data-majors-row] {
-    opacity: 0.2;
+    opacity: 0.5;
     transition: opacity 0.4s var(--ease-out-expo);
   }
   [data-majors-row][data-active="true"] { opacity: 1; }

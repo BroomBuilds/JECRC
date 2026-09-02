@@ -41,7 +41,7 @@ src/
     utils/           cn
 public/
   brand/             the lockup, and the keyed white version of it
-  media/tour/        922 WebP frames at two widths, plus the poster
+  media/tour/        828 WebP frames at two widths, plus the poster
   media/stills/      frames lifted from the film, used to dress the sections
   llms.txt           the page's facts as plain text, for answer engines
   _headers           Cloudflare's copy of the cache and security headers

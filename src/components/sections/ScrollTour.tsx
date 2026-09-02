@@ -105,44 +105,103 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
     // ---- frame store -----------------------------------------------------
     const images: (HTMLImageElement | undefined)[] = new Array(count);
     const ready: boolean[] = new Array(count).fill(false);
+    /** Requested, in TRACK positions rather than frame indices. */
+    const asked = new Uint8Array(frames);
     let loadedCount = 0;
-    let current = 0;
+    /** Track position under the playhead right now. */
+    let cursor = 0;
     let inflight = 0;
 
-    // Over a real connection every request pays a round trip that localhost
-    // does not, so a deep queue hides that latency instead of paying it
-    // serially. HTTP/2 multiplexes this onto one connection.
-    const CONCURRENCY = 16;
+    // ---- what to fetch, and when -----------------------------------------
+    //
+    // The whole film is thirty-odd megabytes at the desktop size. Fetching all
+    // of it on load is the single most expensive thing this page could do, and
+    // most of it would be spent on visitors who never scroll past the second
+    // beat. So the sequence is fetched in three phases, and only the first one
+    // is unconditional:
+    //
+    //   PRIME    a wide stride across the entire film, about thirty frames,
+    //            requested immediately. Sparse, but every scroll position has
+    //            a real picture within half a second of itself, so the film is
+    //            usable end to end for well under a megabyte.
+    //   COARSE   one more pass at twice the density, so a jump to an
+    //            arbitrary position lands on something close to right.
+    //   WINDOW   everything else, and never more than a viewport and a half of
+    //            film either side of where the visitor actually is. Scroll on
+    //            and the window travels with you; stop, and it stops.
+    //
+    // Both of the last two wait for a first gesture — a scroll, a wheel, a key.
+    // Nothing else is evidence that anyone intends to watch a thirty-second
+    // film, and a tab that is opened and abandoned should not cost three
+    // megabytes to abandon. The gesture that opens them is the same gesture
+    // that starts the film, so the window is already filling forward by the
+    // time the first frame changes.
+    //
+    // A tab opened and abandoned pays for PRIME. A visitor who watches the
+    // whole film pays for the whole film, one window at a time, which is also
+    // the only visitor for whom that is worth paying.
+    const PRIME = 30;
+    /** Track positions to keep filled ahead of the cursor, and behind it. */
+    const AHEAD = 90;
+    const BEHIND = 40;
 
-    // Load in passes of decreasing stride, so the whole timeline is covered
-    // coarsely almost at once and then fills in. Loading 1..N in order would
-    // leave the first seconds pristine while the end is still blank, and a
-    // visitor who flicks to the bottom would see nothing.
-    const queue: number[] = [];
-    const seen = new Set<number>();
-    for (const stride of [16, 8, 4, 2, 1]) {
+    const strides: number[] = [];
+    for (let s = Math.max(1, 2 ** Math.round(Math.log2(frames / PRIME))); s >= 1; s = s >> 1) {
+      strides.push(s);
+    }
+
+    /** Track positions in coarse-to-fine order. */
+    const plan: number[] = [];
+    const planned = new Uint8Array(frames);
+    for (const stride of strides) {
       for (let k = 0; k < frames; k += stride) {
-        const i = track[k];
-        if (!seen.has(i)) {
-          seen.add(i);
-          queue.push(i);
+        if (!planned[k]) {
+          planned[k] = 1;
+          plan.push(k);
         }
       }
     }
+    const PRIME_COUNT = Math.ceil(frames / strides[0]);
+    const EAGER = PRIME_COUNT + (strides[1] ? Math.ceil(frames / strides[1]) : 0);
+
+    let planAt = 0;
+    let eagerLimit = PRIME_COUNT;
+    let windowOpen = false;
+
+    /** Next track position worth fetching, or -1 when there is nothing to do. */
+    const pick = () => {
+      while (planAt < eagerLimit) {
+        const k = plan[planAt++];
+        if (!asked[k]) return k;
+      }
+      if (!windowOpen) return -1;
+      // Forward first: down is the direction of travel, and a frame behind the
+      // playhead is one the visitor has already seen.
+      for (let d = 0; d <= AHEAD; d++) {
+        let k = cursor + d;
+        if (k < frames && !asked[k]) return k;
+        if (d > 0 && d <= BEHIND) {
+          k = cursor - d;
+          if (k >= 0 && !asked[k]) return k;
+        }
+      }
+      return -1;
+    };
 
     let disposed = false;
     let dirty = true;
 
     const pump = () => {
-      while (!disposed && inflight < CONCURRENCY && queue.length) {
-        // Bias the next pick toward whatever is on screen right now, so a jump
-        // into the middle fills the middle first.
-        const lookahead = Math.min(queue.length, 48);
-        let best = 0;
-        for (let k = 1; k < lookahead; k++) {
-          if (Math.abs(queue[k] - current) < Math.abs(queue[best] - current)) best = k;
-        }
-        const i = queue.splice(best, 1)[0];
+      // Eight while the poster is still the largest paint on the page, sixteen
+      // once it is not. Over a real connection every request pays a round trip
+      // that localhost does not, so a deep queue hides that latency instead of
+      // paying it serially; HTTP/2 multiplexes it onto one connection.
+      const concurrency = windowOpen ? 16 : 8;
+      while (!disposed && inflight < concurrency) {
+        const k = pick();
+        if (k < 0) return;
+        asked[k] = 1;
+        const i = track[k];
         inflight++;
 
         const img = new window.Image();
@@ -153,13 +212,16 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
           ready[i] = true;
           loadedCount++;
           inflight--;
-          if (loadedCount % 6 === 0 || loadedCount === frames) {
-            setPct(Math.round((loadedCount / frames) * 100));
+          if (loadedCount <= PRIME_COUNT) {
+            setPct(Math.min(100, Math.round((loadedCount / PRIME_COUNT) * 100)));
           }
-          // The first coarse pass covers the timeline end to end: enough to
-          // show a real picture at any scroll position, so reveal here rather
-          // than waiting for all of them.
-          if (!disposed && loadedCount >= Math.min(frames, Math.ceil(frames / 16) + 2)) setPrimed(true);
+          // The prime pass covers the timeline end to end, so a quarter of it
+          // is already enough to show a real picture wherever the visitor is.
+          // Waiting for all of them would hold the poster over a canvas that
+          // has something better to show.
+          if (!disposed && loadedCount >= Math.min(frames, Math.ceil(PRIME_COUNT / 4))) {
+            setPrimed(true);
+          }
           dirty = true;
           pump();
         };
@@ -180,21 +242,42 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       }
     };
 
+    /** First gesture: open the coarse pass and the travelling window. */
+    const open = () => {
+      if (disposed || windowOpen) return;
+      windowOpen = true;
+      eagerLimit = EAGER;
+      pump();
+    };
+    const GESTURES = ["scroll", "wheel", "keydown", "touchstart"] as const;
+    for (const g of GESTURES) {
+      window.addEventListener(g, open, { once: true, passive: true });
+    }
+
     // ---- drawing ---------------------------------------------------------
     let lastDrawn = -1;
+    let lastImg: HTMLImageElement | undefined;
+
+    // Capped rather than open-ended. With the sequence loaded sparsely there is
+    // always something within half a stride, and an uncapped walk would scan
+    // the whole array on every paint in the gap before the prime pass lands.
+    const REACH = 64;
 
     const nearest = (i: number) => {
       if (ready[i]) return images[i];
-      for (let d = 1; d < count; d++) {
+      for (let d = 1; d <= REACH; d++) {
         if (i - d >= 0 && ready[i - d]) return images[i - d];
         if (i + d < count && ready[i + d]) return images[i + d];
       }
-      return undefined;
+      // Nothing near: hold the last good frame rather than leaving the canvas
+      // on whatever was there. The poster is still underneath at this point.
+      return lastImg;
     };
 
     const paint = (i: number) => {
       const img = nearest(i);
       if (!img) return;
+      lastImg = img;
       const cw = cv.width;
       const ch = cv.height;
       const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
@@ -334,15 +417,27 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       const total = rect.height - stageH;
       const p = total > 0 ? clamp01(-rect.top / total) : 0;
 
+      // The listeners above can miss the one case that matters most: a visitor
+      // who flicks in the gap between the HTML arriving and this component
+      // mounting, and then holds still. There is no scroll event left to hear,
+      // but the film is plainly not at the top, which is the same evidence.
+      if (!windowOpen && p > 0.001) open();
+
       // Snap to a frame that was actually fetched, otherwise `nearest` would
       // be walking outward on every single paint at step 2.
-      const idx = track[Math.min(frames - 1, Math.round(p * (frames - 1)))];
-      current = idx;
+      const k = Math.min(frames - 1, Math.round(p * (frames - 1)));
+      const idx = track[k];
 
       if (idx !== lastDrawn || dirty) {
         lastDrawn = idx;
         dirty = false;
         paint(idx);
+        // The window the loader fills travels with the playhead, so moving the
+        // playhead is what gives it more to do. Only on a frame change: calling
+        // this every rAF would re-scan the window sixty times a second to find
+        // the same answer.
+        cursor = k;
+        pump();
       }
       applyOverlay(p);
     };
@@ -368,6 +463,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       running = false;
       cancelAnimationFrame(raf);
       io.disconnect();
+      for (const g of GESTURES) window.removeEventListener(g, open);
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
     };
@@ -387,18 +483,30 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       </h1>
 
       <div className="sticky top-0 h-dvh w-full overflow-hidden bg-ink">
-        {/* Poster underlay, so there is never a blank frame. */}
+        <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
+
+        {/* The poster, OVER the canvas rather than under it, and faded out
+            once there are real frames to show.
+
+            It was underneath, which quietly made it useless. The 2D context is
+            requested with `alpha: false` for the draw speed, and an opaque
+            canvas is BLACK until something is drawn into it: sitting on top,
+            it covered the poster completely, so the first thing anyone saw was
+            a black rectangle and the first real picture was the first decoded
+            frame. On a throttled phone that measured as 3.7s of LCP render
+            delay against 20ms to fetch the poster itself. Over the top, the
+            preloaded poster is the first paint, and the canvas cross-fades in
+            underneath it once it has something. */}
         <Image
           src={manifest.poster}
           alt=""
           aria-hidden
           fill
           priority
+          fetchPriority="high"
           sizes="100vw"
           className={`object-cover transition-opacity duration-700 ${primed ? "opacity-0" : "opacity-100"}`}
         />
-
-        <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
 
         {/* Top and bottom falloff, then a centre scrim so caption type stays
             readable over any frame the film happens to be on. */}
@@ -413,14 +521,24 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         />
 
         <div className="pointer-events-none absolute inset-0">
-          {captions.map((c, i) => (
+          {captions.map((c, i) => {
+            // A caption anchored at zero is on screen at load, and the crest
+            // inside it is the page's largest paint. Rendering it hidden and
+            // waiting for the first frame of the overlay loop to reveal it put
+            // the whole of hydration in front of the LCP: measured at 3.7s of
+            // pure render delay on a throttled phone, against 20ms to fetch
+            // the image itself. So the opening beat ships visible, in exactly
+            // the state `applyOverlay(0)` would have put it in, and the loop
+            // takes over from there without moving anything.
+            const open = c.at[0] <= 0;
+            return (
             <div
               key={c.title}
               ref={(el) => {
                 capRefs.current[i] = el;
               }}
               className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-              style={{ opacity: 0, visibility: "hidden" }}
+              style={{ opacity: open ? 1 : 0, visibility: open ? "visible" : "hidden" }}
             >
               {c.variant === "hero" && (
                 <Image
@@ -432,6 +550,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
                   // The published lockup sits on an opaque white plate, so a
                   // CSS invert would give a white rectangle. This is the keyed
                   // version from `npm run brand:mono`.
+                  fetchPriority="high"
                   className="mb-8 h-auto w-[min(78vw,25rem)] drop-shadow-[0_2px_30px_rgba(0,0,0,0.55)] md:w-120"
                 />
               )}
@@ -477,7 +596,8 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* ---- the ask, mid-film ----

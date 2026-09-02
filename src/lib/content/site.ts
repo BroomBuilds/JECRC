@@ -43,13 +43,22 @@ export const SOCIAL = [
   { label: "X", href: "https://x.com/jecrcuniversity" },
 ] as const;
 
+/**
+ * Lossless WebP, not the PNGs beside them.
+ *
+ * The `.png` in public/brand are the working format: the published artwork and
+ * what `brand:mono` and `brand:crest` read and write. `npm run brand:webp` is
+ * the last step of that chain and produces what the site links to, at 59% of
+ * the bytes with nothing lost. The lockup is the largest paint on the page
+ * over the film's first beat, so this is not a rounding error.
+ */
 export const LOGO = {
   /** Red artwork on a white plate. For light surfaces only. */
-  lockup: "/brand/jecrc-lockup.png",
+  lockup: "/brand/jecrc-lockup.webp",
   /** White artwork on transparent, derived by `npm run brand:mono`. For dark ones. */
-  lockupMono: "/brand/jecrc-lockup-mono.png",
+  lockupMono: "/brand/jecrc-lockup-mono.webp",
   /** Brand red on transparent, for the oxblood footer. Same script, `#de1819`. */
-  lockupRed: "/brand/jecrc-lockup-red.png",
+  lockupRed: "/brand/jecrc-lockup-red.webp",
   /** The crest alone, cut out of the red lockup by `npm run brand:crest`. */
-  crest: "/brand/jecrc-crest.png",
+  crest: "/brand/jecrc-crest.webp",
 } as const;

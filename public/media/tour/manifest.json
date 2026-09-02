@@ -1,11 +1,11 @@
 {
-  "count": 922,
-  "fps": 30,
-  "duration": 30.733333,
+  "count": 828,
+  "fps": 25,
+  "duration": 33.12,
   "format": "webp",
   "pad": 4,
   "base": "/media/tour",
-  "poster": "/media/tour/poster.jpg",
+  "poster": "/media/tour/poster.webp",
   "aspect": 1.7777777777777777,
   "sizes": [
     {
@@ -19,5 +19,5 @@
       "dir": "640"
     }
   ],
-  "builtFrom": "C:\\Users\\varun\\OneDrive\\Desktop\\s20\\broombuilds\\client-drafts\\jecrc\\jecrc\\jecrc\\JECRC.mp4"
+  "builtFrom": "C:\\Users\\varun\\OneDrive\\Desktop\\s20\\broombuilds\\client-drafts\\jecrc\\jecrc\\ref\\website-video.mp4"
 }
