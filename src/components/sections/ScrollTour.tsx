@@ -20,6 +20,15 @@ export const TOUR_HEIGHT = "var(--tour-vh)";
 export type Caption = {
   /** [fade-in point, fade-out point] as fractions of the tour, 0 to 1. */
   at: [number, number];
+  /**
+   * Width of the fade ramps, in the same units. Defaults to 0.045.
+   *
+   * The closing beat needs its own: it arrives inside the ending's own
+   * choreography rather than on an open stretch of film, and a beat whose
+   * `at[1]` is parked past 1 so it never fades out cannot use a ramp wide
+   * enough to still be arriving when the tour runs out of scroll.
+   */
+  ramp?: number;
   eyebrow?: string;
   title: string;
   sub?: string;
@@ -63,10 +72,13 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const cue = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const capRefs = useRef<(HTMLDivElement | null)[]>([]);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
   const sealRefs = useRef<(SVGSVGElement | null)[]>([]);
   const uid = useId();
+  const cutId = `${uid}-cut`;
+  const liftId = `${uid}-lift`;
   const [pct, setPct] = useState(0);
   const [primed, setPrimed] = useState(false);
 
@@ -274,17 +286,30 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       return lastImg;
     };
 
+    /**
+     * The closing push, as a multiplier on the cover scale.
+     *
+     * In the draw rather than as a CSS transform on the canvas element. The
+     * canvas is the full viewport and `object-fit` does not apply to it, so a
+     * CSS scale would enlarge the ELEMENT past the stage and leave the
+     * compositor upscaling an already-rasterised bitmap: soft on the way in,
+     * and one more layer for a phone to hold. Recomputing the destination
+     * rectangle costs nothing, because the frame under it is not changing.
+     */
+    let push = 1;
+
     const paint = (i: number) => {
       const img = nearest(i);
       if (!img) return;
       lastImg = img;
       const cw = cv.width;
       const ch = cv.height;
-      const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+      const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight) * push;
       const w = img.naturalWidth * scale;
       const h = img.naturalHeight * scale;
       ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
     };
+
 
     // The denominator the film is scrubbed against. Deliberately NOT
     // `window.innerHeight` read fresh every frame.
@@ -324,6 +349,18 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
     // iOS fires this and not always `resize` when the toolbar collapses.
     window.visualViewport?.addEventListener("resize", resize);
 
+    // Scrub position and smoothed velocity, read by `applyOverlay` below.
+    //
+    // Declared HERE and not down with the rAF loop, which is where they used
+    // to live. The reduced-motion branch calls `applyOverlay(0)` before that
+    // point, so reading `lastP` hit its temporal dead zone and threw
+    // ReferenceError out of the effect — which React treats as unrecoverable
+    // and answers by unmounting the tree. Every visitor with "reduce motion"
+    // turned on got a blank page, and never a broken tour, which is why it
+    // survived: the one code path that crashes is the one nobody demos on.
+    let lastP = 0;
+    let vel = 0;
+
     // ---- overlay, driven by the same progress value ----------------------
     // Written straight to style, not through state: this runs every frame and
     // a setState per frame would be sixty React renders a second to change two
@@ -333,10 +370,11 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         const c = captions[k];
         if (!el || !c) return;
         const [a, b] = c.at;
+        const ramp = c.ramp ?? 0.045;
         // A caption anchored at 0 is already on screen at load, so it skips
         // its fade-in rather than starting invisible.
-        const fadeIn = a <= 0 ? 1 : smooth(p, a, a + 0.045);
-        const fadeOut = 1 - smooth(p, b - 0.045, b);
+        const fadeIn = a <= 0 ? 1 : smooth(p, a, a + ramp);
+        const fadeOut = 1 - smooth(p, b - ramp, b);
         const o = Math.min(fadeIn, fadeOut);
         el.style.opacity = String(o);
         el.style.transform = `translate3d(0, ${(1 - fadeIn) * 24}px, 0)`;
@@ -379,6 +417,51 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
 
       if (bar.current) bar.current.style.transform = `scaleX(${p})`;
       if (cue.current) cue.current.style.opacity = String(1 - smooth(p, 0, 0.04));
+
+      // ---- the ending ----------------------------------------------------
+      // The film's last cut is at .9058 and the frames stop mid-stride, which
+      // left the closing fourteen percent of the scroll painting one identical
+      // picture while the closing card faded in on top of it. A frozen frame
+      // is not an ending; it is the film running out.
+      //
+      // So the tail gets its own move, on the same scrub as everything else.
+      // The frame stops being footage and becomes a photograph: it pushes in,
+      // the colour leaves it, a hairline frame draws around it, and a dark
+      // plate closes over it with the wordmark cut OUT of the plate, so the
+      // still is visible THROUGH the letters and nowhere else. The letters
+      // then fill solid and the ask arrives underneath.
+      //
+      // Two ramps, overlapping rather than queued, for the reason the masthead
+      // overlaps at the other end of the film: five moves in sequence take
+      // longer than the scroll has, and the ending has to be finished and held
+      // before the section lets go, not still arriving as it leaves.
+      const cut = smooth(p, 0.906, 0.962);
+      const fill = smooth(p, 0.955, 0.988);
+      const nextPush = 1 + cut * 0.05;
+      if (nextPush !== push) {
+        push = nextPush;
+        // The playhead is parked on the film's last frame for the whole of
+        // this, so `idx` never changes and the loop would never redraw. The
+        // push is the one thing here that needs the canvas re-rasterised;
+        // flagging it only on a change keeps the other ninety percent of the
+        // film on one draw per frame CHANGE rather than one per frame.
+        dirty = true;
+      }
+      // Written on the STAGE rather than on the closing layer, because the
+      // film's own scrims have to answer to the same ramp: they exist to keep
+      // caption type readable over a moving picture, and during the ending the
+      // picture inside the letterforms has to be the brightest thing on the
+      // screen. Scrimmed as usual it is a fifth of its own brightness and the
+      // cut reads as a smudge.
+      if (stage.current) {
+        stage.current.style.setProperty("--end-cut", String(cut));
+        stage.current.style.setProperty("--end-fill", String(fill));
+      }
+      // Saturation is the half of "this is now a photograph" that a plate
+      // cannot do. Written on the canvas element rather than composited as an
+      // extra layer, and only while the ending is running, so no frame of the
+      // film before .906 pays for a filter pass.
+      cv.style.filter = cut > 0.001 ? `saturate(${1 - cut * 0.4})` : "";
     };
 
     if (reduced) {
@@ -406,8 +489,6 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
     // scrolling up is the exact reverse of scrolling down.
     let raf = 0;
     let running = false;
-    let lastP = 0;
-    let vel = 0;
 
     const tick = () => {
       if (!running) return;
@@ -482,7 +563,11 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         Foundation.
       </h1>
 
-      <div className="sticky top-0 h-dvh w-full overflow-hidden bg-ink">
+      <div
+        ref={stage}
+        className="sticky top-0 h-dvh w-full overflow-hidden bg-ink"
+        style={{ "--end-cut": "0", "--end-fill": "0" } as React.CSSProperties}
+      >
         <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
 
         {/* The poster, OVER the canvas rather than under it, and faded out
@@ -510,15 +595,127 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
 
         {/* Top and bottom falloff, then a centre scrim so caption type stays
             readable over any frame the film happens to be on. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-linear-to-b from-ink/80 via-ink/10 to-ink/85" />
+        <div aria-hidden className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/80 via-ink/10 to-ink/85" />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0"
+          className="u-tour-scrim pointer-events-none absolute inset-0"
           style={{
             background:
               "radial-gradient(60% 48% at 50% 50%, rgba(8,8,10,0.66) 0%, rgba(8,8,10,0.3) 55%, rgba(8,8,10,0) 100%)",
           }}
         />
+
+        {/* ---- the ending ----
+            See "the ending" in applyOverlay above for why this exists, and
+            "The ending" in globals.css for the ramps.
+
+            The plate is one masked rect rather than a stack: a dark wash with
+            the wordmark punched out of it, so the frozen frame shows through
+            the letterforms and is dimmed everywhere else. One element does the
+            grade AND the reveal, and because the hole is cut rather than
+            drawn, the mark can never be brighter than the picture behind it.
+
+            Set as type, not as the lockup artwork. `jecrc-lockup-mono.png` is
+            a two-up lockup whose opaque pixels are 2.5% of the frame; a
+            knockout through strokes that fine is mush at any size a viewport
+            allows. The same construction the scratch band uses — the word over
+            a letterspaced second line at roughly its width — has the mass a
+            cut needs, and rhymes the two sections.
+
+            `visibility` rather than a display toggle: the SVG holds a mask,
+            and the browser keeps the rasterised mask alive across a
+            visibility change but rebuilds it after a reflow. */}
+        <div aria-hidden className="u-end pointer-events-none absolute inset-0">
+          <span className="u-end-frame" />
+          <svg className="u-end-svg" width="100%" height="100%" preserveAspectRatio="none">
+            <defs>
+              {/* White passes the plate, black cuts it. */}
+              <mask id={cutId} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+                <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+                <g className="u-end-type">
+                  <text className="u-end-word" x="50%" y="46%" fill="#000">
+                    JECRC
+                  </text>
+                  <text className="u-end-sub" x="50%" y="46%" dy="1.15em" fill="#000">
+                    UNIVERSITY
+                  </text>
+                </g>
+              </mask>
+              {/* The same shapes, inverted: white where the letters are. */}
+              <mask id={liftId} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+                <rect x="0" y="0" width="100%" height="100%" fill="#000" />
+                <g className="u-end-type">
+                  <text className="u-end-word" x="50%" y="46%" fill="#fff">
+                    JECRC
+                  </text>
+                  <text className="u-end-sub" x="50%" y="46%" dy="1.15em" fill="#fff">
+                    UNIVERSITY
+                  </text>
+                </g>
+              </mask>
+            </defs>
+            <rect
+              className="u-end-plate"
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              fill="#08080a"
+              mask={`url(#${cutId})`}
+            />
+            {/* A wash inside the letters and nowhere else.
+                The cut alone is at the mercy of whatever the film happens to
+                have stopped on: this one stops on a tree canopy, and a hole
+                punched through a dark plate onto a darker canopy is a hole
+                nobody can see. Lifting only the cut region makes the mark
+                legible on any frame without ever hiding the picture in it. */}
+            <rect
+              className="u-end-lift"
+              x="0"
+              y="0"
+              width="100%"
+              height="100%"
+              fill="#fdfcfa"
+              mask={`url(#${liftId})`}
+            />
+
+            {/* The same letterforms, solid, arriving last. The cut is the
+                trick; the fill is the mark actually being placed. */}
+            <g className="u-end-type u-end-solid">
+              <text className="u-end-word" x="50%" y="46%" fill="var(--color-crimson)">
+                JECRC
+              </text>
+              <text
+                className="u-end-sub"
+                x="50%"
+                y="46%"
+                dy="1.15em"
+                fill="var(--color-crimson)"
+              >
+                UNIVERSITY
+              </text>
+            </g>
+          </svg>
+
+          {/* The crest, beside the wordmark and at the wordmark's own height:
+              the construction of the published lockup, which sets the mark to
+              the left of the type rather than over it.
+
+              The type is in SVG and the crest is not, so the two are centred
+              against each other arithmetically rather than by a flex box. It
+              costs one constant: "JECRC" and "UNIVERSITY" both set to 2.8x
+              the word's font-size, which holds at every width because the font
+              is fixed and both sizes are in vw. From that the group's total
+              width is known, and the type and the crest each get half of the
+              other's width as an offset. See "The ending" in globals.css. */}
+          <Image
+            src={LOGO.crestLarge}
+            alt=""
+            width={402}
+            height={464}
+            className="u-end-crest"
+          />
+        </div>
 
         <div className="pointer-events-none absolute inset-0">
           {captions.map((c, i) => {
@@ -537,41 +734,75 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
               ref={(el) => {
                 capRefs.current[i] = el;
               }}
-              className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+              className={`absolute inset-0 flex flex-col items-center px-6 text-center ${
+                // The closing beat shares the screen with the mark, which owns
+                // the middle. Centred, the two would print on top of each other.
+                c.variant === "apply"
+                  ? "justify-end pb-[max(6rem,calc(4.5rem+env(safe-area-inset-bottom)))] sm:pb-28"
+                  : "justify-center"
+              }`}
               style={{ opacity: open ? 1 : 0, visibility: open ? "visible" : "hidden" }}
             >
               {c.variant === "hero" && (
-                <Image
-                  src={LOGO.lockupMono}
-                  alt={`${BRAND.name} and JECRC Medical College Hospital and Research Centre`}
-                  width={557}
-                  height={258}
-                  priority
-                  // The published lockup sits on an opaque white plate, so a
-                  // CSS invert would give a white rectangle. This is the keyed
-                  // version from `npm run brand:mono`.
-                  fetchPriority="high"
-                  className="mb-8 h-auto w-[min(78vw,25rem)] drop-shadow-[0_2px_30px_rgba(0,0,0,0.55)] md:w-120"
-                />
+                // The frame the mark is placed into. Both rules start life on
+                // the same centre line, so what draws out first reads as one
+                // hairline; they only become two when the band opens. See
+                // "The masthead" in globals.css for the sequence.
+                <div className="u-masthead mb-8 w-[min(78vw,25rem)] md:w-120">
+                  <span aria-hidden className="u-masthead-rule u-masthead-rule-top" />
+                  <span aria-hidden className="u-masthead-rule u-masthead-rule-bottom" />
+                  <Image
+                    src={LOGO.lockupMono}
+                    alt={`${BRAND.name} and JECRC Medical College Hospital and Research Centre`}
+                    width={557}
+                    height={258}
+                    priority
+                    // The published lockup sits on an opaque white plate, so a
+                    // CSS invert would give a white rectangle. This is the keyed
+                    // version from `npm run brand:mono`.
+                    fetchPriority="high"
+                    className="u-masthead-mark h-auto w-full drop-shadow-[0_2px_30px_rgba(0,0,0,0.55)]"
+                  />
+                </div>
               )}
 
+              {/* The rule before the eyebrow is a caption's tick mark: it says
+                  "a line of type is starting here", which is what a caption
+                  arriving over moving film needs and what a closing card does
+                  not. The ending has a mark above it doing that job already,
+                  so the rule comes off and the line stands on its own tracking
+                  instead, quieter and wider than a caption's. */}
               {c.eyebrow && (
-                <span className="u-eyebrow mb-5 inline-flex items-center gap-3 text-crimson-lit">
-                  <span aria-hidden className="h-px w-8 bg-crimson" />
+                <span
+                  className={
+                    c.variant === "apply"
+                      ? "u-eyebrow mb-5 block text-[0.66rem] tracking-[0.36em] text-white/65 sm:mb-6 sm:text-[0.72rem]"
+                      : `u-eyebrow mb-5 inline-flex items-center gap-3 text-crimson-lit ${
+                          c.variant === "hero" ? "u-masthead-eyebrow" : ""
+                        }`
+                  }
+                >
+                  {c.variant !== "apply" && <span aria-hidden className="h-px w-8 bg-crimson" />}
                   {c.eyebrow}
                 </span>
               )}
 
-              <p
-                aria-hidden={c.variant === "hero"}
-                className={
-                  c.variant === "hero"
-                    ? "u-display text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
-                    : "u-display max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
-                }
-              >
-                {c.variant === "hero" ? BRAND.tagline : c.title}
-              </p>
+              {/* The closing beat has no line of its own. The mark IS its
+                  headline, and a display-sized question under a display-sized
+                  wordmark is two headlines arguing about which one you read
+                  first. `title` stays on the beat as its key and its label. */}
+              {c.variant !== "apply" && (
+                <p
+                  aria-hidden={c.variant === "hero"}
+                  className={
+                    c.variant === "hero"
+                      ? "u-masthead-line u-display text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
+                      : "u-display max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
+                  }
+                >
+                  {c.variant === "hero" ? BRAND.tagline : c.title}
+                </p>
+              )}
 
               {c.sub && (
                 <p className="mt-6 max-w-[46ch] text-[14px] leading-[1.85] text-paper/80 [text-shadow:0_1px_22px_rgba(0,0,0,0.65)] md:text-[15px]">
@@ -700,8 +931,8 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
           aria-hidden
           className="pointer-events-none absolute bottom-12 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3 transition-opacity duration-500"
         >
-          <span className="u-eyebrow text-white/50">Scroll</span>
-          <span className="block h-10 w-px bg-linear-to-b from-white/50 to-transparent" />
+          <span className="u-masthead-cue u-eyebrow text-white/50">Scroll</span>
+          <span className="u-masthead-cue-line block h-10 w-px bg-linear-to-b from-white/50 to-transparent" />
         </div>
 
         {/* Loading readout, only while it matters. */}
@@ -716,7 +947,10 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         </div>
 
         {/* Playhead. */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/12">
+        <div
+          aria-hidden
+          className="u-masthead-track pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/12"
+        >
           <span ref={bar} className="block h-px origin-left bg-crimson" style={{ transform: "scaleX(0)" }} />
         </div>
       </div>

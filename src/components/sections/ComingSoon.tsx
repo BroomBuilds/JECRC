@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { ANNOUNCEMENT } from "@/lib/content/announcement";
 import { ArrowRight } from "@/components/ui/Icons";
@@ -20,6 +21,13 @@ import { ArrowRight } from "@/components/ui/Icons";
  *
  * Red, with a pointer-tracked light so the ground has a direction, sitting
  * between two pale sections. Returns null when the announcement is off.
+ *
+ * Under the row, the medical college. It is the one part of what is next that
+ * is not a placeholder — designed, named on its own elevation, and drawn — so
+ * it carries the pictures while the two universities keep the plates. Putting
+ * it above them would be wrong: the band's headline is about the group getting
+ * bigger, and a building already under way is the evidence for that claim
+ * rather than the claim itself.
  */
 export default function ComingSoon() {
   const band = useRef<HTMLElement>(null);
@@ -157,6 +165,74 @@ export default function ComingSoon() {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* ---- the medical college ----
+            The renders are the only real pictures this band has, so they get
+            the room: the elevation full width of its column, the two closer
+            views under it. Captioned as visualisations rather than passed off
+            as photographs, because they are drawings of a building that is not
+            finished and the section's whole voice is that it does not pretend
+            to know things yet. */}
+        <div className="mt-14 border-t border-white/20 pt-12 md:mt-16 md:pt-14">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.5fr)] lg:items-start lg:gap-16">
+            <div>
+              <span data-reveal className="u-eyebrow text-white/70">
+                {ANNOUNCEMENT.medical.eyebrow}
+              </span>
+
+              <h3
+                data-reveal
+                style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
+                className="u-display mt-4 max-w-[14ch] text-[1.6rem] leading-[1.1] sm:text-[2.1rem] lg:text-[2.4rem]"
+              >
+                {ANNOUNCEMENT.medical.name}
+              </h3>
+
+              <p
+                data-reveal
+                style={{ "--reveal-delay": "130ms" } as React.CSSProperties}
+                className="mt-5 max-w-[40ch] text-[15px] leading-[1.65] text-white/85"
+              >
+                {ANNOUNCEMENT.medical.detail}
+              </p>
+
+              <p className="u-eyebrow mt-6 text-white/45">
+                {ANNOUNCEMENT.medical.place} · {ANNOUNCEMENT.medical.credit}
+              </p>
+            </div>
+
+            <div
+              data-reveal
+              style={{ "--reveal-delay": "160ms" } as React.CSSProperties}
+              className="grid gap-3 sm:grid-cols-2"
+            >
+              {ANNOUNCEMENT.medical.views.map((v, i) => (
+                <figure
+                  key={v.src}
+                  className={`relative overflow-hidden rounded-xl ring-1 ring-white/25 ${
+                    i === 0 ? "sm:col-span-2" : ""
+                  }`}
+                >
+                  <div className="relative w-full" style={{ aspectRatio: i === 0 ? "16 / 9" : "16 / 10" }}>
+                    <Image
+                      src={v.src}
+                      alt={`${ANNOUNCEMENT.medical.name}, ${v.label.toLowerCase()}`}
+                      fill
+                      sizes="(min-width: 1024px) 46vw, (min-width: 640px) 44vw, 92vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  {/* The label sits on the picture rather than under it: three
+                      captions in a row below three frames of different heights
+                      is a ragged line nobody reads. */}
+                  <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/65 to-transparent px-4 pb-3 pt-10">
+                    <span className="u-eyebrow text-white/80">{v.label}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

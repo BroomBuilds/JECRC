@@ -487,6 +487,289 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ------------------------------------------------------------------
+   The masthead
+
+   A title sequence for the opening beat, and the one piece of motion on
+   this page that is not scrubbed: it plays once, on load.
+
+   In CSS keyframes rather than from the scroll loop, for two reasons. It
+   starts at the first style recalculation instead of waiting for React to
+   hydrate, which on a throttled phone is the difference between a title
+   that is there and one that arrives a second and a half late; and if the
+   bundle never executes at all, the hero still performs.
+
+   The order is a masthead being set. One hairline draws out from the
+   centre, splits into two and opens a band, and the mark is revealed BY
+   that opening rather than fading up inside it: its clip travels with the
+   rules, so the two read as one movement rather than two. The rules then
+   run out past both edges and leave, which is the whole point of a frame
+   that exists only to place something.
+
+   The mark starts as a one-percent slice sitting on the centre line, not
+   at zero. Partly because a sliver of the artwork reading as part of the
+   rule is a better first frame than nothing; partly so the element has
+   painted area from the very first frame rather than four hundred
+   milliseconds in.
+
+   The beats overlap rather than queue, and the whole thing is over inside
+   1.2s. That is not restraint for its own sake: a title sequence delays
+   the page's largest paint by however long it withholds the tagline, which
+   is the biggest thing on the screen. Sequenced end to end this measured
+   1.6s of extra LCP. Overlapped, the tagline starts arriving while the
+   band is still opening, the sequence still reads as five moves rather
+   than one, and the cost comes down to the 0.42s it is actually held.
+
+   Reduced motion needs no special case: the blanket rule at the bottom of
+   this file collapses every duration to 0.01ms, and every animation here
+   fills forwards, so the whole sequence resolves to its finished state on
+   the first frame.
+   ------------------------------------------------------------------ */
+
+@keyframes u-mast-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes u-mast-part-top {
+  from { top: calc(50% - 0.5px); }
+  to { top: 0; }
+}
+@keyframes u-mast-part-bottom {
+  from { bottom: calc(50% - 0.5px); }
+  to { bottom: 0; }
+}
+@keyframes u-mast-leave {
+  from { transform: scaleX(1); opacity: 1; }
+  to { transform: scaleX(6); opacity: 0; }
+}
+@keyframes u-mast-reveal {
+  from { clip-path: inset(49.5% 0 49.5% 0); transform: scale(1.035); }
+  to { clip-path: inset(0 0 0 0); transform: scale(1); }
+}
+@keyframes u-mast-rise {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes u-mast-unmask {
+  from { opacity: 0; clip-path: inset(0 0 105% 0); transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; clip-path: inset(0 0 -5% 0); transform: none; }
+}
+@keyframes u-mast-drop {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.u-masthead {
+  position: relative;
+  /* The band the rules open to. Wider than the artwork, so they frame it
+     rather than underline it. */
+  padding-block: 0.95rem;
+}
+
+.u-masthead-rule {
+  position: absolute;
+  /* Overhanging the mark on both sides: a rule that stops exactly at the
+     artwork reads as part of the artwork. */
+  left: -8%;
+  right: -8%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+  transform-origin: center;
+}
+
+/* `draw` and `leave` both own the transform. `leave` is later in the list
+   so it wins once it starts, and it fills FORWARDS only: with `both` its
+   from-state would apply during the delay and cancel the draw. */
+.u-masthead-rule-top {
+  top: 0;
+  animation:
+    u-mast-draw 240ms var(--ease-out-expo) 80ms both,
+    u-mast-part-top 340ms var(--ease-out-expo) 300ms both,
+    u-mast-leave 520ms var(--ease-in-out-quint) 700ms forwards;
+}
+.u-masthead-rule-bottom {
+  bottom: 0;
+  animation:
+    u-mast-draw 240ms var(--ease-out-expo) 80ms both,
+    u-mast-part-bottom 340ms var(--ease-out-expo) 300ms both,
+    u-mast-leave 520ms var(--ease-in-out-quint) 700ms forwards;
+}
+
+/* Same window as the rules parting, so the mark opens with the band. */
+.u-masthead-mark { animation: u-mast-reveal 420ms var(--ease-out-expo) 300ms both; }
+
+.u-masthead-eyebrow { animation: u-mast-rise 500ms var(--ease-out-expo) 540ms both; }
+/* The tagline is the page's largest paint, so it starts arriving while the
+   band is still opening rather than waiting its turn behind it. */
+.u-masthead-line { animation: u-mast-unmask 620ms var(--ease-out-expo) 420ms both; }
+
+/* The invitation lands last, once the mark has finished placing itself. */
+.u-masthead-cue { animation: u-mast-rise 560ms var(--ease-out-expo) 1000ms both; }
+.u-masthead-cue-line {
+  transform-origin: top;
+  animation: u-mast-drop 560ms var(--ease-out-expo) 1060ms both;
+}
+
+/* The playhead's own track, drawn out from the centre like the rules were.
+   The crimson bar inside it is scrubbed by the loop and sits at zero until
+   the visitor moves, so the two never fight. */
+.u-masthead-track {
+  transform-origin: center;
+  animation: u-mast-draw 760ms var(--ease-out-expo) 940ms both;
+}
+
+/* ------------------------------------------------------------------
+   The ending
+
+   The other end of the masthead. The film's last cut is at .9058 of the
+   tour and its frames stop mid-stride, so the closing fourteen percent of
+   the scroll used to paint one identical picture while the closing card
+   crossfaded on top of it. That is not an ending; it is the film running
+   out, and the card looked like something dropped on a stalled video
+   because that is exactly what it was.
+
+   The move here is to make the stopping deliberate. The frame stops being
+   footage and becomes a photograph: it pushes in and loses its colour (in
+   ScrollTour.tsx, on the draw), a hairline frame closes around it, and a
+   dark plate arrives with the wordmark cut OUT of it, so the still is
+   visible through the letterforms and dimmed everywhere else. The letters
+   then fill solid and the ask arrives underneath them.
+
+   Everything below is scrubbed. `--end-cut` and `--end-fill` are written
+   by the same scroll loop that draws the film, so the ending runs backwards
+   under a thumb exactly as the rest of the tour does, and reduced motion
+   needs no case of its own: the loop hands it zero and the layer is
+   `hidden`.
+
+   No transitions anywhere in here on purpose. A transition on a property
+   the scroll loop is already writing every frame fights the scrub: the
+   value chases the scroll instead of tracking it, and dragging backwards
+   reads as lag rather than as reverse.
+   ------------------------------------------------------------------ */
+
+/* The film's own scrims stand down as the plate arrives. They are there to
+   keep caption type readable over a moving picture; the ending's picture is
+   only visible inside the letterforms, and scrimmed as usual it is a fifth of
+   its own brightness, which turns the cut into a smudge. */
+.u-tour-scrim { opacity: calc(1 - var(--end-cut, 0) * 0.92); }
+
+/* Every layer in here is driven from zero, so before the ending starts the
+   whole thing is opacity 0 and a browser skips painting it. No visibility
+   toggle: flipping one would rebuild the mask raster at the exact moment the
+   ending needs it. */
+
+/* ---- the closing lockup, measured ----------------------------------
+   The type is SVG and the crest is an <img>, so they cannot be laid out
+   against each other by a flex box. They are placed arithmetically
+   instead, off four numbers:
+
+     --w     the word's font-size. Everything else is a multiple of it.
+     --ch    the crest's height, set to the type block's height.
+     --gap   the space between mark and type.
+     2.8     "JECRC" and "UNIVERSITY" both set 2.8x the word's font-size
+             wide in this face. It is a font metric, not a guess, and it
+             holds at every viewport because both sizes are in vw.
+
+   --cw is the crest's own aspect, 402 by 464, times its height.
+
+   From those, the group's width is --cw + --gap + --tw, and centring the
+   group means pushing the type right by half of (--cw + --gap) and the
+   crest left by half of (--gap + --tw). No measuring, no layout pass, and
+   nothing to re-run on resize.
+
+   The crest's own centre line is the type BLOCK's centre, not the word's
+   baseline: cap height above the baseline is 0.7em of the word and the
+   second line drops 1.15em of the sub below it, which puts the middle a
+   shade above the baseline rather than on it. */
+.u-end {
+  --w: 18vw;
+  --ch: 26vw;
+  --gap: 3.5vw;
+  --tw: calc(var(--w) * 2.8);
+  --cw: calc(var(--ch) * 0.866);
+}
+@media (min-width: 640px) {
+  .u-end { --w: 15vw; --ch: 22vw; --gap: 3vw; }
+}
+@media (min-width: 1024px) {
+  .u-end { --w: 12vw; --ch: 17vw; --gap: 2.5vw; }
+}
+
+.u-end-svg { position: absolute; inset: 0; display: block; }
+
+/* All three copies of the type — the plate's hole, the lift, and the fill —
+   carry this, so they cannot drift apart by a pixel. */
+.u-end-type { transform: translateX(calc((var(--cw) + var(--gap)) / 2)); }
+
+/* The plate, and the hole in it. Held short of full black: the picture in
+   the letters has to stay the brightest thing on the screen, and a plate
+   at 1 turns the frame either side of the mark into nothing to look at. */
+.u-end-plate { opacity: calc(var(--end-cut) * 0.96); }
+
+/* Squared, so the lift arrives behind the plate rather than with it: the
+   letters darken along with everything else first, and only then start to
+   glow out of the frame. */
+.u-end-lift { opacity: calc(var(--end-cut) * var(--end-cut) * 0.34); }
+
+/* The mark, as type. Cinzel, in the two-line construction the scratch band
+   uses: the word over a letterspaced second line at roughly its width. */
+.u-end-word,
+.u-end-sub {
+  font-family: var(--font-wordmark);
+  text-anchor: middle;
+}
+.u-end-word {
+  font-variation-settings: "wght" 500;
+  font-weight: 500;
+  letter-spacing: -0.066em;
+  font-size: var(--w);
+}
+.u-end-sub {
+  font-variation-settings: "wght" 400;
+  font-weight: 400;
+  /* 0.4706 of the word: the cap-height ratio measured off the lockup. Both
+     lines hang off ONE baseline and the second is dropped by 1.15em in the
+     markup, so the leading is a fraction of the word rather than of the
+     viewport and the lockup holds its proportions at every width. The drop is
+     wider than the two cap heights want because the J descends in this face
+     and lands squarely on the U below it. */
+  font-size: calc(var(--w) * 0.4706);
+}
+
+/* The fill. Starts a little large and settles, so the solid mark reads as
+   the cut one closing rather than as a second mark fading up over it. */
+/* After `.u-end-type`, and re-stating its shift: both rules set `transform`
+   and the later one wins outright. */
+.u-end-solid {
+  opacity: var(--end-fill);
+  transform: translateX(calc((var(--cw) + var(--gap)) / 2))
+    scale(calc(1.012 - var(--end-fill) * 0.012));
+  transform-origin: center;
+}
+
+/* The crest, set above the wordmark on the same fill ramp. Centred on the
+   type's own baseline anchor rather than on the box, so it stays with the
+   mark at every width. */
+.u-end-crest {
+  position: absolute;
+  left: calc(50% - (var(--gap) + var(--tw)) / 2);
+  top: calc(46% - var(--w) * 0.0795);
+  width: auto;
+  height: var(--ch);
+  transform: translate(-50%, -50%);
+  opacity: var(--end-fill);
+}
+
+/* The hairline. Overshoots inward and settles, and it is what tells you the
+   picture has been framed rather than merely dimmed. */
+.u-end-frame {
+  position: absolute;
+  inset: 4.5vmin;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  opacity: calc(var(--end-cut) * var(--end-cut));
+  transform: scale(calc(1.035 - var(--end-cut) * 0.035));
+}
+
+/* ------------------------------------------------------------------
    Marquee
 
    Two copies of the track, translated by exactly half its width, so

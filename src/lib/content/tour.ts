@@ -26,7 +26,9 @@ import type { ApplyBeat, Caption } from "@/components/sections/ScrollTour";
  *   ffprobe -v error -f lavfi "movie=ref/website-video.mp4,select=gt(scene\,0.3)"  *     -show_entries frame=pkt_pts_time -of csv=p=0
  *
  * The last beat carries `variant: "apply"`, which is what brings all three
- * campus buttons up over the final frames.
+ * campus buttons up over the final frames. It is timed against the closing
+ * sequence rather than against a cut: the film has no cuts left after .9058.
+ * See "The ending" in globals.css.
  */
 export const TOUR_CAPTIONS: Caption[] = [
   {
@@ -55,7 +57,19 @@ export const TOUR_CAPTIONS: Caption[] = [
     sub: "Two hundred recruiters, eight hundred and fifty-six Fortune 500 offers, thirty-four thousand alumni across thirty-five countries.",
   },
   {
-    at: [0.8466, 1.0],
+    // Two things here are not the pattern the other beats follow.
+    //
+    // It opens at .962, after the mark has been cut out of the closing plate
+    // rather than alongside it: the ending's one hero moment should not have
+    // to share the screen with three buttons arriving.
+    //
+    // And it closes at 1.4, which is past the end of the tour and therefore
+    // never. It used to close at 1.0, which meant `1 - smooth(p, .955, 1)`
+    // drove the whole block to zero over the last four percent: the visitor
+    // scrolled to the bottom of the film and watched the only ask on the
+    // screen fade out as they arrived. An ending has to be held.
+    at: [0.962, 1.4],
+    ramp: 0.019,
     variant: "apply",
     eyebrow: "Admissions 2026 are open",
     title: "So, what will you build?",
