@@ -101,7 +101,12 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
     const needed = window.innerWidth * dpr;
     const sizes = [...manifest.sizes].sort((a, b) => a.width - b.width);
     const chosen = sizes.find((s) => s.width >= needed * 0.85) ?? sizes[sizes.length - 1];
-    const url = (i: number) => `${base}/${chosen.dir}/f${String(i + 1).padStart(pad, "0")}.${format}`;
+    // ?v= is the film's fingerprint, written by scripts/build-tour.mjs. Frame
+    // paths repeat build to build and the frames are served immutable for a
+    // year, so without the query a phone that cached one cut never sees
+    // another.
+    const url = (i: number) =>
+      `${base}/${chosen.dir}/f${String(i + 1).padStart(pad, "0")}.${format}?v=${manifest.rev}`;
 
     // Every second frame on a phone. The tour is by far the heaviest thing on
     // the page, most of the traffic is mobile, and at the pixel-per-frame this

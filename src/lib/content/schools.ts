@@ -101,21 +101,3 @@ export const PROGRAMMES: Programme[] = [
     image: "/media/stills/s6.webp",
   },
 ];
-
-/** Named on the application portal. Rendered as the partner marquee. */
-export const PARTNERS = [
-  "L&T EduTech",
-  "TCS",
-  "IBM",
-  "Microsoft",
-  "Paytm",
-  "Deloitte",
-  "Truechip",
-  "EC-Council, USA",
-  "Xebia",
-  "Samatrix.io",
-  "Kalvium",
-  "Zell Education",
-  "ISDC",
-  "AWS",
-] as const;

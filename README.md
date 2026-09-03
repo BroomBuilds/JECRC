@@ -45,7 +45,6 @@ public/
   media/stills/      frames lifted from the film, used to dress the sections
   llms.txt           the page's facts as plain text, for answer engines
   _headers           Cloudflare's copy of the cache and security headers
-legacy/              the previous build, frozen. Not compiled. Delete when signed off.
 ```
 
 **All copy lives in `src/lib/content/`.** Nothing is hardcoded in a component, so a content
@@ -239,6 +238,3 @@ pays for the film.
 
 - `TOUR.md` is the full write-up of the scroll film: why it is an image sequence on a
   canvas rather than a scrubbed `<video>`, with the frame-timing measurements behind that.
-- `legacy/` is the previous build, kept for reference. It is excluded from `tsconfig.json`,
-  `eslint.config.mjs` and the route tree, so it costs nothing. Delete it once this build is
-  signed off.

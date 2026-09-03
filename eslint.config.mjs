@@ -12,8 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Snoozed v1 build — kept for reference, never compiled.
-    "legacy/**",
   ]),
 ]);
 

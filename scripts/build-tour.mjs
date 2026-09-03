@@ -25,6 +25,7 @@
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { tourRev } from "./tour-rev.mjs";
 
 const argv = process.argv.slice(2);
 if (!argv.length || argv[0].startsWith("--")) {
@@ -128,14 +129,19 @@ execFileSync("ffmpeg", ["-v","error","-y","-ss",String(start),"-i",input,"-vfram
   "-compression_level","6","-preset","picture", join(outDir,"poster.webp")]);
 
 const count = Math.min(...sizes.map((s) => s.count));
+// Cache key for the whole film. Frame paths are stable across builds and the
+// frames are served immutable for a year, so this query is the only thing that
+// lets a new cut reach a phone that has seen an old one.
+const rev = tourRev(outDir);
 const manifest = {
   count,
+  rev,
   fps: effFps,
   duration: span,
   format,
   pad: 4,
   base: "/media/tour",
-  poster: "/media/tour/poster.webp",
+  poster: `/media/tour/poster.webp?v=${rev}`,
   aspect: srcW / srcH,
   sizes: sizes.map(({ width, height, dir }) => ({ width, height, dir })),
   builtFrom: input.split("/").pop(),

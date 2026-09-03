@@ -1,11 +1,12 @@
 {
   "count": 828,
+  "rev": "27b92c21",
   "fps": 25,
   "duration": 33.12,
   "format": "webp",
   "pad": 4,
   "base": "/media/tour",
-  "poster": "/media/tour/poster.webp",
+  "poster": "/media/tour/poster.webp?v=27b92c21",
   "aspect": 1.7777777777777777,
   "sizes": [
     {

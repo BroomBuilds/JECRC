@@ -10,9 +10,12 @@
  * that one. Sources stay on disk, same as `brand:webp` — they are what the
  * artwork arrives as and what a re-crop starts from. The `.webp` is what ships.
  *
- * Uses sharp, which arrives with Next. `brand:webp` still shells out to ffmpeg
- * for the four marks and is left alone: its lossless settings are measured
- * against that artwork and this has no quarrel with them.
+ * Uses sharp, which arrives with Next. This absorbed `scripts/make-brand-webp.mjs`,
+ * which did the same job for the four brand marks by shelling out to ffmpeg:
+ * two encoders for one output format, and ffmpeg an undeclared system
+ * prerequisite that a fresh clone discovers by failing. Sharp's lossless
+ * output on that artwork is byte-for-byte the size ffmpeg's was — 34.9, 18.3,
+ * 18.6 and 4.3 KB — so nothing about the shipped marks changed in the move.
  *
  * ---- why each group is encoded the way it is ----
  *
@@ -111,6 +114,14 @@ for (const f of list("public/media/medical", /\.webp$/i))
 // ---- other people's marks ---------------------------------------------
 for (const f of list("public/media/recruiters", /\.png$/i))
   await toWebp(join("public/media/recruiters", f), { lossless: true });
+
+// ---- the brand marks --------------------------------------------------
+// Lossless. Flat colour, serif type on a hard edge, and the mark carries the
+// university's name at the top of every screen: this is the exact case lossy
+// WebP rings on. The PNGs stay put — they are what `brand:mono` and
+// `brand:crest` read and write, and what the published artwork arrives as.
+for (const f of list("public/brand", /\.png$/i))
+  if (f !== "jecrc-crest-lg.png") await toWebp(join("public/brand", f), { lossless: true });
 
 // ---- the crest at ending size -----------------------------------------
 // Lossy, unlike the four marks in `brand:webp`. This one is not flat colour —
