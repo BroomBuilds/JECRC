@@ -39,7 +39,7 @@ export const PROGRAMMES: Programme[] = [
     partner: "Truechip",
     school: "Engineering and Technology",
     why: "Verification IP is written here on the same tooling the industry ships with, in a country that is building its fabs now rather than later.",
-    image: "/media/school-electronics.jpg",
+    image: "/media/school-electronics.webp",
   },
   {
     slug: "generative-ai",
@@ -48,7 +48,7 @@ export const PROGRAMMES: Programme[] = [
     partner: "L&T EduTech",
     school: "Engineering and Technology",
     why: "The syllabus is set by the engineering firm that will interview you, and it is revised on their release cycle rather than a five-year academic one.",
-    image: "/media/school-computing.jpg",
+    image: "/media/school-computing.webp",
   },
   {
     slug: "cyber-security",
@@ -57,7 +57,7 @@ export const PROGRAMMES: Programme[] = [
     partner: "EC-Council, USA",
     school: "Engineering and Technology",
     why: "You graduate with the international certifications recruiters actually screen for, sat during the degree rather than after it.",
-    image: "/media/stills/s7.jpg",
+    image: "/media/stills/s7.webp",
   },
   {
     slug: "fintech-ai",
@@ -66,7 +66,7 @@ export const PROGRAMMES: Programme[] = [
     partner: "Paytm and Zell",
     school: "Engineering and Technology",
     why: "Payments infrastructure taught by the company that built India's, with the accounting rigour bolted on rather than assumed.",
-    image: "/media/school-engineering.jpg",
+    image: "/media/school-engineering.webp",
   },
   {
     slug: "electric-vehicles",
@@ -74,7 +74,7 @@ export const PROGRAMMES: Programme[] = [
     award: "B.Tech. Mechanical Engineering",
     school: "Engineering and Technology",
     why: "Battery packs, motors and thermal management on a bench, in the decade the entire Indian drivetrain is being replaced.",
-    image: "/media/school-robotics.jpg",
+    image: "/media/school-robotics.webp",
   },
   {
     slug: "health-informatics",
@@ -82,7 +82,7 @@ export const PROGRAMMES: Programme[] = [
     award: "BCA Health Informatics",
     school: "Computer Applications",
     why: "Clinical systems taught next door to a working medical college and hospital, which is the part nobody else in Jaipur can offer.",
-    image: "/media/stills/s5.jpg",
+    image: "/media/stills/s5.webp",
   },
   {
     slug: "forensic-science",
@@ -90,7 +90,7 @@ export const PROGRAMMES: Programme[] = [
     award: "B.Sc. (Hons.) Forensic Science",
     school: "Sciences",
     why: "Wet lab, evidence handling and courtroom procedure, taught alongside a law school that runs a real moot court.",
-    image: "/media/school-sciences.jpg",
+    image: "/media/school-sciences.webp",
   },
   {
     slug: "game-art-animation",
@@ -98,7 +98,7 @@ export const PROGRAMMES: Programme[] = [
     award: "B.Des. Game Art and Animation",
     school: "Jaipur School of Design",
     why: "A design degree pointed at a studio pipeline, in a city with a jewellery and craft tradition to steal from.",
-    image: "/media/stills/s6.jpg",
+    image: "/media/stills/s6.webp",
   },
 ];
 

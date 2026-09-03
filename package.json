@@ -12,7 +12,9 @@
     "brand:crest": "node scripts/make-crest.mjs",
     "brand:social": "node scripts/make-social.mjs",
     "brand:icons": "node scripts/make-icons.mjs",
-    "brand:webp": "node scripts/make-brand-webp.mjs"
+    "brand:webp": "node scripts/make-brand-webp.mjs",
+    "media": "node scripts/optimize-media.mjs",
+    "media:dry": "node scripts/optimize-media.mjs --dry"
   },
   "dependencies": {
     "gsap": "^3.15.0",

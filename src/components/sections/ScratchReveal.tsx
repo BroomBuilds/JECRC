@@ -18,13 +18,30 @@ import { ArrowRight } from "@/components/ui/Icons";
  * vertical string is what gives the reveal ragged top and bottom edges and
  * clean horizontal sweeps.
  *
- * Two things it deliberately does NOT do:
+ * It does not heal. An earlier pass washed the canvas with a low-alpha white
+ * each frame so the trail closed up behind you. Scratching something that
+ * repairs itself is a nervous tic, not an interaction.
  *
- *   - It does not heal. An earlier pass washed the canvas with a low-alpha
- *     white each frame so the trail closed up behind you. Scratching something
- *     that repairs itself is a nervous tic, not an interaction.
- *   - It does not scratch itself. There is no idle path wandering across the
- *     band. The visitor is the one holding the coin.
+ * ---- the wave, and why there is one ----
+ *
+ * It used to sit there blank. A visitor who scrolled past without moving the
+ * cursor over the band never found out there was anything to find: a white
+ * rectangle with a line of type under it looks like a white rectangle with a
+ * line of type under it, and "Scratch to see the place" is eight words below
+ * the fold of the block it describes. The affordance was a caption, which is
+ * the weakest form an affordance takes.
+ *
+ * So the band now takes the first two strokes itself. A brush travels the
+ * width on a slow sine, twice, at two heights, and the board opens along a
+ * wave. It is the demonstration and nothing else: it stops dead on the first
+ * pointer event over the stage, and the cells it opened are NOT counted
+ * toward the threshold that lifts the rest of the sheet, so it cannot finish
+ * the job for the visitor or bring the flood on by itself.
+ *
+ * Two passes is the whole budget. It has to be long enough to be seen
+ * starting — motion that is already underway when you look at it teaches
+ * nothing — and short enough that it is over before anyone decides the page
+ * is playing at them.
  *
  * ---- and on a phone ----
  *
@@ -90,6 +107,22 @@ const FLOOD = 0.055;
  * read as a cut rather than a tear.
  */
 const SWEEP_MS = 1800;
+
+/**
+ * The idle wave, on a fine pointer only.
+ *
+ * `WAIT` is measured from the band coming into view, not from load: the point
+ * is for the visitor to watch it begin. `CYCLES` is per pass and is not a
+ * round number on purpose — one and a half puts the brush at the opposite
+ * side of the band from where it started, so the second pass reads as a
+ * continuation rather than a repeat.
+ */
+const IDLE_WAIT = 650;
+const IDLE_PASSES = 2;
+const IDLE_MS = 4400;
+const IDLE_CYCLES = 1.5;
+/** Wave height, as a fraction of the stage. */
+const IDLE_AMP = 0.13;
 /** Depth of the soft edge on the travelling tear, as a fraction of the stage. */
 const TEAR = 0.12;
 
@@ -321,8 +354,13 @@ export default function ScratchReveal({
     const ro = new ResizeObserver(resize);
     ro.observe(st);
 
-    /** Paint one brush stamp and record the cells it covers. */
-    const stamp = (x: number, y: number, phase: number) => {
+    /**
+     * Paint one brush stamp and, unless told otherwise, record the cells it
+     * covers. The idle wave passes `count: false`: what it opens is a
+     * demonstration, and a demonstration that counted toward the threshold
+     * would be doing the visitor's scratching for them.
+     */
+    const stamp = (x: number, y: number, phase: number, count = true) => {
       const breathe = 1 + Math.sin(phase) * 0.09;
       const r = CORE * breathe;
 
@@ -337,7 +375,7 @@ export default function ScratchReveal({
         ctx.fill();
       }
 
-      if (done || width === 0) return;
+      if (!count || done || width === 0) return;
       // Mark the grid over the core's box plus the satellites' vertical reach.
       const cw = width / COLS;
       const ch = height / ROWS;
@@ -363,7 +401,14 @@ export default function ScratchReveal({
     let have = false;
     let dirty = false;
 
+    /** The idle wave: cleared the instant the visitor touches the band. */
+    let touched = false;
+    let idleT0 = 0;
+    let idlePass = -1;
+    let idleFrom: { x: number; y: number } | null = null;
+
     const onPointer = (e: PointerEvent) => {
+      touched = true;
       const r = st.getBoundingClientRect();
       px = e.clientX - r.left;
       py = e.clientY - r.top;
@@ -409,6 +454,42 @@ export default function ScratchReveal({
           cancelAnimationFrame(raf);
         }
         return;
+      }
+
+      // ---- the wave that shows the band can be scratched --------------
+      // Runs only while nobody has touched the stage, only while the band is
+      // on screen (the observer below owns `running`), and never keeps score.
+      if (!touched && !done && width > 0) {
+        const now = performance.now();
+        if (!idleT0) idleT0 = now;
+        const el = now - idleT0 - IDLE_WAIT;
+
+        if (el >= 0 && el < IDLE_MS) {
+          const p = (el / IDLE_MS) * IDLE_PASSES;
+          const pass = Math.min(IDLE_PASSES - 1, Math.floor(p));
+          // A new pass restarts at the left edge. Without this the brush would
+          // draw a straight line back across the band to get there.
+          if (pass !== idlePass) {
+            idlePass = pass;
+            idleFrom = null;
+          }
+          const u = p - pass;
+          const x = -CORE + u * (width + CORE * 2);
+          const y =
+            height * (0.42 + pass * 0.17) +
+            Math.sin(u * Math.PI * 2 * IDLE_CYCLES) * height * IDLE_AMP;
+
+          if (idleFrom) {
+            const dx = x - idleFrom.x;
+            const dy = y - idleFrom.y;
+            const steps = Math.min(24, Math.max(1, Math.round(Math.hypot(dx, dy) / 14)));
+            for (let i = 1; i <= steps; i++) {
+              stamp(idleFrom.x + (dx * i) / steps, idleFrom.y + (dy * i) / steps, t + i * 0.2, false);
+            }
+          }
+          idleFrom = { x, y };
+          t += 0.06;
+        }
       }
 
       if (!have || !dirty || done) return;

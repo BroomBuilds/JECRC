@@ -6,9 +6,11 @@ import type { NextConfig } from "next";
  * one is Cloudflare.
  *
  * - `images.unoptimized` keeps next/image working without a platform image
- *   service. Every image the page ships is already right-sized (WebP tour
- *   frames, a JPEG poster, two small PNG logos), so the optimiser would have
- *   nothing left to do and would only add a hosting dependency.
+ *   service. Every image the page ships is WebP and already right-sized —
+ *   `npm run media` is what makes that true — so the optimiser would have
+ *   nothing left to do and would only add a hosting dependency. The four PNGs
+ *   left at the root are favicons and the Open Graph card, which are read by
+ *   other people's software and never go through next/image at all.
  * - `headers()` covers Node-served hosts. Cloudflare Pages and Workers read
  *   `public/_headers` instead, so the same rules are written there too. Keep
  *   the two in step.
@@ -23,24 +25,35 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
 
   async headers() {
+    // Order matters and is load-bearing: where two rules match the same
+    // request, the LATER one wins. Broad rules first, exceptions after.
     return [
       {
-        // Tour frames are content-addressed by the build: a rebuild is a new
-        // commit, and a given URL never changes contents mid-deploy. Cache
-        // them forever so only the very first visit pays for the film.
-        // Localhost never surfaced this because disk reads need no cache.
+        // Everything the page ships out of /media that is not the film:
+        // photographs, recruiter marks, the medical renders, the scratch
+        // board. Replaced by editing the file rather than by minting a new
+        // URL, so a month rather than a year.
+        source: "/media/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=2592000" }],
+      },
+      {
+        // The film. Content-addressed by the build: a rebuild is a new commit,
+        // and a given URL never changes contents mid-deploy. Cache it forever
+        // so only the very first visit pays for it. After /media/:path* on
+        // purpose — as the later rule it is the one that applies. Localhost
+        // never surfaced any of this because disk reads need no cache.
         source: "/media/tour/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {
-        // Deliberately NOT /media/:path*, which would also match the tour and,
-        // being the later rule, would quietly override the immutable header
-        // above with a thirty-day one.
-        source: "/media/stills/:path*",
+        source: "/brand/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=2592000" }],
       },
       {
-        source: "/brand/:path*",
+        // Icons and the social card, which live at the root. Fetched by other
+        // people's crawlers as much as by browsers, and neither re-fetches
+        // often.
+        source: "/:file(.*\.(?:png|ico))",
         headers: [{ key: "Cache-Control", value: "public, max-age=2592000" }],
       },
       {
@@ -53,7 +66,7 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
-  },
+  }
 };
 
 export default nextConfig;
