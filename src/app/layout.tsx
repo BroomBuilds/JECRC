@@ -6,6 +6,7 @@ import Reveal from "@/components/layout/Reveal";
 import Cursor from "@/components/layout/Cursor";
 import { BRAND, SITE_URL } from "@/lib/content/site";
 import { jsonLd } from "@/lib/seo/schema";
+import tourManifest from "@/lib/tour-manifest.json";
 
 /**
  * The text face for the whole site.
@@ -148,7 +149,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         {/* The tour's first frames are the largest paint on the page and are
             fetched by script, so the connection is warmed before React runs. */}
-        <link rel="preload" as="image" type="image/webp" href="/media/tour/poster.webp" fetchPriority="high" />
+        <link rel="preload" as="image" type="image/webp" href={tourManifest.poster} fetchPriority="high" />
         <script
           type="application/ld+json"
           // Server-rendered from lib/seo/schema.ts, which is built from the

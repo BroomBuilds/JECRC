@@ -5,8 +5,14 @@
  * Three rows of stats is not three arguments, it is one argument told badly, so
  * everything the group publishes now sits in a single ledger.
  *
- * `scale` sets how much room a figure gets in the grid. `lead` figures run
- * full-bleed across the band; `mid` take a half; `unit` are the small print.
+ * `scale` sets how much room a figure gets in the grid: `lead` figures run
+ * full-bleed across the band, `mid` take a half.
+ *
+ * There used to be a third, `unit`, holding six more figures at small-print
+ * size. Nothing rendered them. `FIGURES` is read by exactly one caller —
+ * `buildGraph()` in lib/seo/schema.ts — and that filters to lead and mid, so
+ * those six were values restating what `CONTEXT` and `SEASON.pay` already
+ * hold, free to drift quietly out of step with both.
  *
  * Counts, campuses and alumni are as the group publishes them. The four
  * PACKAGES in `SEASON.pay` are not — see the note there. That distinction used
@@ -18,7 +24,7 @@ export type Figure = {
   unit?: string;
   label: string;
   detail?: string;
-  scale: "lead" | "mid" | "unit";
+  scale: "lead" | "mid";
 };
 
 export const LEDGER = {
@@ -76,12 +82,6 @@ export const FIGURES: Figure[] = [
     detail: "Incubated by alumni and students at the JECRC Incubation Centre",
     scale: "mid",
   },
-  { value: "12,000+", label: "Placements in five years", scale: "unit" },
-  { value: "28+ Cr", label: "Research grants secured", scale: "unit" },
-  { value: "26,000+", label: "Students on roll", scale: "unit" },
-  { value: "32 acres", label: "Sitapura campus", scale: "unit" },
-  { value: "32.89 acres", label: "Alwar NCR campus", scale: "unit" },
-  { value: "35", label: "Countries", scale: "unit" },
 ];
 
 /**

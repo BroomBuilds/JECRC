@@ -47,9 +47,9 @@ export const SOCIAL = [
  * Lossless WebP, not the PNGs beside them.
  *
  * The `.png` in public/brand are the working format: the published artwork and
- * what `brand:mono` and `brand:crest` read and write. `npm run brand:webp` is
- * the last step of that chain and produces what the site links to, at 59% of
- * the bytes with nothing lost. The lockup is the largest paint on the page
+ * what `brand:mono` and `brand:crest` read and write. `npm run media` is the
+ * last step of that chain and produces what the site links to, at 59% of the
+ * bytes with nothing lost. The lockup is the largest paint on the page
  * over the film's first beat, so this is not a rounding error.
  */
 export const LOGO = {
