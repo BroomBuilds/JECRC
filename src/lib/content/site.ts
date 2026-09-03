@@ -70,5 +70,5 @@ export const LOGO = {
    * fine at favicon size and mush at the size the ending sets the mark. This
    * is the same crest with the detail still in it.
    */
-  crestLarge: "/brand/jecrc-crest-lg.png",
+  crestLarge: "/brand/jecrc-crest-lg.webp",
 } as const;

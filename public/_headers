@@ -1,15 +1,36 @@
 # Cloudflare Pages / Workers reads this file; Node-served hosts read the
 # headers() block in next.config.ts instead. Keep the two in step.
+#
+# Order matters and is load-bearing: where two rules match the same request,
+# the LATER one wins. So the broad rules come first and the exceptions come
+# after them.
 
+# Everything the page ships out of /media that is not the film: photographs,
+# recruiter marks, the medical renders, the scratch board. Content that is
+# replaced by editing the file rather than by minting a new URL, so a month
+# rather than a year.
+/media/*
+  Cache-Control: public, max-age=2592000
+
+# The film. Content-addressed by the build: a rebuild is a new commit, and a
+# given URL never changes contents mid-deploy. Cache it forever so only the
+# very first visit pays for it. Placed after /media/* on purpose — as the later
+# rule it is the one that applies.
 /media/tour/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Not /media/*: that would also match the tour above and, as the later rule,
-# override its immutable header with a thirty-day one.
-/media/stills/*
+/brand/*
   Cache-Control: public, max-age=2592000
 
-/brand/*
+# Next's own output is already hashed in the filename.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Icons and the social card. Fetched by other people's crawlers as much as by
+# browsers, and neither re-fetches often.
+/*.png
+  Cache-Control: public, max-age=2592000
+/favicon.ico
   Cache-Control: public, max-age=2592000
 
 /*

@@ -109,11 +109,15 @@ const stills = Number(opt("stills", 8));
 if (stills > 0) {
   const stillDir = resolve("public/media/stills");
   mkdirSync(stillDir, { recursive: true });
-  for (const f of readdirSync(stillDir)) if (/^s\d+\.jpg$/.test(f)) rmSync(join(stillDir, f));
+  for (const f of readdirSync(stillDir)) if (/^s\d+\.(jpg|webp)$/.test(f)) rmSync(join(stillDir, f));
   for (let k = 0; k < stills; k++) {
     const t = start + (span * (k + 0.5)) / stills;
+    // WebP, same as the frames and the poster. These are section imagery on
+    // a page that is otherwise entirely WebP, and at q78 they are half the
+    // bytes of the q3 JPEG they used to be with nothing visible between them.
     execFileSync("ffmpeg", ["-v","error","-y","-ss",String(t),"-i",input,"-vframes","1",
-      "-vf","scale=1700:-2","-q:v","3", join(stillDir, `s${k + 1}.jpg`)]);
+      "-vf","scale=1700:-2:flags=lanczos","-c:v","libwebp","-quality","78",
+      "-compression_level","6","-preset","picture", join(stillDir, `s${k + 1}.webp`)]);
   }
   console.log(`  … ${stills} stills → public/media/stills`);
 }

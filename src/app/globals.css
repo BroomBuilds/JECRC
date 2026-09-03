@@ -770,6 +770,287 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ------------------------------------------------------------------
+   The record
+
+   The band used to enlarge every figure until it was impressive, which
+   is what a hoarding does and the opposite of what evidence does. Nothing
+   here is enlarged. Two thousand one hundred and four offers are drawn as
+   two thousand one hundred and four marks, and three packages share one
+   axis instead of standing apart at three different sizes.
+
+   All of it is CSS and one inline SVG per breakpoint. No canvas, no
+   library, no measuring: the field is a `<pattern>` punched through four
+   rects, so a chart of two thousand marks costs eight nodes.
+   ------------------------------------------------------------------ */
+
+/* ---- the season ---- */
+
+/* The count. The one figure on the page set at display size, because it is the
+   one figure the whole band is about; everything else here is a length or a
+   label. Tabular so the comma group sits where a reader expects it. */
+.u-season-total {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(4.75rem, 15vw, 13rem);
+  line-height: 0.78;
+  letter-spacing: -0.06em;
+  color: var(--color-ink);
+}
+
+/* Two columns whose WIDTHS are the ratio.
+
+   `flex-grow` carries 856 against 1,248, so the split falls at 40.7% without
+   a percentage being written down anywhere: change the counts in
+   content/numbers.ts and the columns follow. Each column then holds its own
+   rule, count and marks, which is what stops the two halves from being a bar
+   at the top of the band and a legend somewhere underneath it. */
+.u-season {
+  display: flex;
+  align-items: start;
+  gap: 1.5rem;
+  margin-top: 2.75rem;
+}
+@media (min-width: 768px) {
+  .u-season { gap: 2.5rem; margin-top: 3.75rem; }
+}
+.u-season-col { min-width: 0; }
+
+/* The filled rule at the head of each column. Both draw left to right, ink
+   delayed behind crimson, so the pair reads as one sweep across the season
+   rather than as two bars racing. Scale rather than width: a transform is
+   composited and does not relayout the marks sitting underneath it. */
+.u-season-rule {
+  display: block;
+  height: 1.5rem;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 1.05s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="fill"].is-in .u-season-rule { transform: scaleX(1); }
+@media (min-width: 1280px) {
+  .u-season-rule { height: 1.9rem; }
+}
+
+/* Crimson for the share being pointed at, ink for the rest. Not grey: grey is
+   the colour of an absence, and these are 1,248 offers that happened. */
+[data-tone="share"] .u-season-rule { background: var(--color-crimson); }
+[data-tone="rest"] .u-season-rule { background: var(--color-ink); }
+
+.u-season-count {
+  margin-top: 1.15rem;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: clamp(1.4rem, 3vw, 2.15rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--color-ink);
+}
+.u-season-of {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--color-graphite);
+}
+
+/* The marks of the companies that made the offers in this column.
+
+   Same optical `--s` the marquee uses, set smaller: these are evidence under a
+   figure, not the row of marks the section ends on, and at the marquee's size
+   two of them would fill the narrow column on their own. `overflow: hidden`
+   with a fixed height rather than wrapping, so a column that runs out of room
+   drops marks off the end instead of growing taller than its neighbour and
+   breaking the two counts off their shared line. */
+.u-season-logos {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  height: 2.3rem;
+  margin-top: 1.6rem;
+  overflow: hidden;
+  /* A column that runs out of room drops marks off the end rather than
+     wrapping and growing taller than its neighbour. Faded rather than cut: a
+     mark sliced down the middle reads as a bug, the same reason the marquee
+     below softens its own edges. */
+  mask-image: linear-gradient(90deg, #000 84%, transparent 100%);
+}
+@media (min-width: 1024px) {
+  .u-season-logos { gap: 1.75rem; height: 2.75rem; }
+}
+/* The optical `--s` from the marquee, with a floor under it.
+
+   Left alone, 0.72 on a square mark is correct at the marquee's size and wrong
+   here: this row runs about two thirds of that height, and a detailed tile like
+   Nestlé's at seventy-two percent of two thirds is a smudge with a bird in it.
+   The floor keeps the long wordmarks from bullying the row without taking the
+   square marks below the size at which they are still a logo. */
+.u-season-logo {
+  height: calc(1.7rem * max(var(--s, 1), 0.82));
+  width: auto;
+  max-width: 5rem;
+  object-fit: contain;
+  flex: none;
+}
+@media (min-width: 1024px) {
+  .u-season-logo { height: calc(2.05rem * max(var(--s, 1), 0.82)); max-width: 6.5rem; }
+}
+
+/* Below sm the narrow column is 130px wide, which is one mark and half a
+   count. The two stack, and the ratio is carried by the rules alone — each
+   still drawn to its own share of the full width. */
+@media (max-width: 639px) {
+  .u-season { flex-direction: column; gap: 2.25rem; }
+  .u-season-col { width: 100%; flex: none !important; }
+  .u-season-rule { transform-origin: left center; }
+  [data-tone="share"] .u-season-rule { width: 40.68%; }
+  [data-tone="rest"] .u-season-rule { width: 59.32%; }
+}
+
+/* `[data-reveal="fill"]` deliberately has no opacity or transform of its own. A
+   section that fades itself in on scroll is the house style of every generated
+   page; what happens inside this one is a length being drawn, once. */
+[data-reveal="fill"] { opacity: 1; transform: none; }
+
+/* ---- what they paid ----
+
+   No axis. The old rail put three packages on a scale whose top was the
+   highest of them, which works only while the top and the bottom are the same
+   order of magnitude; a crore-sized offer on that rail pushes the average to
+   six percent of the width and the scale stops being one.
+
+   So the money is drawn at true length instead. One mark is ₹1,00,000, the
+   marks run from the left edge, and a run is as long as the package is big.
+   Nothing is normalised, there is no maximum to divide by, and the spread that
+   broke the rail is the only thing this has to show.
+
+   The marks are a repeating gradient rather than elements: a hundred and two
+   of them on four rows is four nodes, not four hundred, and every mark lands
+   on the same pitch because the pitch is a percentage of the row. */
+
+.u-pay-row + .u-pay-row { margin-top: 2.15rem; }
+
+.u-pay-label {
+  display: block;
+  padding-bottom: 0.8rem;
+  font-size: 0.9375rem;
+  color: var(--color-graphite);
+}
+
+/* Positioning context for the value, which is placed off `--frac` — the same
+   number the run is clipped to, so the two cannot drift apart. */
+.u-pay-plot { position: relative; }
+
+/* The run itself.
+
+   `--pitch` is one lakh as a share of the full row and `--frac` is where this
+   package stops. Both are percentages of the SAME box, which is what keeps the
+   marks the same size on every row: the element is always full width and only
+   its clip moves. Animating the width instead would re-resolve the gradient's
+   percentages every frame and the marks would slide as they drew. */
+.u-pay-run {
+  --mark: calc(var(--pitch) * 0.6);
+  display: block;
+  height: 0.7rem;
+  color: var(--color-ink);
+  background-image: repeating-linear-gradient(
+    to right,
+    currentColor 0 var(--mark),
+    transparent var(--mark) var(--pitch)
+  );
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.15s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="fill"].is-in .u-pay-run {
+  clip-path: inset(0 calc(100% - var(--frac)) 0 0);
+}
+@media (min-width: 1280px) {
+  .u-pay-run { height: 0.95rem; }
+}
+
+/* On the tip of the run, on its centre line. Left where the marks stop, so the
+   figure and the length are the same statement and the run draws toward it. */
+.u-pay-value {
+  position: absolute;
+  left: var(--frac);
+  top: 50%;
+  translate: 0 -50%;
+  margin-left: 0.85rem;
+  font-size: clamp(1.25rem, 2.1vw, 1.9rem);
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+
+/* The longest run reaches the right edge, where there is no tip to sit beside.
+   It goes above the end of its own marks instead, which is still the point the
+   run stops at. */
+.u-pay-row[data-top] .u-pay-value {
+  left: auto;
+  right: 0;
+  top: auto;
+  bottom: calc(100% + 0.6rem);
+  translate: none;
+  margin-left: 0;
+}
+
+/* The top of the range, in the one accent the page has. Crimson here and on
+   the Fortune 500 block above it is the same statement both times: this is the
+   part being pointed at. */
+.u-pay-row[data-top] .u-pay-run { color: var(--color-crimson); }
+.u-pay-row[data-top] .u-pay-value { color: var(--color-crimson); }
+
+/* ---- the same proportions, lying down, on a phone ----
+   Six hundred pixels of row divided by a hundred and two is a four-pixel mark,
+   which is a texture and not something anyone can count. Below md the run is a
+   plain bar at the same true length. */
+
+.u-rec-bar {
+  display: block;
+  height: 8px;
+  background: color-mix(in oklab, var(--color-ink) 10%, transparent);
+}
+.u-rec-bar-fill {
+  display: block;
+  height: 8px;
+  width: var(--frac, 0%);
+  background: var(--color-ink);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.15s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="fill"].is-in .u-rec-bar-fill { clip-path: inset(0); }
+[data-top] .u-rec-bar-fill { background: var(--color-crimson); }
+
+/* Lining figures are the default here; these are TABULAR, which is what
+   lets eight values of different widths line up on their last digit. */
+.u-rec-tab { font-variant-numeric: tabular-nums lining-nums; }
+
+/* ---- who came to campus ----
+   Marks at a common OPTICAL size, not a common height. Set to one height a
+   square tile reads about twice the size of a long wordmark, so each carries
+   its own `--s` from content/numbers.ts: 0.6 for a tile, 0.78 for a stacked
+   lockup, 1 for a wordmark.
+
+   The artwork is the university's own, flattened onto white and trimmed to its
+   ink at build time, which is why nothing here needs a plate or a border to
+   sit straight on the page. */
+/* Height and a hard width cap, together. Height alone let the long wordmarks
+   run to fifteen rems and swallow the row — a logo's perceived size in a strip
+   is its width as much as its cap height, so Deloitte and HCLTech hit the cap
+   and give back height, which is exactly the trade a person doing this by hand
+   would make. */
+.u-rec-co {
+  height: calc(1.9rem * var(--s, 1));
+  width: auto;
+  max-width: 6.5rem;
+  object-fit: contain;
+  flex: none;
+}
+@media (min-width: 768px) {
+  .u-rec-co { height: calc(2.4rem * var(--s, 1)); max-width: 8.5rem; }
+}
+
+/* ------------------------------------------------------------------
    Marquee
 
    Two copies of the track, translated by exactly half its width, so
@@ -800,6 +1081,27 @@ html.lenis, html.lenis body { height: auto; }
     clip-path: none !important;
   }
   .u-marquee-track { animation: none; transform: none; }
+  /* The blanket rule above resets `[data-reveal]` elements themselves, and
+     every length on this page is drawn on a CHILD of one. Left alone each
+     would sit clipped to nothing forever and no run would appear at all. Each
+     has to land on its OWN geometry, not on an open `inset(0)`: the segments
+     and the pay runs both cover their whole box and carry the quantity in the
+     clip, so unclipping them draws every value as the maximum. */
+  .u-season-rule { transform: scaleX(1) !important; transition: none !important; }
+  /* Same trap, same fix: these live on children of a `[data-reveal]` and the
+     blanket reset above does not reach them, so a run would stay clipped to
+     nothing and no package would draw at all. */
+  /* Each run has to land on its OWN length, not on `inset(0)`: the gradient
+     fills the whole row and the clip is the only thing that says where the
+     package stops, so unclipping it entirely draws every package as a crore.
+     The phone's bars carry their length as a width instead, so there the open
+     clip is the right one. */
+  .u-pay-run {
+    clip-path: inset(0 calc(100% - var(--frac)) 0 0) !important;
+    transition: none !important;
+  }
+  .u-rec-bar-fill { clip-path: inset(0) !important; transition: none !important; }
+
   /* Cursor.tsx refuses to mount under reduced motion, so this is only a
      belt-and-braces guard for the class lingering after a preference change. */
   .u-cursor { display: none !important; }
