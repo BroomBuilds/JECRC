@@ -238,19 +238,29 @@ on the way up: **25/25 identical**.
 
 ### 4e. What gets fetched, and when
 
-Three phases, in strict priority order. Only the first is unconditional:
+Two tiers, scheduled completely differently, because they cost completely
+different amounts:
 
-| phase | what | when |
-|---|---|---|
-| SPINE | every `spineStride`th frame of the **smallest** tier, coarse-to-fine | immediately |
-| FILL | the frames between, same small tier, in a window that travels with the playhead, **strided by velocity** | first scroll, wheel, key or touch |
-| UPGRADE | the display tier near the playhead, only while the visitor is moving slowly | same gesture |
+| tier | landscape | portrait | how it is fetched |
+|---|---|---|---|
+| small (640 / 400 AVIF) | **2.2 MB**, 734 frames | **1.4 MB**, 441 frames | **all of it, immediately**, coarse-to-fine, ungated |
+| display (1400 / 720 AVIF) | 6.4 MB | 2.2 MB | gesture-gated, windowed, velocity-strided, cancellable |
 
-The spine is the change that matters most for a first visit. It is not a separate frame set —
-it is the same small tier read further apart — and it covers the film **end to end** for
-about **150 KB**, less than the poster costs. Before, the priming pass spent 0.90 MB to reach
-26 frames at display width; resolution is worthless on a frame that is on screen for
-milliseconds while someone is scrolling, and temporal coverage is everything.
+The small tier is the whole film — every frame — for less than a single hero
+photograph. Once that is true, rationing it is the wrong instinct: a windowed,
+gesture-gated, velocity-strided fetch of a two-megabyte asset spends its
+cleverness making the first impression worse. So it is simply taken, in an
+order that makes it usable at every moment along the way — pass one spans the
+film in a dozen frames, each pass after halves the gaps — with only the frames
+at the playhead allowed to jump the queue.
+
+Everything the old loader did to ration bytes now applies solely to the display
+tier, which is 3.5x the size and buys sharpness rather than motion. That is the
+tier that can afford to wait, because nobody scrolling quickly can see it.
+
+Sweep requests are issued at `fetchPriority: "low"` and only the frames at the
+playhead at `"high"`. Seven hundred high-priority requests at mount would race
+the poster, which is the page's largest paint.
 
 ### The velocity stride
 
@@ -404,3 +414,63 @@ Verify after any change to either file — one `max-age` per response, no more:
 curl -sI https://<host>/media/tour/h/avif/1400/f0400.avif?v=<rev> | grep -i cache
 curl -sI https://<host>/media/school-computing.webp             | grep -i cache
 ```
+
+---
+
+## 8. The first visit, and the edge cache
+
+The last thing to go wrong, and the least obvious. Symptom: **the first visit
+stutters and every visit after it is perfect.** The instinct is that this is the
+browser cache and therefore unfixable. It is not.
+
+Measured against the deployed site — the same 100 frames, the same client, the
+same connection, back to back, with nothing cached locally either time:
+
+| | frames/s |
+|---|---|
+| cold at the edge (`cf-cache-status: MISS`, fetched from origin) | **3** |
+| the same files a minute later, warm at the edge (`HIT`) | **32** |
+
+Ten times, and none of it is the browser. It is Cloudflare.
+
+A film split into hundreds of small objects is close to the worst possible
+shape for an edge cache. No individual frame is requested often enough to stay
+resident, so they age out, and the next visitor in that region pays an origin
+round trip **per frame**. Worse, every deploy mints a new `?v=` fingerprint on
+every URL, which empties the edge completely — so without intervention the
+first visitor after every deploy gets the bad version of the site.
+
+Three things address it, in order of effort:
+
+1. **Warm the edge after every deploy.** `npm run tour:warm -- https://host`
+   pulls every frame through the CDN once. Measured against the live site, the
+   small AVIF tier, sampled across the whole film:
+
+   | | edge residency | throughput |
+   |---|---|---|
+   | before warming | 9/30 resident | 28 frames/s |
+   | after warming (2,352 objects, 10.6 MB, 47 s) | **27/30 resident** | **58 frames/s** |
+
+   **This decays.** Cloudflare evicts by least-recently-used, and a film split
+   into hundreds of objects is exactly what an LRU sheds first — which is why
+   residency was down to 30% on a site that had been live for days. Warming is
+   not a one-off after a deploy; on a low-traffic site it wants to be a cron. It warms the ONE PoP that serves the machine it
+   runs on, so run it from near the audience: from Jaipur it warms Singapore,
+   which is where Indian traffic lands (`cf-ray: …-SIN`). From a US CI runner it
+   warms a US PoP and does nothing for India.
+2. **Turn on Tiered Cache** (Cloudflare → Caching → Tiered Cache; free on all
+   plans). A miss at one PoP then fetches from a regional parent instead of the
+   origin, which makes every miss cheaper and lets one warm-up populate the
+   parent for every PoP behind it. This is the half that makes warming from one
+   location worth anything to the rest of the world.
+3. **Atlases, if the first two are not enough.** Packing the small tier into
+   tiled sheets — 4×6 frames at 640×360, so 2560×2160 per sheet — turns 734
+   objects into **31**, measured at 111 KB each. Thirty-one objects stay
+   resident in an edge cache; seven hundred do not, so this fixes the cause
+   rather than the symptom. It also collapses the round-trip cost, which is the
+   real limit at ~3 KB a frame.
+
+   Not built, deliberately. A decoded 2560×2160 sheet is ~22 MB of pixels
+   against ~1 MB for a frame, so it needs a real eviction policy, and that is a
+   memory risk on exactly the cheap phones this is all for. Do 1 and 2, measure,
+   and only reach for this if the first visit is still short.

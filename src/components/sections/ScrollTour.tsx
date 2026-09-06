@@ -247,31 +247,82 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
     // connection is actually delivering. Neither is guessable — a 5 Mbps link
     // in Jaipur reaching a Singapore edge is not the link this was written on
     // — so both are measured live and the stride follows them.
-    /** Frames to keep filled ahead of the playhead, and behind it. */
-    const AHEAD = 140;
+    /** Frames at or just ahead of the playhead that outrank the sweep. */
+    const URGENT = 24;
+    /** Frames behind the playhead still worth an upgrade. */
     const BEHIND = 50;
     /** How far out the display tier is worth chasing when standing still. */
     const UPGRADE_REACH = 60;
-    const CONCURRENCY = 12;
+    /**
+     * Requests in flight.
+     *
+     * Higher than the eight-then-sixteen this used to ramp between, because the
+     * objects are now a twentieth of the size they were: at ~2 KB a frame the
+     * limit is round trips, not bandwidth, and the only way to hide a round
+     * trip is to have another request already in it. HTTP/2 multiplexes them
+     * onto one connection, so this is queue depth rather than sockets.
+     *
+     * Measured against the deployed site, 100 frames of the small tier, warm
+     * at the edge:
+     *
+     *   6 → 41/s    10 → 55/s    16 → 49/s    24 → 65/s    32 → 18/s
+     *
+     * Noisy, and the shape matters more than any single number: throughput
+     * climbs to somewhere in the twenties and then FALLS OFF A CLIFF. Past the
+     * point where the queue is deeper than the connection can service, the
+     * requests at the back are just latency added to the ones at the front.
+     *
+     * Sixteen rather than the twenty-four that measured fastest, deliberately.
+     * That measurement is one desktop on one link; a phone on a worse one
+     * reaches the cliff sooner, and the downside of being under the peak is a
+     * few frames a second while the downside of being over it is a third of the
+     * throughput. This is the calibration knob — if it is ever retuned, measure
+     * the cliff on a real device rather than the peak on a fast one.
+     */
+    const CONCURRENCY = 16;
 
-    /** Spine positions, coarse-to-fine. */
-    const spinePlan: number[] = [];
+    /**
+     * Every frame of the small tier, coarse-to-fine, from the widest useful
+     * stride down to every one.
+     *
+     * The whole plan, not just a spine. The small tier is 2.2 MB for the
+     * landscape film and 1.4 MB for the portrait one — the entire film, every
+     * frame — which is less than a single hero photograph on most pages. Once
+     * that is true, rationing it is the wrong instinct: a windowed,
+     * gesture-gated, velocity-strided fetch of a two-megabyte asset spends its
+     * cleverness making the first impression worse.
+     *
+     * So the small tier is simply taken, in an order that makes it usable at
+     * every moment along the way: pass one covers the film end to end in a
+     * dozen frames, and each pass after that halves the gaps. The display
+     * tier — 3.5x the bytes — keeps all of the rationing.
+     */
+    const smallPlan: number[] = [];
     {
-      const marks: number[] = [];
-      for (let i = 0; i < count; i += spineStride) marks.push(i);
-      if (marks[marks.length - 1] !== count - 1) marks.push(count - 1);
       const seen = new Uint8Array(count);
-      for (let s = Math.max(1, 2 ** Math.round(Math.log2(Math.max(2, marks.length / 12)))); s >= 1; s >>= 1) {
-        for (let k = 0; k < marks.length; k += s) {
-          if (!seen[marks[k]]) {
-            seen[marks[k]] = 1;
-            spinePlan.push(marks[k]);
-          }
+      const push = (i: number) => {
+        if (i < count && !seen[i]) {
+          seen[i] = 1;
+          smallPlan.push(i);
         }
+      };
+      // Start wide enough that the first pass spans the film in ~12 frames,
+      // then halve until every frame is planned.
+      for (let s = 2 ** Math.ceil(Math.log2(Math.max(2, count / 12))); s >= 1; s >>= 1) {
+        for (let i = 0; i < count; i += s) push(i);
       }
+      push(count - 1);
     }
-    const SPINE_COUNT = spinePlan.length;
-    let spineAt = 0;
+    /**
+     * How much of the plan counts as "the film is usable end to end".
+     *
+     * Only this much drives the loading percentage and the poster fade. The
+     * rest arrives behind it without anyone being told about it, because by
+     * then there is a real picture at every scroll position and the visitor
+     * has nothing left to wait for.
+     */
+    const SPINE_COUNT = Math.min(smallPlan.length, Math.max(24, Math.ceil(count / spineStride)));
+    let planAt = 0;
     let windowOpen = false;
 
     // ---- the two measured rates ------------------------------------------
@@ -320,12 +371,16 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
      * that is already on the wire from settling into the store afterwards.
      *
      * The window here is deliberately wider than the fetch window. A frame
-     * just outside AHEAD is one the visitor is about to reach, and throwing
-     * away a request that is nearly finished costs more than keeping it.
+     * just outside it is one the visitor is about to reach, and throwing away
+     * a request that is nearly finished costs more than keeping it.
      */
     const abortStale = () => {
       for (const [i, img] of inflightImg) {
-        if (i > cursor - BEHIND * 2 && i < cursor + AHEAD * 2) continue;
+        // Small-tier requests are never stale. Every one of them is wanted,
+        // wherever the playhead is, because the whole tier is being taken;
+        // cancelling one only means asking for it again later.
+        if (inflightTier[i] !== displayTier || displayTier === spineTier) continue;
+        if (i > cursor - BEHIND * 2 && i < cursor + UPGRADE_REACH * 2) continue;
         img.onload = null;
         img.onerror = null;
         img.src = "";
@@ -336,41 +391,42 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
 
     /** Next frame worth fetching and the tier to fetch it at, or null. */
     const pick = (): { i: number; tier: number } | null => {
-      // SPINE. Unconditional and always first: until the film is covered end
-      // to end, nothing else is worth a byte.
-      while (spineAt < SPINE_COUNT) {
-        const i = spinePlan[spineAt++];
-        if (tierOf[i] < 0 && inflightTier[i] < 0) return { i, tier: spineTier };
-      }
-      if (!windowOpen) return null;
-
-      // FILL, forward first: down is the direction of travel, and a frame
-      // behind the playhead is one the visitor has already seen. Strided by
-      // velocity, so a fast scroll asks for every fourth frame across a long
-      // reach rather than every frame across a short one.
-      const stride = fetchStride();
-      for (let d = 0; d <= AHEAD; d += stride) {
+      // URGENT. A frame the playhead is on or about to reach, still missing at
+      // any tier, jumps the queue. This is the only part of the small tier's
+      // schedule that depends on where the visitor is, and it exists so that
+      // someone who scrolls immediately is not waiting on a coarse pass
+      // covering film they are already past.
+      for (let d = 0; d <= URGENT; d++) {
         const f = cursor + d;
         if (f < count && tierOf[f] < 0 && inflightTier[f] < 0) return { i: f, tier: spineTier };
-        if (d > 0 && d <= BEHIND) {
-          const b = cursor - d;
-          if (b >= 0 && tierOf[b] < 0 && inflightTier[b] < 0) return { i: b, tier: spineTier };
-        }
       }
 
-      // UPGRADE. Only when the film is arriving faster than the visitor is
-      // consuming it — which is exactly when a sharper frame can be both
-      // afforded and seen. Someone flying past the tour gets the small tier
-      // and is none the wiser; someone who has stopped to look gets the large
-      // one within a few frames of stopping.
-      if (displayTier !== spineTier && passRate < rate * 0.75) {
-        for (let d = 0; d <= UPGRADE_REACH; d++) {
-          const f = cursor + d;
-          if (f < count && tierOf[f] === spineTier && inflightTier[f] < 0) return { i: f, tier: displayTier };
-          if (d > 0) {
-            const b = cursor - d;
-            if (b >= 0 && tierOf[b] === spineTier && inflightTier[b] < 0) return { i: b, tier: displayTier };
-          }
+      // SWEEP. The entire small tier, coarse-to-fine, unconditionally. Not
+      // gated on a gesture and not strided by velocity: at 2.2 MB for the whole
+      // film there is nothing here worth rationing, and rationing it is what
+      // made a first visit feel worse than a reload.
+      while (planAt < smallPlan.length) {
+        const i = smallPlan[planAt++];
+        if (tierOf[i] < 0 && inflightTier[i] < 0) return { i, tier: spineTier };
+      }
+
+      // UPGRADE. Everything the small tier is not: gated on a gesture, held to
+      // a window around the playhead, and only while the film is arriving
+      // faster than the visitor is consuming it. This tier is 3.5x the bytes
+      // and buys sharpness rather than motion, so it is the one that waits.
+      //
+      // Someone flying past the tour gets the small tier and is none the
+      // wiser; someone who stops to look gets the large one within a few
+      // frames of stopping.
+      if (!windowOpen || displayTier === spineTier) return null;
+      if (passRate >= rate * 0.75) return null;
+      const reach = Math.min(UPGRADE_REACH, Math.ceil(UPGRADE_REACH / fetchStride()));
+      for (let d = 0; d <= reach; d++) {
+        const f = cursor + d;
+        if (f < count && tierOf[f] === spineTier && inflightTier[f] < 0) return { i: f, tier: displayTier };
+        if (d > 0 && d <= BEHIND) {
+          const b = cursor - d;
+          if (b >= 0 && tierOf[b] === spineTier && inflightTier[b] < 0) return { i: b, tier: displayTier };
         }
       }
       return null;
@@ -387,10 +443,14 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
 
         const img = new window.Image();
         img.decoding = "async";
-        // The spine is the only thing standing between the visitor and a
-        // usable film, so it outranks everything else the page is still
-        // fetching. Nothing after it does.
-        img.fetchPriority = windowOpen ? "auto" : "high";
+        // Only what the playhead is about to need is urgent. The sweep is
+        // explicitly LOW, which matters now that it is the whole tier rather
+        // than a few dozen frames: seven hundred high-priority requests issued
+        // at mount would be racing the poster, and the poster is the largest
+        // paint on the page. Low here does not mean slow — the connection is
+        // otherwise idle within a second — it means the browser is told what to
+        // do first if it ever has to choose.
+        img.fetchPriority = Math.abs(i - cursor) <= URGENT ? "high" : "low";
         inflightImg.set(i, img);
 
         const settle = () => {
