@@ -1,60 +1,99 @@
 # Cloudflare Pages / Workers reads this file; Node-served hosts read the
 # headers() block in next.config.ts instead. Keep the two in step.
 #
-# Order matters and is load-bearing: where two rules match the same request,
-# the LATER one wins. So the broad rules come first and the exceptions come
-# after them — which is why the catch-all is at the top and not the bottom.
-
-# THE DOCUMENT. Revalidate on every visit.
+# RULES ARE APPENDED, NOT OVERRIDDEN. This file used to claim the opposite, and
+# the whole cache scheme rested on that false premise. Where several rules match
+# one request, Cloudflare Pages concatenates EVERY matching header — including
+# two or three Cache-Controls — into a single field:
 #
-# This is the rule the whole cache-busting scheme hangs off. Next serves a
-# static page as `s-maxage=31536000` with no `max-age` at all, which pins the
-# HTML in the CDN for a year and leaves browsers to guess: the ?v= fingerprint
-# on the frames is minted at build time and lives in the HTML and the bundle it
-# points at, so a visitor holding last month's document asks for last month's
-# frames and no amount of fingerprinting reaches them. Busting the assets is
-# worth nothing while the thing that names them is itself stale.
+#   cache-control: public, max-age=0, must-revalidate, public, max-age=2592000,
+#                  public, max-age=31536000, immutable
 #
-# max-age=0 with an ETag is not a re-download. It is a conditional request that
-# comes back 304 with no body on every visit but the one that matters.
+# Browsers reading a duplicated max-age take the FIRST. So every frame of the
+# film carried `max-age=0, must-revalidate` and was revalidated on every visit:
+# ~800 conditional requests at ~400 ms each, sixteen in flight — twenty seconds
+# of round trips for a visitor whose disk already held the whole film. Next's
+# headers() appends the same way, so both files carried the same bug.
 #
-# First rather than last, so the asset rules below can override this one header
-# and still inherit the security ones.
+# The fix is not ordering. It is writing Cache-Control EXACTLY ONCE per request.
+# The catch-all below therefore carries security headers and no Cache-Control at
+# all, and every path that needs one names it itself, with no two rules
+# overlapping.
+#
+# Two matching traps, both of which caused the original bug:
+#   * `*` is greedy ACROSS path segments, so `/media/*` matches
+#     `/media/tour/1100/f0001.webp` and `/*.png` matches `/brand/crest.png`.
+#     Never use a splat where a subtree underneath has its own rule.
+#   * `:name` matches EXACTLY ONE segment, which is why the loose files that sit
+#     directly in /media are covered by `/media/:file` and the film is not.
+#
+# Verify after any change — exactly one max-age per response:
+#
+#   curl -sI https://<host>/media/tour/1100/f0400.webp?v=<rev> | grep -i cache
+#   curl -sI https://<host>/media/school-computing.webp        | grep -i cache
 /*
-  Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: SAMEORIGIN
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-# Everything the page ships out of /media that is not the film: photographs,
-# recruiter marks, the medical renders, the scratch board. Content that is
-# replaced by editing the file rather than by minting a new URL, so a month
-# rather than a year.
-/media/*
-  Cache-Control: public, max-age=2592000
+# THE DOCUMENT. Revalidate on every visit.
+#
+# The rule the cache-busting scheme hangs off. Left alone, Next serves a static
+# page as `s-maxage=31536000` with no `max-age`, which pins the HTML in the CDN
+# for a year and leaves browsers to guess. The ?v= fingerprint on the frames is
+# minted at build time and lives in the HTML and the bundle it points at, so a
+# visitor holding last month's document asks for last month's frames and no
+# amount of fingerprinting reaches them. Busting the assets is worth nothing
+# while the thing that names them is stale.
+#
+# max-age=0 against an ETag is not a re-download: it is a conditional request
+# that comes back 304 with no body on every visit but the one that matters.
+# Named per-path, never as a catch-all, so it cannot leak onto an asset again.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
 
-# The film. Frame paths repeat build to build, so what makes this immutable is
+# THE FILM. Frame paths repeat build to build, so what makes this immutable is
 # the ?v= fingerprint every frame URL carries — see scripts/tour-rev.mjs.
 # Without it a phone keeps the cut it first saw for a year and no deploy can
-# reach it. Placed after /media/* on purpose — as the later rule it is the one
-# that applies.
+# reach it.
 /media/tour/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The rest of /media: photographs, recruiter marks, the medical renders, the
+# scratch board. Replaced by editing the file rather than by minting a new URL,
+# so a month rather than a year. `/media/:file` deliberately matches only the
+# loose files sitting directly in /media — anything deeper needs its own line,
+# because a splat here would swallow the film.
+/media/:file
+  Cache-Control: public, max-age=2592000
+/media/stills/*
+  Cache-Control: public, max-age=2592000
+/media/medical/*
+  Cache-Control: public, max-age=2592000
+/media/recruiters/*
+  Cache-Control: public, max-age=2592000
 
 /brand/*
   Cache-Control: public, max-age=2592000
 
 # Next's own output, whose filenames carry a content hash: a change is a new
-# URL, so this can be cached hard. Stated explicitly because the catch-all at
-# the top would otherwise drag it down to revalidate-always and charge a
-# conditional request per chunk on every navigation.
+# URL, so this can be cached hard.
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Icons and the social card. Fetched by other people's crawlers as much as by
-# browsers, and neither re-fetches often.
-/*.png
+# Icons and the social card, enumerated rather than globbed: `/*.png` would also
+# match /brand/*.png and emit a second Cache-Control there. Read by other
+# people's crawlers as much as by browsers, and neither re-fetches often.
+/apple-icon.png
   Cache-Control: public, max-age=2592000
-/favicon.ico
+/icon-192.png
+  Cache-Control: public, max-age=2592000
+/icon-512.png
+  Cache-Control: public, max-age=2592000
+/opengraph-image.png
+  Cache-Control: public, max-age=2592000
+/llms.txt
   Cache-Control: public, max-age=2592000

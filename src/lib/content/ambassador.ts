@@ -21,6 +21,20 @@ export const AMBASSADOR = {
    */
   portrait: "/brand/vikrant-massey.webp" as string | undefined,
   portraitAlt: "Vikrant Massey, brand ambassador for JECRC University",
+  /**
+   * A 16 by 20 crop of the portrait itself, inline, about 250 bytes.
+   *
+   * It stands in the frame until the real file lands, so the band arrives as a
+   * soft version of the photograph rather than as an empty box that pops. The
+   * preload below means it is rarely on screen for long — but the visitor who
+   * scrolls fastest is exactly the one who would otherwise see nothing at all,
+   * and the one this is for.
+   *
+   * Regenerate alongside the portrait:
+   *   sharp(file).resize(16, 20, { fit: "cover" }).webp({ quality: 45 })
+   */
+  portraitBlur:
+    "data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAABQBACdASoQABQAPt1apkyopSOiMAgBEBuJZACdMoMzGCG3t6teRIl6RGwAANsJywIPi1KCdl8cUpGWfPhtxfgNxk+VpPp4L/IOtboasu/R78mg8OF8zlcM6euB+pJACVBioOW6ldksbDcFeuex3Qg+cw+fvEiOvKh5i5Rk4PE1lwSk17L23MRGHGpvy9FfiqtkGIjoBFZqwAAA",
   body:
     "An actor who built a career the long way round: small parts, then better parts, then the ones nobody else could have played. The partnership works because it is the same arc the university asks of its students. Start with the work, stay with the work, and let the recognition arrive second.",
   quote: "Dream big. Stay grounded. Build your world.",

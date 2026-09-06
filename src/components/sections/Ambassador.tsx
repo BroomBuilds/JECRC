@@ -23,11 +23,30 @@ export default function Ambassador() {
         <figure data-reveal="mask" className="relative">
           <div className="relative aspect-4/5 w-full overflow-hidden bg-linen">
             {AMBASSADOR.portrait ? (
+              /* `priority`, on an image most of a page below the fold.
+                 
+                 Counter-intuitive, and measured. Left lazy this did not even
+                 REQUEST until 2.7s — it waits for the viewport — and by then
+                 the tour's preloader is holding sixteen frames open on the
+                 same connection, so 53 KB that should move in about 110ms took
+                 1,054. Total, near four seconds after load on a 4G profile,
+                 which is longer than anyone spends deciding to keep scrolling.
+                 
+                 `priority` emits a preload in the document head, so the fetch
+                 starts while the HTML is still being parsed — before the tour
+                 effect has mounted and before there is any queue to sit behind.
+                 It costs one 53 KB request on a page that ships megabytes of
+                 film, and it is done long before the visitor arrives. The film
+                 poster above it keeps its own fetchPriority="high", so the LCP
+                 is not what pays for this. */
               <Image
                 src={AMBASSADOR.portrait}
                 alt={AMBASSADOR.portraitAlt}
                 fill
+                priority
                 sizes="(min-width: 1024px) 40vw, 92vw"
+                placeholder="blur"
+                blurDataURL={AMBASSADOR.portraitBlur}
                 className="object-cover"
               />
             ) : (

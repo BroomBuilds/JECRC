@@ -1,0 +1,53 @@
+{
+  "count": 734,
+  "rev": "c473e497",
+  "fps": 25,
+  "duration": 29.36,
+  "pad": 4,
+  "base": "/media/tour/h",
+  "poster": "/media/tour/h/poster.webp?v=c473e497",
+  "aspect": 1.7777777777777777,
+  "orientation": "landscape",
+  "spineStride": 8,
+  "cuts": [
+    0.109,
+    0.1676,
+    0.2248,
+    0.3052,
+    0.3951,
+    0.4591,
+    0.5232,
+    0.6076,
+    0.7112,
+    0.7834,
+    0.8678
+  ],
+  "formats": {
+    "avif": {
+      "ext": "avif",
+      "sizes": [
+        {
+          "width": 1400,
+          "height": 788,
+          "dir": "1400"
+        },
+        {
+          "width": 640,
+          "height": 360,
+          "dir": "640"
+        }
+      ]
+    },
+    "webp": {
+      "ext": "webp",
+      "sizes": [
+        {
+          "width": 1100,
+          "height": 618,
+          "dir": "1100"
+        }
+      ]
+    }
+  },
+  "builtFrom": "website-horizontal.mp4"
+}
