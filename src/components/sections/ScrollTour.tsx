@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
-import manifest from "@/lib/tour-manifest.json";
+import landscapeFilm from "@/lib/tour-manifest-landscape.json";
+import portraitFilm from "@/lib/tour-manifest-portrait.json";
 import { APPLY_LINKS } from "@/lib/content/universities";
 import { BRAND, LOGO } from "@/lib/content/site";
 import { ArrowUpRight } from "@/components/ui/Icons";
@@ -54,6 +55,56 @@ type Props = { captions?: Caption[]; applyBeats?: ApplyBeat[] };
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 const smooth = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
 
+type Tier = { width: number; height: number; dir: string };
+
+/** What `scripts/build-tour.mjs` writes, and the only thing this reads. */
+type Film = {
+  count: number;
+  rev: string;
+  fps: number;
+  duration: number;
+  pad: number;
+  base: string;
+  poster: string;
+  aspect: number;
+  orientation: string;
+  /** Every Nth frame of the smallest tier covers the film end to end. */
+  spineStride: number;
+  /** Hard cuts, as fractions of the film. Dissolved rather than painted. */
+  cuts: number[];
+  formats: {
+    avif: { ext: string; sizes: Tier[] };
+    webp: { ext: string; sizes: Tier[] };
+  };
+};
+
+/**
+ * Does this browser decode AVIF?
+ *
+ * It matters more than any other single decision here. Measured on this
+ * footage: WebP q50 at 1100px is 55 KB a frame, AVIF crf36 at 1400px is 8.9 —
+ * a fifth of the bytes at a larger size. Over a link measured at 5.5 Mbps that
+ * is 16 frames a second delivered against 36, and a deliberate scroll through
+ * the tour needs about 16 while a normal scroll-past needs 66. Format is the
+ * difference between a film that flows on a first visit and one that cannot.
+ *
+ * A 2×2 AVIF as a data URI: no network, resolves in about a millisecond, and
+ * started here at module scope so the answer is already waiting by the time
+ * the component mounts. Browsers without AVIF fall back to a WebP tier built
+ * at the width the site shipped before, so they are never worse off than they
+ * were — they simply do not get the improvement.
+ */
+const AVIF_OK: Promise<boolean> =
+  typeof window === "undefined"
+    ? Promise.resolve(false)
+    : new Promise((res) => {
+        const probe = new window.Image();
+        probe.onload = () => res(probe.width === 2);
+        probe.onerror = () => res(false);
+        probe.src =
+          "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAAD1bWV0YQAAAAAAAAAvaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAFBpY3R1cmVIYW5kbGVyAAAAAA5waXRtAAAAAAABAAAAHmlsb2MAAAAARAAAAQABAAAAAQAAAR0AAAAZAAAAKGlpbmYAAAAAAAEAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAAGZpcHJwAAAAR2lwY28AAAAUaXNwZQAAAAAAAAACAAAAAgAAABBwaXhpAAAAAAMICAgAAAAIYXYxQwAAABNjb2xybmNseAACAAIAAgAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACFtZGF0CgkAAAAABm18wCAyDBAA/4AAAsAAAACvMA==";
+      });
+
 /**
  * Scroll-driven film, rendered as an image sequence on a canvas.
  *
@@ -91,179 +142,325 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
     if (!ctx) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const { count, base, format, pad } = manifest;
 
-    // ---- pick the source width ------------------------------------------
+    // ---- which film ------------------------------------------------------
+    // One film per shape, chosen once and never re-chosen. The portrait cut is
+    // not the landscape one letterboxed — it is a separate edit at a separate
+    // aspect — and deciding here rather than in CSS is what keeps a phone from
+    // ever touching the landscape frames.
+    const m: Film = (window.matchMedia("(orientation: portrait)").matches
+      ? (portraitFilm as Film)
+      : (landscapeFilm as Film));
+    const { count, base, pad, rev, spineStride, cuts } = m;
+
+    // ---- frame store -----------------------------------------------------
+    // HTMLImageElement rather than ImageBitmap on purpose. A bitmap would give
+    // cleaner cancellation and off-thread decode, but it also pins decoded
+    // pixels that only an explicit close() frees: at 1400×788 that is 4.4 MB a
+    // frame, and a few hundred of them is a phone falling over. An <img> lets
+    // the browser discard and re-decode under pressure, which is the behaviour
+    // this needs and none of the code has to implement.
+    const images: (HTMLImageElement | undefined)[] = new Array(count);
+    /**
+     * Which tier index each loaded frame came from; -1 for not loaded.
+     *
+     * One array rather than a `ready` flag beside it: a frame's tier already
+     * says whether it is loaded, and two arrays that must agree are two arrays
+     * that can disagree.
+     */
+    const tierOf = new Int8Array(count).fill(-1);
+    /** In-flight request per frame, so a stale one can be aborted. */
+    const inflightImg = new Map<number, HTMLImageElement>();
+    /** Tier index of the in-flight request, to avoid re-asking for the same. */
+    const inflightTier = new Int8Array(count).fill(-1);
+    let loadedCount = 0;
+    /** Frame index under the playhead right now. */
+    let cursor = 0;
+
+    // ---- tiers, once the format is known ---------------------------------
+    // Everything below waits on AVIF_OK, which is a data URI decode started at
+    // module scope: it has almost always settled before this effect runs, and
+    // costs about a millisecond when it has not. The poster is over the canvas
+    // for the whole of that window, so nothing is visibly waiting.
+    let tiers: Tier[] = [];
+    let displayTier = 0;
+    let spineTier = 0;
+    // Replaced by `chooseTiers` before anything is allowed to call it; the
+    // placeholder exists only so the closures below can capture the binding.
+    let url: (tier: number, i: number) => string = () => "";
+    let started = false;
+
     // Capped at 1.75: a 3x phone does not need a 4,000px source for a
     // full-bleed, soft-focus film, and the memory saved matters more than the
     // sharpness lost.
     const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
     const needed = window.innerWidth * dpr;
-    const sizes = [...manifest.sizes].sort((a, b) => a.width - b.width);
-    const chosen = sizes.find((s) => s.width >= needed * 0.85) ?? sizes[sizes.length - 1];
-    // ?v= is the film's fingerprint, written by scripts/build-tour.mjs. Frame
-    // paths repeat build to build and the frames are served immutable for a
-    // year, so without the query a phone that cached one cut never sees
-    // another.
-    const url = (i: number) =>
-      `${base}/${chosen.dir}/f${String(i + 1).padStart(pad, "0")}.${format}?v=${manifest.rev}`;
 
-    // Every second frame on a phone. The tour is by far the heaviest thing on
-    // the page, most of the traffic is mobile, and at the pixel-per-frame this
-    // runs at, half the sequence still reads as continuous motion: the scroll
-    // length halves alongside it, so the pixels between frames barely change.
-    const step = window.innerWidth < 768 ? 2 : 1;
-    /** Frame indices actually fetched, in order. */
-    const track: number[] = [];
-    for (let i = 0; i < count; i += step) track.push(i);
-    if (track[track.length - 1] !== count - 1) track.push(count - 1);
-    const frames = track.length;
-
-    // ---- frame store -----------------------------------------------------
-    const images: (HTMLImageElement | undefined)[] = new Array(count);
-    const ready: boolean[] = new Array(count).fill(false);
-    /** Requested, in TRACK positions rather than frame indices. */
-    const asked = new Uint8Array(frames);
-    let loadedCount = 0;
-    /** Track position under the playhead right now. */
-    let cursor = 0;
-    let inflight = 0;
+    const chooseTiers = (avif: boolean) => {
+      const fmt = avif ? m.formats.avif : m.formats.webp;
+      tiers = [...fmt.sizes].sort((a, b) => a.width - b.width);
+      const fit = tiers.findIndex((s) => s.width >= needed * 0.85);
+      displayTier = fit === -1 ? tiers.length - 1 : fit;
+      // The spine is the cheapest tier there is. On the WebP fallback path
+      // there is only one tier, so spine and display are the same and the
+      // phasing below collapses to what the site did before — which is exactly
+      // the intent: no visitor is worse off than they were.
+      spineTier = 0;
+      // ?v= is the film's fingerprint, written by scripts/build-tour.mjs.
+      // Frame paths repeat build to build and the frames are served immutable
+      // for a year, so without the query a phone that cached one cut never
+      // sees another.
+      url = (tier: number, i: number) =>
+        `${base}/${avif ? "avif" : "webp"}/${tiers[tier].dir}/f${String(i + 1).padStart(pad, "0")}.${fmt.ext}?v=${rev}`;
+    };
 
     // ---- what to fetch, and when -----------------------------------------
     //
-    // The whole film is thirty-odd megabytes at the desktop size. Fetching all
-    // of it on load is the single most expensive thing this page could do, and
-    // most of it would be spent on visitors who never scroll past the second
-    // beat. So the sequence is fetched in three phases, and only the first one
-    // is unconditional:
+    // Three phases, in strict priority order. Only the first is unconditional:
     //
-    //   PRIME    a wide stride across the entire film, about thirty frames,
-    //            requested immediately. Sparse, but every scroll position has
-    //            a real picture within half a second of itself, so the film is
-    //            usable end to end for well under a megabyte.
-    //   COARSE   one more pass at twice the density, so a jump to an
-    //            arbitrary position lands on something close to right.
-    //   WINDOW   everything else, and never more than a viewport and a half of
-    //            film either side of where the visitor actually is. Scroll on
-    //            and the window travels with you; stop, and it stops.
+    //   SPINE     every `spineStride`th frame of the SMALLEST tier, ordered
+    //             coarse-to-fine so even the spine's own first pass spans the
+    //             whole film. Requested immediately. On this film that is 92
+    //             frames at 1.7 KB — about 160 KB for complete end-to-end
+    //             coverage, less than the poster costs, so no scroll position
+    //             is ever without a real picture.
+    //   FILL      the frames between, at the same small tier, inside a window
+    //             that travels with the playhead.
+    //   UPGRADE   the display tier, near the playhead, and only while the
+    //             visitor is moving slowly enough for the difference to be
+    //             visible at all.
     //
-    // Both of the last two wait for a first gesture — a scroll, a wheel, a key.
-    // Nothing else is evidence that anyone intends to watch a thirty-second
-    // film, and a tab that is opened and abandoned should not cost three
-    // megabytes to abandon. The gesture that opens them is the same gesture
-    // that starts the film, so the window is already filling forward by the
-    // time the first frame changes.
+    // FILL and UPGRADE wait for a first gesture. A tab opened and abandoned
+    // should not cost megabytes to abandon, and nothing but a scroll is
+    // evidence that anyone means to watch a thirty-second film.
     //
-    // A tab opened and abandoned pays for PRIME. A visitor who watches the
-    // whole film pays for the whole film, one window at a time, which is also
-    // the only visitor for whom that is worth paying.
-    const PRIME = 30;
-    /** Track positions to keep filled ahead of the cursor, and behind it. */
-    const AHEAD = 90;
-    const BEHIND = 40;
+    // The velocity stride is what makes a fast scroll survive, and it is the
+    // fix for the fault that started all of this. Density that cannot arrive
+    // in time is not just wasted, it is actively harmful: it fills the
+    // connection with frames the playhead has already passed, so the frames
+    // under the playhead queue behind them and the film appears to freeze and
+    // then snap. Fast scrolling wants frames SPARSE AND FAR; slow scrolling
+    // wants them DENSE AND NEAR. Same budget, opposite shape.
+    //
+    // So the stride is the ratio of two measured rates rather than a constant:
+    // how much film is passing under the playhead, over how much film this
+    // connection is actually delivering. Neither is guessable — a 5 Mbps link
+    // in Jaipur reaching a Singapore edge is not the link this was written on
+    // — so both are measured live and the stride follows them.
+    /** Frames to keep filled ahead of the playhead, and behind it. */
+    const AHEAD = 140;
+    const BEHIND = 50;
+    /** How far out the display tier is worth chasing when standing still. */
+    const UPGRADE_REACH = 60;
+    const CONCURRENCY = 12;
 
-    const strides: number[] = [];
-    for (let s = Math.max(1, 2 ** Math.round(Math.log2(frames / PRIME))); s >= 1; s = s >> 1) {
-      strides.push(s);
-    }
-
-    /** Track positions in coarse-to-fine order. */
-    const plan: number[] = [];
-    const planned = new Uint8Array(frames);
-    for (const stride of strides) {
-      for (let k = 0; k < frames; k += stride) {
-        if (!planned[k]) {
-          planned[k] = 1;
-          plan.push(k);
+    /** Spine positions, coarse-to-fine. */
+    const spinePlan: number[] = [];
+    {
+      const marks: number[] = [];
+      for (let i = 0; i < count; i += spineStride) marks.push(i);
+      if (marks[marks.length - 1] !== count - 1) marks.push(count - 1);
+      const seen = new Uint8Array(count);
+      for (let s = Math.max(1, 2 ** Math.round(Math.log2(Math.max(2, marks.length / 12)))); s >= 1; s >>= 1) {
+        for (let k = 0; k < marks.length; k += s) {
+          if (!seen[marks[k]]) {
+            seen[marks[k]] = 1;
+            spinePlan.push(marks[k]);
+          }
         }
       }
     }
-    const PRIME_COUNT = Math.ceil(frames / strides[0]);
-    const EAGER = PRIME_COUNT + (strides[1] ? Math.ceil(frames / strides[1]) : 0);
-
-    let planAt = 0;
-    let eagerLimit = PRIME_COUNT;
+    const SPINE_COUNT = spinePlan.length;
+    let spineAt = 0;
     let windowOpen = false;
 
-    /** Next track position worth fetching, or -1 when there is nothing to do. */
-    const pick = () => {
-      while (planAt < eagerLimit) {
-        const k = plan[planAt++];
-        if (!asked[k]) return k;
+    // ---- the two measured rates ------------------------------------------
+    /**
+     * Frames per second this connection is actually delivering.
+     *
+     * Seeded at 10 and replaced by measurement inside the first half second.
+     * An EMA rather than a running mean: a link that degrades halfway down the
+     * page has to be believed, not averaged away.
+     */
+    let rate = 10;
+    let settledSince = 0;
+    let rateAt = 0;
+    const noteSettled = () => {
+      const now = performance.now();
+      settledSince++;
+      if (!rateAt) {
+        rateAt = now;
+        return;
       }
-      if (!windowOpen) return -1;
-      // Forward first: down is the direction of travel, and a frame behind the
-      // playhead is one the visitor has already seen.
-      for (let d = 0; d <= AHEAD; d++) {
-        let k = cursor + d;
-        if (k < frames && !asked[k]) return k;
-        if (d > 0 && d <= BEHIND) {
-          k = cursor - d;
-          if (k >= 0 && !asked[k]) return k;
-        }
+      const dt = now - rateAt;
+      if (dt >= 400) {
+        rate += ((settledSince * 1000) / dt - rate) * 0.4;
+        settledSince = 0;
+        rateAt = now;
       }
-      return -1;
     };
+
+    /** Frames of film passing under the playhead per second. Written by the loop. */
+    let passRate = 0;
+
+    const fetchStride = () =>
+      Math.max(1, Math.min(8, Math.ceil(passRate / Math.max(3, rate))));
 
     let disposed = false;
     let dirty = true;
 
+    /**
+     * Abandon requests the playhead has left behind.
+     *
+     * Without this a fast scroller's connection stays full of frames that were
+     * relevant two seconds ago: they were asked for, they are still coming,
+     * and every one of them is a slot the frames under the playhead are
+     * waiting behind. Setting `src` to empty is what actually cancels an
+     * in-flight image request; clearing the handlers first stops a response
+     * that is already on the wire from settling into the store afterwards.
+     *
+     * The window here is deliberately wider than the fetch window. A frame
+     * just outside AHEAD is one the visitor is about to reach, and throwing
+     * away a request that is nearly finished costs more than keeping it.
+     */
+    const abortStale = () => {
+      for (const [i, img] of inflightImg) {
+        if (i > cursor - BEHIND * 2 && i < cursor + AHEAD * 2) continue;
+        img.onload = null;
+        img.onerror = null;
+        img.src = "";
+        inflightImg.delete(i);
+        inflightTier[i] = -1;
+      }
+    };
+
+    /** Next frame worth fetching and the tier to fetch it at, or null. */
+    const pick = (): { i: number; tier: number } | null => {
+      // SPINE. Unconditional and always first: until the film is covered end
+      // to end, nothing else is worth a byte.
+      while (spineAt < SPINE_COUNT) {
+        const i = spinePlan[spineAt++];
+        if (tierOf[i] < 0 && inflightTier[i] < 0) return { i, tier: spineTier };
+      }
+      if (!windowOpen) return null;
+
+      // FILL, forward first: down is the direction of travel, and a frame
+      // behind the playhead is one the visitor has already seen. Strided by
+      // velocity, so a fast scroll asks for every fourth frame across a long
+      // reach rather than every frame across a short one.
+      const stride = fetchStride();
+      for (let d = 0; d <= AHEAD; d += stride) {
+        const f = cursor + d;
+        if (f < count && tierOf[f] < 0 && inflightTier[f] < 0) return { i: f, tier: spineTier };
+        if (d > 0 && d <= BEHIND) {
+          const b = cursor - d;
+          if (b >= 0 && tierOf[b] < 0 && inflightTier[b] < 0) return { i: b, tier: spineTier };
+        }
+      }
+
+      // UPGRADE. Only when the film is arriving faster than the visitor is
+      // consuming it — which is exactly when a sharper frame can be both
+      // afforded and seen. Someone flying past the tour gets the small tier
+      // and is none the wiser; someone who has stopped to look gets the large
+      // one within a few frames of stopping.
+      if (displayTier !== spineTier && passRate < rate * 0.75) {
+        for (let d = 0; d <= UPGRADE_REACH; d++) {
+          const f = cursor + d;
+          if (f < count && tierOf[f] === spineTier && inflightTier[f] < 0) return { i: f, tier: displayTier };
+          if (d > 0) {
+            const b = cursor - d;
+            if (b >= 0 && tierOf[b] === spineTier && inflightTier[b] < 0) return { i: b, tier: displayTier };
+          }
+        }
+      }
+      return null;
+    };
+
     const pump = () => {
-      // Eight while the poster is still the largest paint on the page, sixteen
-      // once it is not. Over a real connection every request pays a round trip
-      // that localhost does not, so a deep queue hides that latency instead of
-      // paying it serially; HTTP/2 multiplexes it onto one connection.
-      const concurrency = windowOpen ? 16 : 8;
-      while (!disposed && inflight < concurrency) {
-        const k = pick();
-        if (k < 0) return;
-        asked[k] = 1;
-        const i = track[k];
-        inflight++;
+      if (!started || disposed) return;
+      abortStale();
+      while (inflightImg.size < CONCURRENCY) {
+        const next = pick();
+        if (!next) return;
+        const { i, tier } = next;
+        inflightTier[i] = tier;
 
         const img = new window.Image();
         img.decoding = "async";
+        // The spine is the only thing standing between the visitor and a
+        // usable film, so it outranks everything else the page is still
+        // fetching. Nothing after it does.
+        img.fetchPriority = windowOpen ? "auto" : "high";
+        inflightImg.set(i, img);
 
         const settle = () => {
-          images[i] = img;
-          ready[i] = true;
-          loadedCount++;
-          inflight--;
-          if (loadedCount <= PRIME_COUNT) {
-            setPct(Math.min(100, Math.round((loadedCount / PRIME_COUNT) * 100)));
+          // A request aborted mid-flight can still settle. If this image is no
+          // longer the one on record for the frame, it is that.
+          if (inflightImg.get(i) !== img) return;
+          inflightImg.delete(i);
+          inflightTier[i] = -1;
+          // Never downgrade. A display-tier frame already in hand beats a
+          // spine frame arriving late, which happens whenever an upgrade
+          // overtakes the fill request it was racing.
+          if (tier > tierOf[i]) {
+            if (tierOf[i] < 0) loadedCount++;
+            images[i] = img;
+            tierOf[i] = tier;
+            dirty = true;
           }
-          // The prime pass covers the timeline end to end, so a quarter of it
-          // is already enough to show a real picture wherever the visitor is.
-          // Waiting for all of them would hold the poster over a canvas that
-          // has something better to show.
-          if (!disposed && loadedCount >= Math.min(frames, Math.ceil(PRIME_COUNT / 4))) {
+          noteSettled();
+          if (loadedCount <= SPINE_COUNT) {
+            setPct(Math.min(100, Math.round((loadedCount / SPINE_COUNT) * 100)));
+          }
+          // The spine covers the timeline end to end, so a quarter of it is
+          // already enough to show a real picture wherever the visitor is.
+          // Waiting for all of it would hold the poster over a canvas that has
+          // something better to show.
+          if (!disposed && loadedCount >= Math.min(count, Math.ceil(SPINE_COUNT / 4))) {
             setPrimed(true);
           }
-          dirty = true;
           pump();
         };
 
         img.onload = () => {
           // onload only means the bytes arrived. The first drawImage of an
           // undecoded image decodes it synchronously inside the rAF callback,
-          // a 5 to 15ms stall in a 16.7ms budget. Decoding here moves that off
-          // the paint path.
+          // a 5 to 15ms stall in a 16.7ms budget — and AVIF decodes slower
+          // than WebP, so this matters more now than it did. Decoding here
+          // moves that off the paint path entirely.
           if (typeof img.decode === "function") img.decode().then(settle, settle);
           else settle();
         };
         img.onerror = () => {
-          inflight--;
+          if (inflightImg.get(i) === img) {
+            inflightImg.delete(i);
+            inflightTier[i] = -1;
+          }
           pump();
         };
-        img.src = url(i);
+        img.src = url(tier, i);
       }
     };
 
-    /** First gesture: open the coarse pass and the travelling window. */
+    // Loading cannot begin until the format is known. The probe is a data URI
+    // decode started at module scope, so this has almost always already
+    // resolved by the time the effect runs.
+    //
+    // Not under reduced motion, which has its own single-frame path further
+    // down and must not also be handed a spine to fetch.
+    if (!reduced) {
+      AVIF_OK.then((ok) => {
+        if (disposed) return;
+        chooseTiers(ok);
+        started = true;
+        pump();
+      });
+    }
+
+    /** First gesture: open the travelling window and the upgrade pass. */
     const open = () => {
       if (disposed || windowOpen) return;
       windowOpen = true;
-      eagerLimit = EAGER;
       pump();
     };
     const GESTURES = ["scroll", "wheel", "keydown", "touchstart"] as const;
@@ -277,19 +474,86 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
 
     // Capped rather than open-ended. With the sequence loaded sparsely there is
     // always something within half a stride, and an uncapped walk would scan
-    // the whole array on every paint in the gap before the prime pass lands.
-    const REACH = 64;
+    // the whole array on every paint in the gap before the spine lands.
+    //
+    // Tied to the spine stride rather than fixed at 64. The old constant meant
+    // the canvas could be showing a frame two and a half seconds of film away
+    // from the one the scroll position asks for, painted hard and with nothing
+    // to say it was wrong. Three spine strides is as far as it can be from a
+    // real picture once the spine has landed, and anything past that is better
+    // admitted than papered over.
+    const REACH = Math.max(24, spineStride * 3);
+
+    /** How far the last `nearest` call had to walk. Read by `paint` for blur. */
+    let lastDist = 0;
 
     const nearest = (i: number) => {
-      if (ready[i]) return images[i];
+      if (tierOf[i] >= 0) {
+        lastDist = 0;
+        return images[i];
+      }
       for (let d = 1; d <= REACH; d++) {
-        if (i - d >= 0 && ready[i - d]) return images[i - d];
-        if (i + d < count && ready[i + d]) return images[i + d];
+        if (i - d >= 0 && tierOf[i - d] >= 0) {
+          lastDist = d;
+          return images[i - d];
+        }
+        if (i + d < count && tierOf[i + d] >= 0) {
+          lastDist = d;
+          return images[i + d];
+        }
       }
       // Nothing near: hold the last good frame rather than leaving the canvas
-      // on whatever was there. The poster is still underneath at this point.
+      // on whatever was there. The poster is still over the top at this point.
+      lastDist = REACH;
       return lastImg;
     };
+
+    // ---- the cuts --------------------------------------------------------
+    //
+    // The film is a montage: eleven hard cuts in thirty seconds, found at build
+    // time and listed in the manifest. Played at 25 fps a cut passes in 40 ms
+    // and reads as film grammar. Under a scrub the VISITOR sets the timing, so
+    // the same cut becomes one picture replaced by an unrelated picture at
+    // whatever speed a thumb chose, with no motion carrying the eye across it.
+    // It reads as breakage, and eleven of them read as a broken page.
+    //
+    // So the cut is never painted as a cut. Across a short span either side of
+    // it the two shots are cross-dissolved, and a dissolve is legible at ANY
+    // scrub speed because it is a transition rather than the absence of one.
+    //
+    // The frames blended are pinned — the last frame of the outgoing shot and
+    // the first of the incoming one — so the dissolve is a pure function of
+    // scroll position and stays exactly reversible, which is the property the
+    // whole scrub is built on.
+    const cutFrames = cuts.map((c) => Math.round(c * (count - 1))).filter((c) => c > 0 && c < count);
+    const DISSOLVE = Math.max(3, Math.round(count / 110));
+    const CUT_BLUR = 5;
+
+    const cutNear = (i: number) => {
+      for (let k = 0; k < cutFrames.length; k++) {
+        const c = cutFrames[k];
+        if (i > c - DISSOLVE - 1 && i < c + DISSOLVE) return c;
+      }
+      return -1;
+    };
+
+    /**
+     * Blur for this frame, in pixels. Written here, applied by `applyOverlay`,
+     * which owns the canvas `filter` because the ending also writes to it.
+     *
+     * Two sources, whichever is larger. Through a dissolve it peaks at the
+     * midpoint: without it you see two distinct pictures overlapping, which
+     * looks like a double exposure rather than a transition, and blur is what
+     * blends them into one movement. Away from a cut it tracks how far the
+     * nearest loaded frame is from the one actually asked for, so a film that
+     * is still arriving goes soft rather than jumping — the gap becomes
+     * something the page is doing rather than something that is wrong with it.
+     *
+     * As a CSS filter on the element, never `ctx.filter`: the canvas is the
+     * full viewport, and blurring it in the 2D context is a per-pixel pass on
+     * every paint, where the compositor does the same thing for free.
+     */
+    let frameBlur = 0;
 
     /**
      * The closing push, as a multiplier on the cover scale.
@@ -303,16 +567,51 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
      */
     let push = 1;
 
-    const paint = (i: number) => {
-      const img = nearest(i);
-      if (!img) return;
-      lastImg = img;
+    /** Last string written to `cv.style.filter`, so it is only written on change. */
+    let lastFilter = "";
+
+    const drawCover = (img: HTMLImageElement, alpha: number) => {
       const cw = cv.width;
       const ch = cv.height;
       const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight) * push;
       const w = img.naturalWidth * scale;
       const h = img.naturalHeight * scale;
+      if (alpha !== 1) ctx.globalAlpha = alpha;
       ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+      if (alpha !== 1) ctx.globalAlpha = 1;
+    };
+
+    const paint = (i: number) => {
+      const c = cutNear(i);
+      if (c > 0) {
+        // Inside a cut. The outgoing shot's last frame is held under the
+        // incoming shot's first, which is faded in across the span. Both ends
+        // of the blend are fixed frames, so scrolling back up unwinds the
+        // dissolve exactly rather than approximately.
+        const a0 = c - DISSOLVE;
+        const t = clamp01((i - a0) / (DISSOLVE * 2));
+        const outgoing = nearest(Math.min(i, c - 1));
+        const dOut = lastDist;
+        const incoming = nearest(Math.max(i, c));
+        const dIn = lastDist;
+        if (outgoing && incoming) {
+          lastImg = t < 0.5 ? outgoing : incoming;
+          drawCover(outgoing, 1);
+          drawCover(incoming, t);
+          frameBlur = Math.max(
+            Math.sin(t * Math.PI) * CUT_BLUR,
+            Math.min(Math.max(dOut, dIn) / 8, 3)
+          );
+          return;
+        }
+        // One side of the dissolve has not arrived. Fall through and paint
+        // whatever is nearest rather than showing nothing.
+      }
+      const img = nearest(i);
+      if (!img) return;
+      lastImg = img;
+      drawCover(img, 1);
+      frameBlur = Math.min(lastDist / 8, 3);
     };
 
 
@@ -394,6 +693,15 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       vel += (dp - vel) * 0.25;
       const lean = Math.max(-1, Math.min(1, vel * 60));
 
+      // The same smoothed velocity the stamp leans on, restated as the thing
+      // the loader needs: frames of film passing under the playhead per
+      // second. `vel` is progress per animation frame, so scaling by the frame
+      // count and by 60 gives frames per second directly. This is half of the
+      // fetch stride — the other half is how fast the connection is actually
+      // delivering — and it is why a fast scroll asks for a sparse film
+      // instead of drowning in a dense one it cannot receive.
+      passRate = Math.abs(vel) * count * 60;
+
       // Same ramps as the captions, on the same progress value, so a stamp and
       // a caption never drift apart by a frame.
       beatRefs.current.forEach((el, k) => {
@@ -466,20 +774,42 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       // cannot do. Written on the canvas element rather than composited as an
       // extra layer, and only while the ending is running, so no frame of the
       // film before .906 pays for a filter pass.
-      cv.style.filter = cut > 0.001 ? `saturate(${1 - cut * 0.4})` : "";
+      //
+      // Composed with the blur `paint` asked for rather than assigned over it.
+      // Two writers on one property is how the ending used to erase the
+      // dissolve blur every frame it ran; one writer, both inputs, no ordering
+      // to get wrong. Both halves are skipped entirely when neither is active,
+      // so the ordinary case still pays for no filter at all.
+      const sat = cut > 0.001 ? `saturate(${1 - cut * 0.4})` : "";
+      const blur = frameBlur > 0.05 ? `blur(${frameBlur.toFixed(2)}px)` : "";
+      const filter = blur && sat ? `${blur} ${sat}` : blur || sat;
+      if (filter !== lastFilter) {
+        lastFilter = filter;
+        cv.style.filter = filter;
+      }
     };
 
     if (reduced) {
       // No scrubbing at all: load one frame, paint it, show the opening beat.
-      const img = new window.Image();
-      img.onload = () => {
-        images[0] = img;
-        ready[0] = true;
-        setPrimed(true);
-        resize();
-        paint(0);
-      };
-      img.src = url(0);
+      //
+      // Still behind the format probe, because `url` does not exist until a
+      // tier has been chosen. Calling it before then returned the empty string,
+      // which is a same-page request that always 200s and decodes to nothing.
+      AVIF_OK.then((ok) => {
+        if (disposed) return;
+        chooseTiers(ok);
+        started = true;
+        const img = new window.Image();
+        img.onload = () => {
+          if (disposed) return;
+          images[0] = img;
+          tierOf[0] = displayTier;
+          setPrimed(true);
+          resize();
+          paint(0);
+        };
+        img.src = url(displayTier, 0);
+      });
       applyOverlay(0);
       return () => {
         disposed = true;
@@ -509,10 +839,12 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       // but the film is plainly not at the top, which is the same evidence.
       if (!windowOpen && p > 0.001) open();
 
-      // Snap to a frame that was actually fetched, otherwise `nearest` would
-      // be walking outward on every single paint at step 2.
-      const k = Math.min(frames - 1, Math.round(p * (frames - 1)));
-      const idx = track[k];
+      // Straight from progress to a frame index. There is no longer a track
+      // indirection in front of this: the phone used to be served every second
+      // frame of a film built for desktop, and the portrait cut is now built
+      // at the density a phone should have, so the sequence a device fetches
+      // is decided once at build time rather than sampled again at runtime.
+      const idx = Math.min(count - 1, Math.round(p * (count - 1)));
 
       if (idx !== lastDrawn || dirty) {
         lastDrawn = idx;
@@ -522,7 +854,7 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
         // playhead is what gives it more to do. Only on a frame change: calling
         // this every rAF would re-scan the window sixty times a second to find
         // the same answer.
-        cursor = k;
+        cursor = idx;
         pump();
       }
       applyOverlay(p);
@@ -587,16 +919,30 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
             delay against 20ms to fetch the poster itself. Over the top, the
             preloaded poster is the first paint, and the canvas cross-fades in
             underneath it once it has something. */}
-        <Image
-          src={manifest.poster}
-          alt=""
-          aria-hidden
-          fill
-          priority
-          fetchPriority="high"
-          sizes="100vw"
-          className={`object-cover transition-opacity duration-700 ${primed ? "opacity-0" : "opacity-100"}`}
-        />
+        {/* One poster per shape, selected by the browser rather than by us.
+
+            A <picture> with a media condition, not next/image and not a
+            state-picked src: the orientation is not known during server render,
+            and swapping the src after mount would fetch one poster, discard it,
+            and fetch the other — on the LCP element, over the connection that
+            is also trying to deliver the spine. The browser evaluates the
+            media query before it makes any request, so exactly one is ever
+            fetched, and the matching <link rel="preload" media> in layout.tsx
+            has it in flight before this markup is even parsed.
+
+            Plain <img> because `images.unoptimized` is set: next/image would
+            add a component and its hydration around the same one request. */}
+        <picture>
+          <source media="(orientation: portrait)" srcSet={(portraitFilm as Film).poster} />
+          <img
+            src={(landscapeFilm as Film).poster}
+            alt=""
+            aria-hidden
+            fetchPriority="high"
+            decoding="async"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${primed ? "opacity-0" : "opacity-100"}`}
+          />
+        </picture>
 
         {/* Top and bottom falloff, then a centre scrim so caption type stays
             readable over any frame the film happens to be on. */}

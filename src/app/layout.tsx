@@ -6,7 +6,8 @@ import Reveal from "@/components/layout/Reveal";
 import Cursor from "@/components/layout/Cursor";
 import { BRAND, SITE_URL } from "@/lib/content/site";
 import { jsonLd } from "@/lib/seo/schema";
-import tourManifest from "@/lib/tour-manifest.json";
+import landscapeFilm from "@/lib/tour-manifest-landscape.json";
+import portraitFilm from "@/lib/tour-manifest-portrait.json";
 
 /**
  * The text face for the whole site.
@@ -147,9 +148,32 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-IN" className={`${dmSans.variable} ${cinzel.variable}`}>
       <head>
-        {/* The tour's first frames are the largest paint on the page and are
-            fetched by script, so the connection is warmed before React runs. */}
-        <link rel="preload" as="image" type="image/webp" href={tourManifest.poster} fetchPriority="high" />
+        {/* The tour's poster is the largest paint on the page, so it is in
+            flight before React runs.
+
+            Two of them, each behind a media condition, because the page ships
+            one film per shape and a phone must never pay for the landscape
+            poster. `media` on a preload link is evaluated by the preload
+            scanner before any request is made, so exactly one of these two is
+            ever fetched — the same condition the <picture> in ScrollTour uses,
+            so the preload and the element agree and the poster is never
+            fetched twice. */}
+        <link
+          rel="preload"
+          as="image"
+          type="image/webp"
+          media="(orientation: landscape)"
+          href={landscapeFilm.poster}
+          fetchPriority="high"
+        />
+        <link
+          rel="preload"
+          as="image"
+          type="image/webp"
+          media="(orientation: portrait)"
+          href={portraitFilm.poster}
+          fetchPriority="high"
+        />
         <script
           type="application/ld+json"
           // Server-rendered from lib/seo/schema.ts, which is built from the
