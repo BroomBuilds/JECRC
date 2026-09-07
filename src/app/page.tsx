@@ -8,7 +8,7 @@ import ComingSoon from "@/components/sections/ComingSoon";
 import Majors from "@/components/sections/Majors";
 import Ledger from "@/components/sections/Ledger";
 import Faq from "@/components/sections/Faq";
-import { TOUR_APPLY_BEATS, TOUR_CAPTIONS } from "@/lib/content/tour";
+import { TOUR_CAPTIONS } from "@/lib/content/tour";
 
 /**
  * The board the scratch band reveals. Swap the files, not the code.
@@ -44,7 +44,7 @@ export default function HomePage() {
       <Navbar />
       <ApplyBar />
       <main>
-        <ScrollTour captions={TOUR_CAPTIONS} applyBeats={TOUR_APPLY_BEATS} />
+        <ScrollTour captions={TOUR_CAPTIONS} />
         <Ambassador />
         <ScratchReveal image={SCRATCH_IMAGE} imagePortrait={SCRATCH_IMAGE_PORTRAIT} />
         <Majors />

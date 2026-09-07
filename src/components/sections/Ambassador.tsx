@@ -76,7 +76,14 @@ export default function Ambassador() {
             className="u-display mt-5 pb-[0.12em] text-[2rem] text-ink sm:mt-6 sm:text-[2.9rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
           >
             {AMBASSADOR.name}
-            <span className="u-display-strong mt-1 block text-crimson">is the face of JECRC</span>
+            {/* One line, always. It is a six-word phrase and breaking it puts "story"
+                alone on a line under the name, which reads as a mistake rather
+                than a line break. Held on one line by sizing it to the column
+                rather than by nowrap alone: nowrap at the name's display size
+                would simply overflow. */}
+            <span className="u-display-strong mt-1 block whitespace-nowrap text-[min(7vw,1.9rem)] text-crimson sm:text-[min(5.3vw,2.55rem)] lg:text-[min(3.35vw,3.65rem)]">
+              is part of the JECRC story
+            </span>
           </h2>
 
           <p

@@ -57,6 +57,16 @@ export const LOGO = {
   lockup: "/brand/jecrc-lockup.webp",
   /** White artwork on transparent, derived by `npm run brand:mono`. For dark ones. */
   lockupMono: "/brand/jecrc-lockup-mono.webp",
+  /**
+   * The group mark for the tour's opening frame, in brand red.
+   *
+   * `ref/JU logo.png` as published, repainted to one flat #df1919 and nothing
+   * else: same shapes, same alpha, the crest hairlines and the trademark glyph
+   * intact. Built by `npm run brand:ju`, NOT by `brand:mono` — that script
+   * re-derives alpha from darkness, which is right for artwork on a white plate
+   * and wrong here, where it softened the ™ and rendered the wordmark grey.
+   */
+  juMark: "/brand/ju-mark.webp",
   /** Brand red on transparent, for the oxblood footer. Same script, `#de1819`. */
   lockupRed: "/brand/jecrc-lockup-red.webp",
   /** The crest alone, cut out of the red lockup by `npm run brand:crest`. */

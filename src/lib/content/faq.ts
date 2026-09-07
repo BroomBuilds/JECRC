@@ -33,7 +33,7 @@ export const FAQS = [
   },
   {
     q: "Who is the brand ambassador of JECRC University?",
-    a: "The actor Vikrant Massey became the face of JECRC University in April 2026, fronting the university's Build Your World campaign across the Jaipur and Alwar NCR campuses.",
+    a: "The actor Vikrant Massey became part of the JECRC story in April 2026, fronting the group's Build Your World campaign across the Jaipur and Alwar NCR campuses.",
   },
   {
     q: "What scholarships are available at JECRC?",

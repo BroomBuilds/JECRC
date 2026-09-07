@@ -1,26 +1,22 @@
 {
-  "count": 441,
-  "rev": "e6b6e036",
+  "count": 333,
+  "rev": "6ffcae59",
   "fps": 15,
-  "duration": 29.366667,
+  "duration": 22.2,
   "pad": 4,
   "base": "/media/tour/v",
-  "poster": "/media/tour/v/poster.webp?v=e6b6e036",
+  "poster": "/media/tour/v/poster.webp?v=6ffcae59",
   "aspect": 0.5625,
   "orientation": "portrait",
-  "spineStride": 5,
+  "spineStride": 4,
   "cuts": [
-    0.109,
-    0.168,
-    0.2247,
-    0.3053,
-    0.395,
-    0.4586,
-    0.5233,
-    0.6073,
-    0.7106,
-    0.7832,
-    0.8672
+    0.0931,
+    0.1832,
+    0.3033,
+    0.4219,
+    0.5661,
+    0.7267,
+    0.9069
   ],
   "formats": {
     "avif": {
@@ -49,5 +45,5 @@
       ]
     }
   },
-  "builtFrom": "website-vertical_1.mp4"
+  "builtFrom": "website-vertical-new.mp4"
 }
