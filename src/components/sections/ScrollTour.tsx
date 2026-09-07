@@ -18,6 +18,9 @@ import { ArrowUpRight } from "@/components/ui/Icons";
  */
 export const TOUR_HEIGHT = "var(--tour-vh)";
 
+/** One destination on a chapter card. */
+export type Action = { label: string; href: string };
+
 export type Caption = {
   /** [fade-in point, fade-out point] as fractions of the tour, 0 to 1. */
   at: [number, number];
@@ -30,27 +33,33 @@ export type Caption = {
    * enough to still be arriving when the tour runs out of scroll.
    */
   ramp?: number;
-  eyebrow?: string;
+  /**
+   * "hero" opens on the group mark, "chapter" is one institution, "group"
+   * closes on the shared identity. The film is one chronological story —
+   * 2001, 2012, 2026, 2026 — and the chapters are the middle of it.
+   */
+  variant?: "hero" | "chapter" | "group";
+  /** Used as the React key and the accessible label for every variant. */
   title: string;
-  sub?: string;
-  tagline?: string;
-  /** "hero" opens with the crest, "apply" closes with the three portals. */
-  variant?: "hero" | "apply";
+
+  // ---- hero ----
+  /** The brand thought, and the only sentence on the opening frame. */
+  thought?: string;
+  /** Where the group is, set in red under the thought. */
+  places?: string;
+
+  // ---- chapter ----
+  /** "01" … "04". Printed beside the title, not as a list marker. */
+  no?: string;
+  /** "Established 2001", "Launched 2026". Sits under the title, left column. */
+  status?: string;
+  /** The one supporting line, right column. Most chapters have none. */
+  descriptor?: string;
+  /** Right column, under the descriptor. */
+  actions?: Action[];
 };
 
-/**
- * A single apply stamp riding along mid-film.
- *
- * `campus` indexes APPLY_LINKS. There is no position field: every stamp lands
- * on the same anchor, and only the moment changes.
- */
-export type ApplyBeat = {
-  /** [fade-in point, fade-out point] as fractions of the tour, 0 to 1. */
-  at: [number, number];
-  campus: number;
-};
-
-type Props = { captions?: Caption[]; applyBeats?: ApplyBeat[] };
+type Props = { captions?: Caption[] };
 
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 const smooth = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
@@ -118,15 +127,13 @@ const AVIF_OK: Promise<boolean> =
  * Frames come from `npm run tour:build <video>`. The full write-up, including
  * the measurements behind this choice, is in TOUR.md.
  */
-export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
+export default function ScrollTour({ captions = [] }: Props) {
   const section = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const cue = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const capRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const sealRefs = useRef<(SVGSVGElement | null)[]>([]);
   const uid = useId();
   const cutId = `${uid}-cut`;
   const liftId = `${uid}-lift`;
@@ -751,7 +758,6 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       const dp = p - lastP;
       lastP = p;
       vel += (dp - vel) * 0.25;
-      const lean = Math.max(-1, Math.min(1, vel * 60));
 
       // The same smoothed velocity the stamp leans on, restated as the thing
       // the loader needs: frames of film passing under the playhead per
@@ -761,32 +767,6 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
       // delivering — and it is why a fast scroll asks for a sparse film
       // instead of drowning in a dense one it cannot receive.
       passRate = Math.abs(vel) * count * 60;
-
-      // Same ramps as the captions, on the same progress value, so a stamp and
-      // a caption never drift apart by a frame.
-      beatRefs.current.forEach((el, k) => {
-        const beat = applyBeats[k];
-        if (!el || !beat) return;
-        const [a, b] = beat.at;
-        const fadeIn = smooth(p, a, a + 0.035);
-        const fadeOut = 1 - smooth(p, b - 0.035, b);
-        const o = Math.min(fadeIn, fadeOut);
-        el.style.opacity = String(o);
-        // Overshoot on the way in: past 1 at 0.7 of the ramp, settling back.
-        // A stamp that arrives at exactly its final size looks placed; one
-        // that overshoots looks thrown.
-        const pop = fadeIn < 1 ? 0.86 + fadeIn * 0.19 : 1;
-        el.style.transform =
-          `translate3d(0, ${(1 - fadeIn) * 26}px, 0) scale(${pop}) rotate(${lean * -2.5}deg)`;
-        el.style.visibility = o < 0.01 ? "hidden" : "visible";
-      });
-
-      // The seal is the one element that proves the film is being scrubbed by
-      // the visitor rather than played on a clock: its rotation IS the scroll
-      // position. Push forward and it turns; drag back and it unwinds.
-      sealRefs.current.forEach((el) => {
-        if (el) el.style.transform = `rotate(${p * 900}deg)`;
-      });
 
       if (bar.current) bar.current.style.transform = `scaleX(${p})`;
       if (cue.current) cue.current.style.opacity = String(1 - smooth(p, 0, 0.04));
@@ -1004,16 +984,18 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
           />
         </picture>
 
-        {/* Top and bottom falloff, then a centre scrim so caption type stays
-            readable over any frame the film happens to be on. */}
-        <div aria-hidden className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/80 via-ink/10 to-ink/85" />
+        {/* A light top and bottom falloff, and nothing else.
+
+            The centre scrim that used to sit here has gone. It was a radial at
+            50% 50%, sized for captions centred in the frame, and it spent its
+            density on the middle of the picture while the content — now a
+            left/right grid in the lower third — sat in the transparent band
+            between the two falloffs. Each card brings its own ground now
+            (`u-plinth`, `u-vignette`), which means the ground fades in and out
+            with the words it exists for instead of being on the whole time. */}
         <div
           aria-hidden
-          className="u-tour-scrim pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(60% 48% at 50% 50%, rgba(8,8,10,0.66) 0%, rgba(8,8,10,0.3) 55%, rgba(8,8,10,0) 100%)",
-          }}
+          className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/70 via-transparent to-ink/55"
         />
 
         {/* ---- the ending ----
@@ -1141,200 +1123,181 @@ export default function ScrollTour({ captions = [], applyBeats = [] }: Props) {
             const open = c.at[0] <= 0;
             return (
             <div
-              key={c.title}
+              // Index, not title. The beats are a fixed content array that is
+              // never reordered or filtered, `capRefs` is already indexed the
+              // same way, and two beats legitimately share a name: the film
+              // opens and closes on the group identity.
+              key={i}
               ref={(el) => {
                 capRefs.current[i] = el;
               }}
-              className={`absolute inset-0 flex flex-col items-center px-6 text-center ${
+              className={`absolute inset-0 flex px-6 sm:px-10 lg:px-16 ${
                 // The closing beat shares the screen with the mark, which owns
                 // the middle. Centred, the two would print on top of each other.
-                c.variant === "apply"
-                  ? "justify-end pb-[max(6rem,calc(4.5rem+env(safe-area-inset-bottom)))] sm:pb-28"
-                  : "justify-center"
+                c.variant === "group"
+                  ? "flex-col items-center justify-end pb-[max(6rem,calc(4.5rem+env(safe-area-inset-bottom)))] text-center sm:pb-28"
+                  : c.variant === "hero"
+                    ? "flex-col items-center justify-center text-center"
+                    : // The caption zone is the lower third at every size, not
+                      // centred on large ones. Centred, the type floated in the
+                      // middle of the picture with the scrim beneath it doing
+                      // nothing — which is exactly how it came to be unreadable
+                      // over a sunlit building. Low is also where film titling
+                      // belongs: it leaves the subject of the shot visible.
+                      "items-end pb-[max(5rem,calc(3.5rem+env(safe-area-inset-bottom)))] sm:pb-14 lg:pb-20"
               }`}
               style={{ opacity: open ? 1 : 0, visibility: open ? "visible" : "hidden" }}
             >
+              {/* ---- the opening frame ----
+                  The group mark, one sentence, and where the group is. That is
+                  the whole of it. The tagline that used to sit here has gone:
+                  it is already set inside the artwork, and repeating it at
+                  display size underneath was the same words twice. */}
               {c.variant === "hero" && (
-                // The frame the mark is placed into. Both rules start life on
-                // the same centre line, so what draws out first reads as one
-                // hairline; they only become two when the band opens. See
-                // "The masthead" in globals.css for the sequence.
-                <div className="u-masthead mb-8 w-[min(78vw,25rem)] md:w-120">
-                  <span aria-hidden className="u-masthead-rule u-masthead-rule-top" />
-                  <span aria-hidden className="u-masthead-rule u-masthead-rule-bottom" />
-                  <Image
-                    src={LOGO.lockupMono}
-                    alt={`${BRAND.name} and JECRC Medical College Hospital and Research Centre`}
-                    width={557}
-                    height={258}
-                    priority
-                    // The published lockup sits on an opaque white plate, so a
-                    // CSS invert would give a white rectangle. This is the keyed
-                    // version from `npm run brand:mono`.
-                    fetchPriority="high"
-                    className="u-masthead-mark h-auto w-full drop-shadow-[0_2px_30px_rgba(0,0,0,0.55)]"
-                  />
+                <>
+                  <span aria-hidden className="u-vignette" />
+                  {/* Both rules start life on the same centre line, so what
+                      draws out first reads as one hairline; they only become
+                      two when the band opens. See "The masthead" in
+                      globals.css for the sequence. */}
+                  <div className="u-masthead relative mb-9 w-[min(74vw,23rem)] md:w-112">
+                    <span aria-hidden className="u-masthead-rule u-masthead-rule-top" />
+                    <span aria-hidden className="u-masthead-rule u-masthead-rule-bottom" />
+                    <Image
+                      src={LOGO.juMark}
+                      alt={BRAND.group}
+                      width={1500}
+                      height={600}
+                      priority
+                      // The published artwork is maroon on transparent, which
+                      // is unreadable over the film. This is the keyed white
+                      // version from `npm run brand:mono`.
+                      fetchPriority="high"
+                      className="u-masthead-mark h-auto w-full drop-shadow-[0_2px_30px_rgba(0,0,0,0.55)]"
+                    />
+                  </div>
+
+                  {c.thought && (
+                    <p className="u-masthead-line u-onfilm relative max-w-[26ch] text-balance text-[7vw] leading-[1.18] text-paper sm:max-w-[34ch] sm:text-[4vw] lg:text-[2.3vw]">
+                      {c.thought}
+                    </p>
+                  )}
+
+                  {c.places && (
+                    // No tick rule in front of it. On a caption arriving over
+                    // moving film the rule says "a line of type starts here";
+                    // directly under a mark and a sentence, nothing needs
+                    // announcing and the line just adds furniture.
+                    <span className="u-eyebrow u-masthead-eyebrow u-onfilm-red relative mt-7 block text-crimson-lit">
+                      {c.places}
+                    </span>
+                  )}
+                </>
+              )}
+
+              {/* ---- one institution ----
+                  The same left/right grid for all four, so the film reads as
+                  one continuous story with the content changing inside a frame
+                  that does not. Title and year on the left, supporting line and
+                  destinations on the right. Stacked below the `sm` breakpoint,
+                  where there is no room for two columns and the portrait cut is
+                  playing anyway. */}
+              {c.variant === "chapter" && (
+                <>
+                <span aria-hidden className="u-plinth" />
+                <div className="relative grid w-full max-w-[104rem] grid-cols-1 items-end gap-7 sm:grid-cols-12 sm:gap-10">
+                  <div className="sm:col-span-7">
+                    <span className="u-eyebrow u-onfilm mb-4 flex items-center gap-3 text-crimson-lit sm:mb-5">
+                      {c.no}
+                      <span aria-hidden className="h-px w-10 bg-crimson" />
+                    </span>
+                    <h2 className="u-display u-onfilm max-w-[18ch] text-[8.5vw] leading-[1.02] text-paper sm:text-[5.4vw] lg:text-[3.5vw]">
+                      {c.title}
+                    </h2>
+                    {c.status && (
+                      <span className="u-eyebrow u-onfilm mt-4 block text-paper/80 sm:mt-5">{c.status}</span>
+                    )}
+                  </div>
+
+                  <div className="sm:col-span-5 sm:text-right">
+                    {c.descriptor && (
+                      <p className="u-onfilm mb-5 max-w-[34ch] text-[14px] leading-[1.7] text-paper sm:ml-auto sm:mb-6 md:text-[15px]">
+                        {c.descriptor}
+                      </p>
+                    )}
+                    {c.actions && (
+                      <div className="pointer-events-auto flex flex-col items-stretch gap-2.5 sm:flex-row sm:justify-end sm:gap-3">
+                        {c.actions.map((a, k) => {
+                          // The last action is the one being asked for. On a
+                          // chapter with two that is "Apply Now"; on the
+                          // hospital, which has one, it is the only thing there
+                          // and still deserves the weight.
+                          const primary = k === c.actions!.length - 1;
+                          return (
+                            <a
+                              key={a.label}
+                              href={a.href}
+                              {...(a.href.startsWith("#")
+                                ? {}
+                                : { target: "_blank", rel: "noopener noreferrer" })}
+                              className={`group u-act ${primary ? "u-act-primary" : "u-act-secondary"}`}
+                            >
+                              <span className="u-eyebrow whitespace-nowrap text-paper">{a.label}</span>
+                              <ArrowUpRight
+                                className={`h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 ${
+                                  primary ? "text-paper" : "text-paper/75"
+                                }`}
+                              />
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                </>
               )}
 
-              {/* The rule before the eyebrow is a caption's tick mark: it says
-                  "a line of type is starting here", which is what a caption
-                  arriving over moving film needs and what a closing card does
-                  not. The ending has a mark above it doing that job already,
-                  so the rule comes off and the line stands on its own tracking
-                  instead, quieter and wider than a caption's. */}
-              {c.eyebrow && (
-                <span
-                  className={
-                    c.variant === "apply"
-                      ? "u-eyebrow mb-5 block text-[0.66rem] tracking-[0.36em] text-white/65 sm:mb-6 sm:text-[0.72rem]"
-                      : `u-eyebrow mb-5 inline-flex items-center gap-3 text-crimson-lit ${
-                          c.variant === "hero" ? "u-masthead-eyebrow" : ""
-                        }`
-                  }
-                >
-                  {c.variant !== "apply" && <span aria-hidden className="h-px w-8 bg-crimson" />}
-                  {c.eyebrow}
-                </span>
-              )}
+              {/* ---- the closing frame ----
+                  The mark IS the headline here — it is cut out of the closing
+                  plate by the ending's own choreography — so this beat adds one
+                  quiet line above it and the three portals below. */}
+              {c.variant === "group" && (
+                <>
+                  {/* No vignette here, unlike the opening frame.
 
-              {/* The closing beat has no line of its own. The mark IS its
-                  headline, and a display-sized question under a display-sized
-                  wordmark is two headlines arguing about which one you read
-                  first. `title` stays on the beat as its key and its label. */}
-              {c.variant !== "apply" && (
-                <p
-                  aria-hidden={c.variant === "hero"}
-                  className={
-                    c.variant === "hero"
-                      ? "u-masthead-line u-display text-[13vw] leading-[0.9] text-paper [text-shadow:0_2px_50px_rgba(0,0,0,0.55)] sm:text-[9vw] lg:text-[6vw]"
-                      : "u-display max-w-[16ch] text-[10vw] leading-[0.98] text-paper [text-shadow:0_2px_44px_rgba(0,0,0,0.6)] sm:text-[7vw] lg:text-[4.6vw]"
-                  }
-                >
-                  {c.variant === "hero" ? BRAND.tagline : c.title}
-                </p>
-              )}
-
-              {c.sub && (
-                <p className="mt-6 max-w-[46ch] text-[14px] leading-[1.85] text-paper/80 [text-shadow:0_1px_22px_rgba(0,0,0,0.65)] md:text-[15px]">
-                  {c.sub}
-                </p>
-              )}
-
-              {c.variant === "apply" && (
-                <div className="pointer-events-auto mt-7 flex w-full max-w-2xl flex-col items-stretch gap-2.5 sm:mt-9 sm:flex-row sm:justify-center sm:gap-3">
-                  {APPLY_LINKS.map((link) => (
-                    <a
-                      key={link.id}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/5 px-5 py-3 backdrop-blur-md transition-colors duration-300 hover:border-crimson hover:bg-crimson sm:px-6 sm:py-3.5"
-                    >
-                      <span className="u-eyebrow whitespace-nowrap text-paper">Apply · {link.label}</span>
-                      <ArrowUpRight className="h-4 w-4 text-paper/70 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                    </a>
-                  ))}
-                </div>
+                      The ending builds its own ground: a dark plate closes over
+                      the film with the wordmark cut OUT of it, so the picture
+                      inside the letterforms is meant to be the brightest thing
+                      on screen. A scrim over the top of that darkens exactly
+                      the letters it is supposed to reveal — added one here and
+                      the mark all but disappeared. The film's own scrims fade
+                      out on `--end-cut` for the same reason. */}
+                  {c.thought && (
+                    <p className="u-eyebrow u-onfilm relative mb-5 block text-[0.66rem] tracking-[0.36em] text-white/80 sm:mb-6 sm:text-[0.72rem]">
+                      {c.thought}
+                    </p>
+                  )}
+                  <div className="pointer-events-auto relative mt-7 flex w-full max-w-2xl flex-col items-stretch gap-2.5 sm:mt-9 sm:flex-row sm:justify-center sm:gap-3">
+                    {APPLY_LINKS.map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group u-act u-act-secondary"
+                      >
+                        <span className="u-eyebrow whitespace-nowrap text-paper">Apply · {link.label}</span>
+                        <ArrowUpRight className="h-4 w-4 text-paper/75 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                      </a>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
             );
           })}
         </div>
-
-        {/* ---- the ask, mid-film ----
-            One anchor, three moments. An earlier pass alternated sides and
-            heights so the stamp would feel alive; what it actually did was
-            make the visitor re-find the only button on screen every time it
-            came back. Pinned to the bottom gutter it is learned once and then
-            simply expected, and the film keeps all the movement.
-
-            Two shells rather than one flat card. The outer is a translucent
-            white tray with a hairline; the inner is opaque brand red with a
-            lit top edge, on a concentric radius. The tray is what lets it sit
-            on a photograph at any exposure without either dissolving into a
-            bright frame or turning into a floating slab on a dark one.
-
-            No backdrop blur, deliberately: this sits over a canvas that
-            repaints every scrolled frame, so a blur here would be recomputed
-            hundreds of times a second on the exact device that can least
-            afford it. */}
-        {applyBeats.map((beat, i) => {
-          const link = APPLY_LINKS[beat.campus % APPLY_LINKS.length];
-          const ring = `${uid}-ring-${i}`;
-          return (
-            <div
-              key={`${link.id}-${beat.at[0]}`}
-              ref={(el) => {
-                beatRefs.current[i] = el;
-              }}
-              // Full-width strip on a phone, gutter-aligned card from `sm` up.
-              // The width is fixed rather than shrink-to-fit: three campus
-              // names of three different lengths would otherwise resize the
-              // card on every appearance, which reads as three controls.
-              className="pointer-events-auto absolute bottom-[calc(2.25rem+env(safe-area-inset-bottom))] left-[max(var(--pad),env(safe-area-inset-left))] right-[max(var(--pad),env(safe-area-inset-right))] z-10 sm:bottom-16 sm:left-auto sm:w-86"
-              style={{ opacity: 0, visibility: "hidden" }}
-            >
-              <a
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-cursor="Apply"
-                data-cursor-tone="crimson"
-                className="group block rounded-[1.5rem] bg-white/10 p-1 ring-1 ring-white/20 sm:rounded-[1.75rem] sm:p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.16),0_14px_30px_-12px_rgba(0,0,0,0.45),0_40px_80px_-36px_rgba(0,0,0,0.6)] transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/16 hover:ring-white/35 active:scale-[0.98]"
-              >
-                <span className="flex items-center gap-3 rounded-[1.15rem] bg-crimson p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:bg-crimson-deep sm:gap-4 sm:rounded-[1.375rem] sm:p-3 sm:py-3.5">
-                  {/* The seal. Its rotation is the scroll position, so it is
-                      the one element on screen that answers "am I driving
-                      this?" the instant you move. */}
-                  <span className="relative grid h-13 w-13 shrink-0 place-items-center sm:h-17 sm:w-17">
-                    <svg
-                      ref={(el) => {
-                        sealRefs.current[i] = el;
-                      }}
-                      viewBox="0 0 100 100"
-                      aria-hidden
-                      className="absolute inset-0 h-full w-full"
-                    >
-                      <defs>
-                        <path
-                          id={ring}
-                          d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"
-                          fill="none"
-                        />
-                      </defs>
-                      {/* Two repetitions, not three: at this radius a third
-                          pass overruns the circumference and the words start
-                          overprinting each other. */}
-                      <text className="fill-paper text-[15px] font-bold uppercase tracking-[0.13em]">
-                        <textPath href={`#${ring}`}>Apply now · Apply now ·</textPath>
-                      </text>
-                    </svg>
-                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-paper" />
-                  </span>
-
-                  <span className="min-w-0">
-                    <span className="u-eyebrow block text-paper/70">Admissions 2026</span>
-                    <span className="u-grotesk mt-0.5 block truncate text-[1.1rem] leading-tight text-paper sm:text-[1.45rem]">
-                      {link.label}
-                    </span>
-                  </span>
-
-                  {/* The arrow gets its own enclosure flush with the inner
-                      padding rather than floating beside the text, so the card
-                      has an obvious place to aim at and somewhere to move when
-                      you reach it. */}
-                  <span
-                    aria-hidden
-                    className="ml-auto grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 sm:h-11 sm:w-11 transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105 group-hover:bg-paper"
-                  >
-                    <ArrowUpRight className="h-4 w-4 text-paper transition sm:h-4.5 sm:w-4.5 duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-crimson" />
-                  </span>
-                </span>
-              </a>
-            </div>
-          );
-        })}
 
         {/* Scroll cue, gone the moment the film starts moving. */}
         <div

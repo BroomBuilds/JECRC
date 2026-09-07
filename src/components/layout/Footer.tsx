@@ -46,16 +46,25 @@ export default function Footer() {
       <div className="u-shell py-14 pb-[max(3.5rem,env(safe-area-inset-bottom))] md:py-16">
         {/* ---- 1. identity ---- */}
         <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:justify-between">
-          {/* Brand red on transparent, never the plated version. On a black
-              ground the plate reads as a white card sitting on the footer
-              rather than as the mark printed on it. */}
+          {/* The same two-tone mark the tour opens on: red crest, white
+              wordmark, built by `npm run brand:ju`. Replaces the all-red
+              two-up lockup (university crest + medical college crest side by
+              side) that stood here before — on the black footer ground the
+              all-red wordmark had the same legibility problem the tour's
+              opening frame had, for the same reason: red carries neither the
+              luminance of white nor the mass of a display face.
+
+              This single mark does not carry the medical college crest the
+              old lockup did. If that needs to stay visible in the footer, it
+              wants its own placement rather than being folded back into one
+              image. */}
           <ScrollTopButton className="w-fit">
             <Image
-              src={LOGO.lockupRed}
-              alt={`${BRAND.name} and JECRC Medical College Hospital and Research Centre`}
-              width={557}
-              height={258}
-              className="h-auto w-48 md:w-60"
+              src={LOGO.juMark}
+              alt={BRAND.group}
+              width={1500}
+              height={600}
+              className="h-auto w-44 md:w-56"
             />
           </ScrollTopButton>
 

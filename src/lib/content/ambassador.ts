@@ -12,7 +12,7 @@
 export const AMBASSADOR = {
   eyebrow: "Brand ambassador",
   name: "Vikrant Massey",
-  role: "Actor · The face of JECRC University",
+  role: "Actor · Now part of the JECRC story",
   announced: "April 2026",
   /**
    * Published by JECRC on their own application portal

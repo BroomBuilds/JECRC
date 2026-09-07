@@ -1,108 +1,139 @@
-import type { ApplyBeat, Caption } from "@/components/sections/ScrollTour";
+import type { Caption } from "@/components/sections/ScrollTour";
+import { INSTITUTIONS } from "@/lib/content/universities";
+
+const jaipur = INSTITUTIONS.find((i) => i.id === "jaipur")!;
+const ncr = INSTITUTIONS.find((i) => i.id === "ncr")!;
+const foundation = INSTITUTIONS.find((i) => i.id === "foundation")!;
 
 /**
  * Beats of the scroll film, as fractions of the tour's scroll length.
- * Retime these to match the cut; nothing else needs to change.
  *
- * Every window below lands on a shot boundary rather than on a round number.
- * Both cuts of the current film — horizontal and vertical, the same edit at
- * two aspects — run 29.36s and cut at the same eleven fractions:
+ * The film is one chronological story — 2001, 2012, 2026, 2026 — opening on the
+ * group identity and closing on it again. Six beats: the mark, four
+ * institutions, the mark. Nothing else is on screen at any point.
  *
- *   .109 .168 .225 .305 .395 .459 .523 .607 .711 .783 .867
+ * Every window lands on a shot boundary rather than on a round number, AND on
+ * the shot that actually shows the thing it names. `website-horizontal-new.mp4`
+ * runs 22.20s, cuts at
  *
- * That matters more than it sounds. A caption whose fade-out completes exactly
- * as the picture changes reads as edited: the line and the shot end together
- * and the film moves on. The same line fading two thirds of the way through a
- * shot reads as a caption someone dropped on top afterwards, and no amount of
- * easing fixes it. So every `at[1]` here IS a cut, and every `at[0]` is the
- * cut the new shot starts on, which lets the words arrive on the picture.
+ *   .0937  .1838  .3027  .4216  .5658  .7261  .9063
  *
- * Do not regenerate these by hand. `scripts/build-tour.mjs` detects the cuts
- * on every build and writes them into the manifest as `cuts`, which is also
- * what ScrollTour dissolves across — so the authoritative list is
- * `src/lib/tour-manifest-landscape.json`, and the build prints it. After a
- * re-cut, read the new fractions off that and move each window onto the
- * nearest one; `--cuts-only` re-detects without re-encoding.
+ * and those eight shots are:
  *
- * WHICH caption belongs on WHICH shot is not something the cut list can say.
- * These four were carried across from the previous film by ordinal position,
- * which keeps every boundary on a cut but assumes shot three of the new edit
- * is still about the method. Worth one pass against the actual footage.
+ *   S0  .000-.094   the JECRC letter monument and fountain   -> the mark
+ *   S1  .094-.184   aerial, the original college block
+ *   S2  .184-.303   wider aerial, same campus                -> 01, 2001
+ *   S3  .303-.422   sunset aerial, the Jaipur campus
+ *   S4  .422-.566   the Jaipur campus wide, across the lawn  -> 02, 2012
+ *   S5  .566-.726   a campus gate, "Welcome Class of 2026"   -> 03, Alwar NCR
+ *   S6  .726-.906   the medical college render, Block 2A     -> 04, the hospital
+ *   S7  .906-1.00   the medical building render, ground level -> the closing mark
  *
- * The last beat carries `variant: "apply"`, which is what brings all three
- * campus buttons up over the final frames. It is timed against the closing
- * sequence rather than against a cut: the film has no cuts left after .867.
- * See "The ending" in globals.css.
+ * Two of those pairings are worth knowing about:
+ *
+ *   - S5 carries JECRC UNIVERSITY banners and is most likely the JAIPUR gate,
+ *     not Alwar. There is no shot in this edit that I can identify as the Alwar
+ *     NCR campus. Beat 03 sits there because it is the only slot left in
+ *     chronological order, not because the picture is right.
+ *   - The vertical cut is the same edit at a different aspect and its cuts land
+ *     within .0006 of these, so one set of windows serves both films. Check
+ *     that still holds after any re-cut.
+ *
+ * A caption whose fade-out completes exactly as the picture changes reads as
+ * edited: the line and the shot end together and the film moves on. The same
+ * line fading two thirds of the way through a shot reads as a caption someone
+ * dropped on top afterwards, and no amount of easing fixes it. So every `at[1]`
+ * here IS a cut, and every `at[0]` is the cut the new shot starts on.
+ *
+ * At 22.20s the four institution frames run 4.6s, 5.8s, 3.6s and 4.0s. The
+ * brief asked for 3-4s each; the first two run long because each spans two
+ * shots of the same subject, and splitting them would put a caption change in
+ * the middle of one institution. Shortening them means re-cutting the film,
+ * not moving these numbers.
+ *
+ * After a re-cut, read the new cut list off `src/lib/tour-manifest-landscape.json`
+ * (the build prints it, and `--cuts-only` re-detects without re-encoding), work
+ * out what each new shot shows, and move each window onto the right one.
  */
 export const TOUR_CAPTIONS: Caption[] = [
   {
-    at: [0.0, 0.168],
+    // The opening frame carries the mark, one sentence and the group's
+    // geography. Nothing else — no tagline under it, because the tagline is
+    // already set inside the artwork and printing it again at display size was
+    // the same three words twice.
+    at: [0.0, 0.0937],
     variant: "hero",
-    eyebrow: "Jaipur · Alwar NCR · Rajasthan",
-    title: "JECRC",
-    tagline: "Build Your World",
+    title: "One JECRC",
+    thought:
+      "One JECRC. A growing ecosystem across education, innovation and healthcare.",
+    places: "Jaipur · Alwar NCR · Rajasthan · Medical College",
   },
   {
-    at: [0.225, 0.395],
-    eyebrow: "Twenty-six years",
-    title: "A campus that never quite closes",
-    sub: "Labs open past midnight, studios that smell of solder and turpentine, a library nobody whispers in.",
+    at: [0.0937, 0.3027],
+    variant: "chapter",
+    no: "01",
+    title: "JECRC College",
+    status: "Established 2001",
+    actions: [
+      { label: "Visit Website", href: foundation.site },
+      { label: "Apply Now", href: foundation.apply },
+    ],
   },
   {
-    at: [0.459, 0.607],
-    eyebrow: "The method",
-    title: "Learn it, then build with it",
-    sub: "Curriculum co-designed with L&T, Samatrix and Truechip. Project work from the first semester, not the final year.",
+    at: [0.3027, 0.5658],
+    variant: "chapter",
+    no: "02",
+    title: "JECRC University, Jaipur",
+    status: "Established 2012",
+    descriptor: "Multidisciplinary UG & PG Programmes",
+    actions: [
+      { label: "Visit Website", href: jaipur.site },
+      { label: "Apply Now", href: jaipur.apply },
+    ],
   },
   {
-    at: [0.711, 0.867],
-    eyebrow: "The outcome",
-    title: "Two thousand offers a season",
-    sub: "Two hundred recruiters, eight hundred and fifty-six Fortune 500 offers, thirty-four thousand alumni across thirty-five countries.",
+    at: [0.5658, 0.7261],
+    variant: "chapter",
+    no: "03",
+    title: "JECRC University — Alwar NCR Campus",
+    status: "Launched 2026",
+    actions: [
+      { label: "Visit Website", href: ncr.site },
+      { label: "Apply Now", href: ncr.apply },
+    ],
+  },
+  {
+    at: [0.7261, 0.9063],
+    variant: "chapter",
+    no: "04",
+    title: "JECRC Hospital",
+    status: "Launched 2026",
+    actions: [
+      // The hospital has no website yet — it is under construction, and the
+      // group has not published one. Rather than label a link "Visit Website"
+      // and send it somewhere that is not the hospital, this goes to the
+      // section of this page that carries the architect's visualisations.
+      // Swap this one string the moment a real address exists.
+      { label: "Visit Website", href: "#whats-next" },
+    ],
   },
   {
     // Two things here are not the pattern the other beats follow.
     //
-    // It opens at .962, after the mark has been cut out of the closing plate
-    // rather than alongside it: the ending's one hero moment should not have
-    // to share the screen with three buttons arriving.
+    // It opens at .7261 and runs past the end of the tour. The ending's own
+    // choreography starts at .906 — the film's last cut — and cuts the mark out
+    // of a closing plate; this beat is the line above it and the portals below
+    // it, and both have to be settled before that begins rather than still
+    // arriving.
     //
-    // And it closes at 1.4, which is past the end of the tour and therefore
-    // never. It used to close at 1.0, which meant `1 - smooth(p, .955, 1)`
-    // drove the whole block to zero over the last four percent: the visitor
-    // scrolled to the bottom of the film and watched the only ask on the
-    // screen fade out as they arrived. An ending has to be held.
-    at: [0.962, 1.4],
+    // `at[1]` is 1.4, which is past the end and therefore never. It used to
+    // close at 1.0, which drove the whole block to zero over the last four
+    // percent: the visitor reached the bottom of the film and watched the only
+    // ask on screen fade out as they arrived. An ending has to be held.
+    at: [0.9063, 1.4],
     ramp: 0.019,
-    variant: "apply",
-    eyebrow: "Admissions 2026 are open",
-    title: "So, what will you build?",
+    variant: "group",
+    title: "JECRC Group",
+    thought: "One group. Four institutions. Admissions 2026 are open.",
   },
-];
-
-/**
- * The ask, recurring through the film rather than saved for the end.
- *
- * Someone who decides to apply forty percent of the way through should not
- * have to reach the finish to act on it, and the closing beat only catches the
- * people who watch the whole thing.
- *
- * One campus each, rotating, so the three get equal billing. Not the
- * three-button block: that belongs to the ending, and repeating it would spend
- * the ending early.
- *
- * What varies is the moment, never the place. An earlier pass moved the stamp
- * between corners and heights on each appearance, which looked considered and
- * behaved badly: a control that lands somewhere new every time is one the
- * visitor has to find again every time. Fixed to a single anchor it is learned
- * once, and the recurrence is the interesting part.
- *
- * The windows sit inside the caption windows on purpose: a caption is centred
- * and the stamp is not, so they share the screen rather than queueing, and the
- * visitor gets the claim and the ask together.
- */
-export const TOUR_APPLY_BEATS: ApplyBeat[] = [
-  { at: [0.305, 0.395], campus: 0 },
-  { at: [0.528, 0.607], campus: 1 },
-  { at: [0.783, 0.867], campus: 2 },
 ];
