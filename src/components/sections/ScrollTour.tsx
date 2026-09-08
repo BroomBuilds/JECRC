@@ -11,12 +11,28 @@ import { ArrowUpRight } from "@/components/ui/Icons";
 /**
  * Scroll length of the tour.
  *
- * Set in CSS rather than here so it can differ by screen: 1500vh on a desktop
- * is fifteen screens of film, and the same number on a 780px phone is a wall
- * the visitor has to climb before reaching anything else. See `--tour-vh` in
- * globals.css.
+ * Set in CSS rather than here so it can differ by screen: seventeen screens on
+ * a desktop, and the same number on a 780px phone would be a wall the visitor
+ * has to climb before reaching anything else. See `--tour-vh` in globals.css.
+ * The last TOUR_TAIL of it is the ending's hold, not film.
  */
 export const TOUR_HEIGHT = "var(--tour-vh)";
+
+/**
+ * The share of the tour's scroll spent holding the finished ending.
+ *
+ * The film, the captions and the ending's own choreography all complete at
+ * `1 - TOUR_TAIL`; the rest is a hold on the last frame with the closing plate
+ * fully formed. Without it the ending finished on the very last pixel of the
+ * section and the page moved on the instant it arrived — you never got to look
+ * at the thing the whole film was building to.
+ *
+ * `--tour-vh` in globals.css is sized so the FILM keeps the same scroll
+ * distance it had before this existed (the old heights divided by
+ * `1 - TOUR_TAIL`), which is why those numbers are not round. The tail is
+ * added on top rather than taken out of the film.
+ */
+const TOUR_TAIL = 0.06;
 
 /** One destination on a chapter card. */
 export type Action = { label: string; href: string };
@@ -42,17 +58,28 @@ export type Caption = {
   /** Used as the React key and the accessible label for every variant. */
   title: string;
 
-  // ---- hero ----
-  /** The brand thought, and the only sentence on the opening frame. */
+  // ---- group (the closing beat) ----
+  /** The one line above the three portals. Not used by "hero" any more —
+      that frame's headline is fixed ("JECRC" / "Group of institutions"),
+      set directly in the component rather than passed through content. */
   thought?: string;
-  /** Where the group is, set in red under the thought. */
-  places?: string;
 
   // ---- chapter ----
   /** "01" … "04". Printed beside the title, not as a list marker. */
   no?: string;
   /** "Established 2001", "Launched 2026". Sits under the title, left column. */
   status?: string;
+  /**
+   * A reversed logo for this institution, printed straight onto the film.
+   *
+   * Reversed, not full-colour on a plate. The first pass stood the published
+   * mark on a white rectangle to guarantee contrast, and the rectangle was the
+   * only thing on screen that read as pasted over the picture rather than part
+   * of it — every other element on a chapter card is type printed directly on
+   * the film. `npm run brand:hospital` makes the reversed artwork; see that
+   * script for how the three ink regions are handled.
+   */
+  mark?: { src: string; alt: string; width: number; height: number };
   /** The one supporting line, right column. Most chapters have none. */
   descriptor?: string;
   /** Right column, under the descriptor. */
@@ -871,7 +898,13 @@ export default function ScrollTour({ captions = [] }: Props) {
 
       const rect = sec.getBoundingClientRect();
       const total = rect.height - stageH;
-      const p = total > 0 ? clamp01(-rect.top / total) : 0;
+      const scrolled = total > 0 ? clamp01(-rect.top / total) : 0;
+      // Everything downstream — frame index, captions, the ending's ramps —
+      // reads this rather than the raw scroll fraction, so all of it finishes
+      // at `1 - TOUR_TAIL` and then holds. One line, and the hold applies to
+      // the film and the choreography together rather than needing each to
+      // know about it.
+      const p = clamp01(scrolled / (1 - TOUR_TAIL));
 
       // The listeners above can miss the one case that matters most: a visitor
       // who flicks in the gap between the HTML arriving and this component
@@ -995,7 +1028,7 @@ export default function ScrollTour({ captions = [] }: Props) {
             with the words it exists for instead of being on the whole time. */}
         <div
           aria-hidden
-          className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/70 via-transparent to-ink/55"
+          className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/55 via-transparent to-ink/40"
         />
 
         {/* ---- the ending ----
@@ -1138,13 +1171,12 @@ export default function ScrollTour({ captions = [] }: Props) {
                   ? "flex-col items-center justify-end pb-[max(6rem,calc(4.5rem+env(safe-area-inset-bottom)))] text-center sm:pb-28"
                   : c.variant === "hero"
                     ? "flex-col items-center justify-center text-center"
-                    : // The caption zone is the lower third at every size, not
-                      // centred on large ones. Centred, the type floated in the
-                      // middle of the picture with the scrim beneath it doing
-                      // nothing — which is exactly how it came to be unreadable
-                      // over a sunlit building. Low is also where film titling
-                      // belongs: it leaves the subject of the shot visible.
-                      "items-end pb-[max(5rem,calc(3.5rem+env(safe-area-inset-bottom)))] sm:pb-14 lg:pb-20"
+                    : // Bottom-anchored on a phone, vertically centred everywhere
+                      // above it. The lower third was where this sat before —
+                      // moved back to centre on request. `u-plinth` carries a
+                      // matching sm+ override so the ground still sits behind
+                      // the words wherever they land: see globals.css.
+                      "items-end pb-[max(5rem,calc(3.5rem+env(safe-area-inset-bottom)))] sm:items-center sm:pb-0"
               }`}
               style={{ opacity: open ? 1 : 0, visibility: open ? "visible" : "hidden" }}
             >
@@ -1156,42 +1188,45 @@ export default function ScrollTour({ captions = [] }: Props) {
               {c.variant === "hero" && (
                 <>
                   <span aria-hidden className="u-vignette" />
-                  {/* Both rules start life on the same centre line, so what
+                  {/* The clean identity frame: the founding entity's mark,
+                      then the group's name. Two elements, nothing else.
+
+                      Both rules start life on the same centre line, so what
                       draws out first reads as one hairline; they only become
                       two when the band opens. See "The masthead" in
                       globals.css for the sequence. */}
-                  <div className="u-masthead relative mb-9 w-[min(74vw,23rem)] md:w-112">
+                  <div className="u-masthead relative mb-9 w-[min(62vw,15rem)] sm:w-[min(36vw,17rem)] lg:w-[min(19vw,16rem)]">
                     <span aria-hidden className="u-masthead-rule u-masthead-rule-top" />
                     <span aria-hidden className="u-masthead-rule u-masthead-rule-bottom" />
+                    {/* Light, not dark — the mark is navy, so the vignette that
+                        serves the red type below is the wrong ground for it.
+                        See `.u-mark-halo` in globals.css. */}
+                    <span aria-hidden className="u-mark-halo" />
                     <Image
-                      src={LOGO.juMark}
-                      alt={BRAND.group}
-                      width={1500}
-                      height={600}
+                      src={LOGO.foundationMark}
+                      alt="JECRC Foundation"
+                      width={408}
+                      height={203}
                       priority
-                      // The published artwork is maroon on transparent, which
-                      // is unreadable over the film. This is the keyed white
-                      // version from `npm run brand:mono`.
                       fetchPriority="high"
-                      className="u-masthead-mark h-auto w-full drop-shadow-[0_2px_30px_rgba(0,0,0,0.55)]"
+                      className="u-masthead-mark relative h-auto w-full"
                     />
                   </div>
 
-                  {c.thought && (
-                    <p className="u-masthead-line u-onfilm relative max-w-[26ch] text-balance text-[7vw] leading-[1.18] text-paper sm:max-w-[34ch] sm:text-[4vw] lg:text-[2.3vw]">
-                      {c.thought}
-                    </p>
-                  )}
-
-                  {c.places && (
-                    // No tick rule in front of it. On a caption arriving over
-                    // moving film the rule says "a line of type starts here";
-                    // directly under a mark and a sentence, nothing needs
-                    // announcing and the line just adds furniture.
-                    <span className="u-eyebrow u-masthead-eyebrow u-onfilm-red relative mt-7 block text-crimson-lit">
-                      {c.places}
-                    </span>
-                  )}
+                  {/* Set in the wordmark's own face, not the interface sans.
+                      `.u-wordmark` and `.u-wordmark-sub` are Cinzel at the two
+                      weights and the two tracking values measured off the
+                      published lockup — the same pair that sets "JECRC" over
+                      "UNIVERSITY" in the artwork. Typesetting the group's name
+                      in the UI face made it read as a caption about the brand
+                      rather than as the brand, which is what the sans is for
+                      and what the serif is not. */}
+                  <p className="u-masthead-line u-wordmark u-onfilm-red relative text-[17vw] leading-[0.86] text-crimson-lit sm:text-[12vw] lg:text-[8.4vw]">
+                    {BRAND.group}
+                  </p>
+                  <span className="u-wordmark-sub u-masthead-eyebrow u-onfilm-red relative mt-2 block text-[4.4vw] uppercase leading-none text-crimson-lit sm:mt-3 sm:text-[3vw] lg:text-[2.1vw]">
+                    Group of institutions
+                  </span>
                 </>
               )}
 
@@ -1207,6 +1242,15 @@ export default function ScrollTour({ captions = [] }: Props) {
                 <span aria-hidden className="u-plinth" />
                 <div className="relative grid w-full max-w-[104rem] grid-cols-1 items-end gap-7 sm:grid-cols-12 sm:gap-10">
                   <div className="sm:col-span-7">
+                    {c.mark && (
+                      <Image
+                        src={c.mark.src}
+                        alt={c.mark.alt}
+                        width={c.mark.width}
+                        height={c.mark.height}
+                        className="mb-5 h-10 w-auto drop-shadow-[0_1px_14px_rgba(0,0,0,0.55)] sm:mb-6 sm:h-11 lg:h-12"
+                      />
+                    )}
                     <span className="u-eyebrow u-onfilm mb-4 flex items-center gap-3 text-crimson-lit sm:mb-5">
                       {c.no}
                       <span aria-hidden className="h-px w-10 bg-crimson" />
@@ -1215,7 +1259,15 @@ export default function ScrollTour({ captions = [] }: Props) {
                       {c.title}
                     </h2>
                     {c.status && (
-                      <span className="u-eyebrow u-onfilm mt-4 block text-paper/80 sm:mt-5">{c.status}</span>
+                      // Sized up from the base .u-eyebrow (13px/12px): a
+                      // utility class in the utilities layer outranks the
+                      // component class regardless of source order, so this
+                      // overrides the font-size cleanly without touching the
+                      // tracking, weight or transform every other eyebrow on
+                      // the site relies on.
+                      <span className="u-eyebrow u-onfilm mt-4 block text-[1rem] text-paper/85 sm:mt-5 sm:text-[1.05rem] lg:text-[1.15rem]">
+                        {c.status}
+                      </span>
                     )}
                   </div>
 
@@ -1274,7 +1326,11 @@ export default function ScrollTour({ captions = [] }: Props) {
                       the mark all but disappeared. The film's own scrims fade
                       out on `--end-cut` for the same reason. */}
                   {c.thought && (
-                    <p className="u-eyebrow u-onfilm relative mb-5 block text-[0.66rem] tracking-[0.36em] text-white/80 sm:mb-6 sm:text-[0.72rem]">
+                    // A sentence, so it is set as one: sentence case, normal
+                    // tracking, a measure it can breathe in. The uppercase
+                    // tracked Cinzel that was briefly here suited a three-word
+                    // slogan and would turn a full sentence into a banner.
+                    <p className="u-onfilm relative mx-auto mb-6 block max-w-[30ch] text-balance text-[1rem] leading-[1.5] text-paper/90 sm:mb-7 sm:max-w-[42ch] sm:text-[1.15rem]">
                       {c.thought}
                     </p>
                   )}

@@ -1,5 +1,6 @@
 import type { Caption } from "@/components/sections/ScrollTour";
 import { INSTITUTIONS } from "@/lib/content/universities";
+import { LOGO } from "@/lib/content/site";
 
 const jaipur = INSTITUTIONS.find((i) => i.id === "jaipur")!;
 const ncr = INSTITUTIONS.find((i) => i.id === "ncr")!;
@@ -57,16 +58,15 @@ const foundation = INSTITUTIONS.find((i) => i.id === "foundation")!;
  */
 export const TOUR_CAPTIONS: Caption[] = [
   {
-    // The opening frame carries the mark, one sentence and the group's
-    // geography. Nothing else — no tagline under it, because the tagline is
-    // already set inside the artwork and printing it again at display size was
-    // the same three words twice.
+    // The clean identity frame: the founding entity's mark, the group's name
+    // as a headline, and where the group is. Nothing else — the marketing
+    // sentence that used to run here is gone. The headline itself is not
+    // driven from here: "JECRC" / "Group of institutions" is fixed text in
+    // the component, because it names the frame rather than describing this
+    // particular beat.
     at: [0.0, 0.0937],
     variant: "hero",
-    title: "One JECRC",
-    thought:
-      "One JECRC. A growing ecosystem across education, innovation and healthcare.",
-    places: "Jaipur · Alwar NCR · Rajasthan · Medical College",
+    title: "JECRC Group of Institutions",
   },
   {
     at: [0.0937, 0.3027],
@@ -108,6 +108,7 @@ export const TOUR_CAPTIONS: Caption[] = [
     no: "04",
     title: "JECRC Hospital",
     status: "Launched 2026",
+    mark: { src: LOGO.hospitalMarkReversed, alt: "JECRC Hospital", width: 704, height: 274 },
     actions: [
       // The hospital has no website yet — it is under construction, and the
       // group has not published one. Rather than label a link "Visit Website"
@@ -134,6 +135,11 @@ export const TOUR_CAPTIONS: Caption[] = [
     ramp: 0.019,
     variant: "group",
     title: "JECRC Group",
-    thought: "One group. Four institutions. Admissions 2026 are open.",
+    // The group's own sentence, moved here from the opening frame. It reads
+    // better as a closing thought than as an opening one: at the end the
+    // visitor has just watched the four institutions it describes, so it lands
+    // as a summary rather than as a claim made before any evidence.
+    thought:
+      "One JECRC. A growing ecosystem across education, innovation and healthcare.",
   },
 ];

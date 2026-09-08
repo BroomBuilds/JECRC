@@ -67,7 +67,11 @@
   /* The film's scroll length. Nine screens on a phone, fifteen on a
      desktop: the same number on both makes the tour two thirds of the
      page on the screen most people arrive with. */
-  --tour-vh: 900vh;
+  /* Includes the ending's hold: see TOUR_TAIL in ScrollTour.tsx. These are the
+     old heights (900 / 1200 / 1500) divided by 1 - TOUR_TAIL, so the film keeps
+     the scroll distance it had and the hold is added on top of it rather than
+     taken out of it. */
+  --tour-vh: 960vh;
   /* One knob for the page's horizontal rhythm. Foldable cover screens are
      280px wide, and a 24px gutter each side leaves 232px of content, which
      is not enough for a row of five 44px targets. */
@@ -80,10 +84,10 @@
 }
 
 @media (min-width: 768px) {
-  :root { --pad: 2.5rem; --tour-vh: 1200vh; }
+  :root { --pad: 2.5rem; --tour-vh: 1275vh; }
 }
 @media (min-width: 1024px) {
-  :root { --tour-vh: 1500vh; }
+  :root { --tour-vh: 1595vh; }
 }
 @media (min-width: 1280px) {
   :root { --pad: 4rem; }
@@ -549,9 +553,17 @@ html.lenis, html.lenis body { height: auto; }
   from { opacity: 0; transform: translate3d(0, 10px, 0); }
   to { opacity: 1; transform: none; }
 }
+/* The resting inset is deeply negative, not -5%.
+   
+   This clip persists after the animation (`both`), so it is also what the line
+   is clipped to at rest — and at -5% it cut the descender off the J in "JECRC"
+   the moment the line was set in Cinzel at a tight leading, where the glyph
+   drops well below the box the clip is measured against. -40% is simply far
+   enough below the box that no descender at any leading reaches it; it costs
+   nothing, because there is nothing down there to reveal. */
 @keyframes u-mast-unmask {
   from { opacity: 0; clip-path: inset(0 0 105% 0); transform: translate3d(0, 14px, 0); }
-  to { opacity: 1; clip-path: inset(0 0 -5% 0); transform: none; }
+  to { opacity: 1; clip-path: inset(0 0 -40% 0); transform: none; }
 }
 @keyframes u-mast-drop {
   from { transform: scaleY(0); }
@@ -680,18 +692,28 @@ html.lenis, html.lenis body { height: auto; }
    baseline: cap height above the baseline is 0.7em of the word and the
    second line drops 1.15em of the sub below it, which puts the middle a
    shade above the baseline rather than on it. */
+/* Every size here is `min(Xvw, Yvh)`, never vw alone.
+   
+   The mark scales with viewport WIDTH while the sentence and the portals below
+   it are anchored to the bottom of the viewport HEIGHT, so on a wide, short
+   screen the two grow toward each other. Measured before this cap existed, the
+   gap between the wordmark and the sentence ran from 143px at 1920x1080 down to
+   THREE PIXELS at 1280x720 — the mark had not quite collided with the sentence,
+   but only just, and a 1280x720 laptop is an ordinary screen rather than an
+   edge case. The vh term is 4/3 of the vw term throughout, so it only binds
+   once the frame is too short to afford the mark, and never on a phone. */
 .u-end {
-  --w: 18vw;
-  --ch: 26vw;
-  --gap: 3.5vw;
+  --w: min(18vw, 24vh);
+  --ch: min(26vw, 34.7vh);
+  --gap: min(3.5vw, 4.7vh);
   --tw: calc(var(--w) * 2.8);
   --cw: calc(var(--ch) * 0.866);
 }
 @media (min-width: 640px) {
-  .u-end { --w: 15vw; --ch: 22vw; --gap: 3vw; }
+  .u-end { --w: min(15vw, 20vh); --ch: min(22vw, 29.3vh); --gap: min(3vw, 4vh); }
 }
 @media (min-width: 1024px) {
-  .u-end { --w: 12vw; --ch: 17vw; --gap: 2.5vw; }
+  .u-end { --w: min(12vw, 16vh); --ch: min(17vw, 22.7vh); --gap: min(2.5vw, 3.3vh); }
 }
 
 .u-end-svg { position: absolute; inset: 0; display: block; }
@@ -1155,17 +1177,44 @@ html.lenis, html.lenis body { height: auto; }
        no edge of its own to give away. */
     radial-gradient(
       130% 100% at 10% 100%,
-      rgba(10, 10, 11, 0.6) 0%,
-      rgba(10, 10, 11, 0.3) 45%,
+      rgba(10, 10, 11, 0.44) 0%,
+      rgba(10, 10, 11, 0.22) 45%,
       rgba(10, 10, 11, 0) 78%
     ),
     linear-gradient(
       to top,
-      rgba(10, 10, 11, 0.92) 0%,
-      rgba(10, 10, 11, 0.78) 26%,
-      rgba(10, 10, 11, 0.42) 58%,
+      rgba(10, 10, 11, 0.72) 0%,
+      rgba(10, 10, 11, 0.58) 26%,
+      rgba(10, 10, 11, 0.28) 58%,
       rgba(10, 10, 11, 0) 100%
     );
+}
+
+/* Above a phone the caption zone moves to the vertical centre of the frame —
+   requested after the lower-third placement above shipped — so the plinth has
+   to move with it. Same left-weighted horizontal ellipse; the vertical layer
+   switches from a bottom-anchored "to top" fade to one centred at 50%, and the
+   element covers the whole frame rather than just its lower half so there is
+   room for the fade to run in both directions. */
+@media (min-width: 640px) {
+  .u-plinth {
+    inset: 0;
+    height: auto;
+    background:
+      radial-gradient(
+        130% 100% at 10% 50%,
+        rgba(10, 10, 11, 0.44) 0%,
+        rgba(10, 10, 11, 0.22) 45%,
+        rgba(10, 10, 11, 0) 78%
+      ),
+      radial-gradient(
+        66% 46% at 50% 50%,
+        rgba(10, 10, 11, 0.66) 0%,
+        rgba(10, 10, 11, 0.5) 42%,
+        rgba(10, 10, 11, 0.22) 70%,
+        rgba(10, 10, 11, 0) 100%
+      );
+  }
 }
 
 /* The opening and closing frames are centred, so they get a centred ground
@@ -1195,9 +1244,9 @@ html.lenis, html.lenis body { height: auto; }
      is the reason anyone is looking. */
   background: radial-gradient(
     70% 48% at 50% 50%,
-    rgba(10, 10, 11, 0.66) 0%,
-    rgba(10, 10, 11, 0.54) 44%,
-    rgba(10, 10, 11, 0.26) 74%,
+    rgba(10, 10, 11, 0.46) 0%,
+    rgba(10, 10, 11, 0.36) 44%,
+    rgba(10, 10, 11, 0.16) 74%,
     rgba(10, 10, 11, 0) 100%
   );
 }
@@ -1215,12 +1264,41 @@ html.lenis, html.lenis body { height: auto; }
   .u-vignette {
     background: radial-gradient(
       74% 42% at 50% 46%,
-      rgba(10, 10, 11, 0.72) 0%,
-      rgba(10, 10, 11, 0.56) 46%,
-      rgba(10, 10, 11, 0.26) 76%,
+      rgba(10, 10, 11, 0.52) 0%,
+      rgba(10, 10, 11, 0.4) 46%,
+      rgba(10, 10, 11, 0.18) 76%,
       rgba(10, 10, 11, 0) 100%
     );
   }
+}
+
+/* The ground behind the opening mark, and the one place on the film where the
+   overlay ADDS light instead of subtracting it.
+
+   The foundation mark is published in a single navy, rgb(40,67,156), and navy
+   is a dark ink: the vignette that makes red type legible is the exact wrong
+   thing behind it, because both the mark and the frame get darker together and
+   the gap between them never widens. So the mark gets a soft light plate of
+   its own, sitting over the vignette and cancelling it locally. Everything
+   else on the frame still wants the dark.
+
+   Blurred and with no hard edge, so it reads as light falling on the picture
+   rather than as a white shape laid on top of it. */
+.u-mark-halo {
+  position: absolute;
+  /* Wider than the lockup on both axes. A halo that stops at the artwork reads
+     as a shape sitting behind it; one that runs well past reads as light. */
+  inset: -60% -38%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 62% at 50% 50%,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.3) 38%,
+    rgba(255, 255, 255, 0.12) 66%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: blur(16px);
 }
 
 /* Two stops, not one. The wide soft shadow that was here alone is a glow: it
@@ -1239,10 +1317,18 @@ html.lenis, html.lenis body { height: auto; }
    this section; a tight dark ring around the letterforms buys back what
    lightening the vignette gave away, and costs the picture nothing. */
 .u-onfilm-red {
+  /* Two stops, not four, and none of them a tight ring.
+     
+     The heavier version this replaces stacked a 2px and a 6px halo at near-full
+     black around every letterform, which stopped reading as separation and
+     started reading as an outline drawn around the type — thick and dark
+     enough to be the thing you noticed instead of the word. One close stop for
+     the edge and one wide one for separation is all red needs; the rest was
+     the scrim's job, and the scrim is already doing it. */
   text-shadow:
-    0 0 3px rgba(0, 0, 0, 0.95),
-    0 1px 2px rgba(0, 0, 0, 0.95),
-    0 2px 16px rgba(0, 0, 0, 0.8);
+    0 0 4px rgba(0, 0, 0, 0.42),
+    0 1px 2px rgba(0, 0, 0, 0.82),
+    0 2px 16px rgba(0, 0, 0, 0.62);
 }
 
 /* ---- actions over film -------------------------------------------------
