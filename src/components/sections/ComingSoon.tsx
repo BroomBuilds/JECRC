@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { ANNOUNCEMENT } from "@/lib/content/announcement";
+import { LOGO } from "@/lib/content/site";
 import { ArrowRight } from "@/components/ui/Icons";
 
 /**
@@ -177,6 +178,21 @@ export default function ComingSoon() {
         <div className="mt-14 border-t border-white/20 pt-12 md:mt-16 md:pt-14">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.5fr)] lg:items-start lg:gap-16">
             <div>
+              {/* The reversed mark, same artwork the tour uses.
+
+                  The published version is black type and a maroon shield built
+                  for white paper: on this band the maroon is very nearly the
+                  band's own colour, and it was the wordmark carrying the whole
+                  logo on its own. Reversed, the shield reads again — see
+                  `scripts/make-hospital-mark.mjs`. */}
+              <Image
+                data-reveal
+                src={LOGO.hospitalMarkReversed}
+                alt="JECRC Hospital"
+                width={704}
+                height={274}
+                className="mb-6 h-10 w-auto sm:h-12"
+              />
               <span data-reveal className="u-eyebrow text-white/70">
                 {ANNOUNCEMENT.medical.eyebrow}
               </span>

@@ -15,6 +15,8 @@
     "tour:build": "node scripts/build-tour.mjs",
     "brand:mono": "node scripts/make-mono-logo.mjs",
     "brand:ju": "node scripts/make-ju-mark.mjs",
+    "brand:hospital": "node scripts/make-reversed-mark.mjs \"ref/hospital logo.png\" public/brand/jecrc-hospital-mark-reversed.png --hold 200,190,140",
+    "brand:foundation": "node scripts/make-reversed-mark.mjs \"ref/JECRC Foundation Logo_.png\" public/brand/jecrc-foundation-mark-reversed.png",
     "brand:crest": "node scripts/make-crest.mjs",
     "brand:social": "node scripts/make-social.mjs",
     "brand:icons": "node scripts/make-icons.mjs",

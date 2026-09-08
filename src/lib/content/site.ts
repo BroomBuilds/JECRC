@@ -67,6 +67,45 @@ export const LOGO = {
    * and wrong here, where it softened the ™ and rendered the wordmark grey.
    */
   juMark: "/brand/ju-mark.webp",
+  /**
+   * The founding entity's own published mark: navy roundel, "JECRC Foundation"
+   * wordmark, on transparent. Unlike `juMark` this is NOT recoloured — it is a
+   * published logo with its own brand colours, and a founding trust's mark is
+   * not ours to repaint. Converted from `ref/JECRC Foundation Logo_.png` with
+   * a plain trim + webp pass, nothing else.
+   */
+  foundationMark: "/brand/jecrc-foundation-mark.webp",
+  /**
+   * The same mark reversed to white, by `npm run brand:foundation`.
+   *
+   * Built when the navy went soft against a lightened film frame, then set
+   * aside: the group wants the published navy on the opening frame, so
+   * `foundationMark` above is what ships. Kept because the reverse is the
+   * obvious thing to reach for the next time this mark has to sit on a dark
+   * or coloured ground, and it is one command to regenerate either way.
+   */
+  foundationMarkReversed: "/brand/jecrc-foundation-mark-reversed.webp",
+  /**
+   * The hospital's published mark as given, for LIGHT surfaces. Nothing on the
+   * site uses it today — the film and the crimson band both need the reversed
+   * variant below — but it is the artwork as delivered, kept for any light
+   * ground that wants it.
+   *
+   * Maroon-and-tan shield, black wordmark,
+   * "Infinite Care". Same treatment as the foundation mark — trimmed and
+   * converted, ink untouched. Measured on the site's own crimson (#df1919):
+   * the black wordmark and the shield's dark maroon both hold contrast, so it
+   * needs no recolouring to sit on the "what's next" band.
+   */
+  hospitalMark: "/brand/jecrc-hospital-mark.webp",
+  /**
+   * The same mark reversed for dark and coloured grounds: white wordmark,
+   * white knot, the shield's flanking curves held back to half alpha so it
+   * keeps its shape. Built by `npm run brand:hospital`. This is the one the
+   * site actually uses — over the film and on the crimson band, both of which
+   * the published black-on-white version cannot sit on.
+   */
+  hospitalMarkReversed: "/brand/jecrc-hospital-mark-reversed.webp",
   /** Brand red on transparent, for the oxblood footer. Same script, `#de1819`. */
   lockupRed: "/brand/jecrc-lockup-red.webp",
   /** The crest alone, cut out of the red lockup by `npm run brand:crest`. */
