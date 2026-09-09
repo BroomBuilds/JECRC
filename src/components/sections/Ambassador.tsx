@@ -80,9 +80,17 @@ export default function Ambassador() {
                 alone on a line under the name, which reads as a mistake rather
                 than a line break. Held on one line by sizing it to the column
                 rather than by nowrap alone: nowrap at the name's display size
-                would simply overflow. */}
-            <span className="u-display-strong mt-1 block whitespace-nowrap text-[min(7vw,1.9rem)] text-crimson sm:text-[min(5.3vw,2.55rem)] lg:text-[min(3.35vw,3.65rem)]">
-              is part of the JECRC story
+                would simply overflow.
+
+                The phone tier is deliberately a shade under where it could
+                sit. "now part of the JECRC story" is a character longer than
+                the "is part of" it replaced, and at 7vw the line measured
+                EXACTLY the column's width at 320, 390 and 430 — one line, but
+                with nothing spare, which on a nowrap line is one metric change
+                away from overflowing. 6.7vw buys ~15px back and is not a
+                visible difference. */}
+            <span className="u-display-strong mt-1 block whitespace-nowrap text-[min(6.7vw,1.85rem)] text-crimson sm:text-[min(5.3vw,2.55rem)] lg:text-[min(3.35vw,3.65rem)]">
+              now part of the JECRC story
             </span>
           </h2>
 

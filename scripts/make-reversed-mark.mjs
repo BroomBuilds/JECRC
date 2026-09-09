@@ -40,6 +40,21 @@ const IN = process.argv[2] ?? "ref/hospital logo.png";
 const OUT = process.argv[3] ?? "public/brand/jecrc-hospital-mark-reversed.png";
 
 /**
+ * The flat colour every ink pixel is repainted to, as `--ink rrggbb`.
+ *
+ * Defaults to white, which is what "reversed" means for a mark going onto a
+ * dark ground. The other values exist for the closing sequence, which needs
+ * the same artwork three times over: black to cut it out of the plate as a
+ * luminance mask, white to glow through the hole, and brand red for the solid
+ * mark that settles in last.
+ */
+const inkArg = process.argv.indexOf("--ink");
+const INK = inkArg > -1 && process.argv[inkArg + 1]
+  ? process.argv[inkArg + 1].replace("#", "")
+  : "ffffff";
+const [IR, IG, IB] = [0, 2, 4].map((i) => parseInt(INK.slice(i, i + 2), 16));
+
+/**
  * An optional ink colour to hold back to half alpha instead of taking to solid
  * white, given as `--hold r,g,b`.
  *
@@ -71,9 +86,9 @@ for (let i = 0; i < data.length; i += 4) {
   const a = data[i + 3];
   if (a === 0) continue;
   const isHeld = HOLD && near(data[i], data[i + 1], data[i + 2], HOLD);
-  data[i] = 255;
-  data[i + 1] = 255;
-  data[i + 2] = 255;
+  data[i] = IR;
+  data[i + 1] = IG;
+  data[i + 2] = IB;
   if (isHeld) {
     data[i + 3] = Math.round(a * HOLD_ALPHA);
     held++;
@@ -84,6 +99,6 @@ const out = sharp(data, { raw: { width, height, channels: 4 } });
 await out.clone().png().toFile(OUT);
 await out.clone().webp({ quality: 94 }).toFile(OUT.replace(/\.png$/, ".webp"));
 console.log(
-  `wrote ${OUT} and .webp — ${width}x${height}, ${solid} px solid white` +
+  `wrote ${OUT} and .webp — ${width}x${height}, ${solid} px solid #${INK}` +
     (HOLD ? `, ${held} px held at ${HOLD_ALPHA}` : "")
 );
