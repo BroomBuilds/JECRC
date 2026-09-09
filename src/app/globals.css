@@ -533,22 +533,6 @@ html.lenis, html.lenis body { height: auto; }
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
-@keyframes u-mast-part-top {
-  from { top: calc(50% - 0.5px); }
-  to { top: 0; }
-}
-@keyframes u-mast-part-bottom {
-  from { bottom: calc(50% - 0.5px); }
-  to { bottom: 0; }
-}
-@keyframes u-mast-leave {
-  from { transform: scaleX(1); opacity: 1; }
-  to { transform: scaleX(6); opacity: 0; }
-}
-@keyframes u-mast-reveal {
-  from { clip-path: inset(49.5% 0 49.5% 0); transform: scale(1.035); }
-  to { clip-path: inset(0 0 0 0); transform: scale(1); }
-}
 @keyframes u-mast-rise {
   from { opacity: 0; transform: translate3d(0, 10px, 0); }
   to { opacity: 1; transform: none; }
@@ -570,55 +554,19 @@ html.lenis, html.lenis body { height: auto; }
   to { transform: scaleY(1); }
 }
 
-.u-masthead {
-  position: relative;
-  /* The band the rules open to. Wider than the artwork, so they frame it
-     rather than underline it. */
-  padding-block: 0.95rem;
-}
-
-.u-masthead-rule {
-  position: absolute;
-  /* Overhanging the mark on both sides: a rule that stops exactly at the
-     artwork reads as part of the artwork. */
-  left: -8%;
-  right: -8%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.5);
-  transform-origin: center;
-}
-
-/* `draw` and `leave` both own the transform. `leave` is later in the list
-   so it wins once it starts, and it fills FORWARDS only: with `both` its
-   from-state would apply during the delay and cancel the draw. */
-.u-masthead-rule-top {
-  top: 0;
-  animation:
-    u-mast-draw 240ms var(--ease-out-expo) 80ms both,
-    u-mast-part-top 340ms var(--ease-out-expo) 300ms both,
-    u-mast-leave 520ms var(--ease-in-out-quint) 700ms forwards;
-}
-.u-masthead-rule-bottom {
-  bottom: 0;
-  animation:
-    u-mast-draw 240ms var(--ease-out-expo) 80ms both,
-    u-mast-part-bottom 340ms var(--ease-out-expo) 300ms both,
-    u-mast-leave 520ms var(--ease-in-out-quint) 700ms forwards;
-}
-
-/* Same window as the rules parting, so the mark opens with the band. */
-.u-masthead-mark { animation: u-mast-reveal 420ms var(--ease-out-expo) 300ms both; }
-
-.u-masthead-eyebrow { animation: u-mast-rise 500ms var(--ease-out-expo) 540ms both; }
-/* The tagline is the page's largest paint, so it starts arriving while the
-   band is still opening rather than waiting its turn behind it. */
-.u-masthead-line { animation: u-mast-unmask 620ms var(--ease-out-expo) 420ms both; }
+.u-masthead-eyebrow { animation: u-mast-rise 500ms var(--ease-out-expo) 300ms both; }
+/* The name is the page's largest paint and now the first thing in the
+   sequence: the mark it used to wait 420ms behind has moved to the closing
+   frame, so every delay below was pulled forward by the same amount. The
+   stagger between them is unchanged — only the dead time at the front is
+   gone. */
+.u-masthead-line { animation: u-mast-unmask 620ms var(--ease-out-expo) 140ms both; }
 
 /* The invitation lands last, once the mark has finished placing itself. */
-.u-masthead-cue { animation: u-mast-rise 560ms var(--ease-out-expo) 1000ms both; }
+.u-masthead-cue { animation: u-mast-rise 560ms var(--ease-out-expo) 700ms both; }
 .u-masthead-cue-line {
   transform-origin: top;
-  animation: u-mast-drop 560ms var(--ease-out-expo) 1060ms both;
+  animation: u-mast-drop 560ms var(--ease-out-expo) 760ms both;
 }
 
 /* The playhead's own track, drawn out from the centre like the rules were.
@@ -626,7 +574,7 @@ html.lenis, html.lenis body { height: auto; }
    the visitor moves, so the two never fight. */
 .u-masthead-track {
   transform-origin: center;
-  animation: u-mast-draw 760ms var(--ease-out-expo) 940ms both;
+  animation: u-mast-draw 760ms var(--ease-out-expo) 660ms both;
 }
 
 /* ------------------------------------------------------------------
@@ -669,59 +617,43 @@ html.lenis, html.lenis body { height: auto; }
    toggle: flipping one would rebuild the mask raster at the exact moment the
    ending needs it. */
 
-/* ---- the closing lockup, measured ----------------------------------
-   The type is SVG and the crest is an <img>, so they cannot be laid out
-   against each other by a flex box. They are placed arithmetically
-   instead, off four numbers:
+/* ---- the closing mark ----------------------------------------------
+   No geometry here any more.
 
-     --w     the word's font-size. Everything else is a multiple of it.
-     --ch    the crest's height, set to the type block's height.
-     --gap   the space between mark and type.
-     2.8     "JECRC" and "UNIVERSITY" both set 2.8x the word's font-size
-             wide in this face. It is a font metric, not a guess, and it
-             holds at every viewport because both sizes are in vw.
-
-   --cw is the crest's own aspect, 402 by 464, times its height.
-
-   From those, the group's width is --cw + --gap + --tw, and centring the
-   group means pushing the type right by half of (--cw + --gap) and the
-   crest left by half of (--gap + --tw). No measuring, no layout pass, and
-   nothing to re-run on resize.
-
-   The crest's own centre line is the type BLOCK's centre, not the word's
-   baseline: cap height above the baseline is 0.7em of the word and the
-   second line drops 1.15em of the sub below it, which puts the middle a
-   shade above the baseline rather than on it. */
-/* Every size here is `min(Xvw, Yvh)`, never vw alone.
-   
-   The mark scales with viewport WIDTH while the sentence and the portals below
-   it are anchored to the bottom of the viewport HEIGHT, so on a wide, short
-   screen the two grow toward each other. Measured before this cap existed, the
-   gap between the wordmark and the sentence ran from 143px at 1920x1080 down to
-   THREE PIXELS at 1280x720 — the mark had not quite collided with the sentence,
-   but only just, and a 1280x720 laptop is an ordinary screen rather than an
-   edge case. The vh term is 4/3 of the vw term throughout, so it only binds
-   once the frame is too short to afford the mark, and never on a phone. */
-.u-end {
-  --w: min(18vw, 24vh);
-  --ch: min(26vw, 34.7vh);
-  --gap: min(3.5vw, 4.7vh);
-  --tw: calc(var(--w) * 2.8);
-  --cw: calc(var(--ch) * 0.866);
-}
-@media (min-width: 640px) {
-  .u-end { --w: min(15vw, 20vh); --ch: min(22vw, 29.3vh); --gap: min(3vw, 4vh); }
-}
-@media (min-width: 1024px) {
-  .u-end { --w: min(12vw, 16vh); --ch: min(17vw, 22.7vh); --gap: min(2.5vw, 3.3vh); }
-}
-
+   The lockup this replaced was SVG type beside a raster crest, two elements a
+   flex box could not centre against each other, so they were placed off five
+   custom properties and a font metric. The closing mark is now one image, and
+   an image inside a percentage box with `preserveAspectRatio="xMidYMid meet"`
+   centres and scales itself — bounded by the box's HEIGHT as well as its
+   width, which is the property the old arithmetic had to be taught with a
+   `min(vw, vh)` cap after the mark collided with the sentence below it at
+   1280x720. The box is written on the element in ScrollTour.tsx. */
 .u-end-svg { position: absolute; inset: 0; display: block; }
 
-/* All three copies of the type — the plate's hole, the lift, and the fill —
-   carry this, so they cannot drift apart by a pixel. */
-.u-end-type { transform: translateX(calc((var(--cw) + var(--gap)) / 2)); }
+/* The box the closing mark is fitted into, on a phone.
 
+   `preserveAspectRatio="meet"` fits the artwork inside its box, so whichever
+   axis is tighter decides the size. On a desktop that is the height; on a tall
+   narrow phone it is the WIDTH, and the desktop box's 64% left the mark small
+   in the middle of a lot of nothing. A wider, shorter box on small screens
+   makes the width term generous and lets the mark fill the frame the way it
+   does everywhere else.
+
+   Written as CSS geometry properties over the attributes in the markup, which
+   stay as the desktop values: where these are not supported the attributes
+   still apply, so the mark is never unsized. */
+@media (max-width: 639px) {
+  .u-end-mark {
+    x: 6%;
+    y: 17%;
+    width: 88%;
+    height: 34%;
+  }
+}
+
+/* All three copies of the mark — the plate's hole, the lift, and the fill —
+   are given the same box in the markup, so they cannot drift apart by a pixel.
+   Change one and change all three. */
 /* The plate, and the hole in it. Held short of full black: the picture in
    the letters has to stay the brightest thing on the screen, and a plate
    at 1 turns the frame either side of the mark into nothing to look at. */
@@ -732,53 +664,15 @@ html.lenis, html.lenis body { height: auto; }
    glow out of the frame. */
 .u-end-lift { opacity: calc(var(--end-cut) * var(--end-cut) * 0.34); }
 
-/* The mark, as type. Cinzel, in the two-line construction the scratch band
-   uses: the word over a letterspaced second line at roughly its width. */
-.u-end-word,
-.u-end-sub {
-  font-family: var(--font-wordmark);
-  text-anchor: middle;
-}
-.u-end-word {
-  font-variation-settings: "wght" 500;
-  font-weight: 500;
-  letter-spacing: -0.066em;
-  font-size: var(--w);
-}
-.u-end-sub {
-  font-variation-settings: "wght" 400;
-  font-weight: 400;
-  /* 0.4706 of the word: the cap-height ratio measured off the lockup. Both
-     lines hang off ONE baseline and the second is dropped by 1.15em in the
-     markup, so the leading is a fraction of the word rather than of the
-     viewport and the lockup holds its proportions at every width. The drop is
-     wider than the two cap heights want because the J descends in this face
-     and lands squarely on the U below it. */
-  font-size: calc(var(--w) * 0.4706);
-}
-
 /* The fill. Starts a little large and settles, so the solid mark reads as
    the cut one closing rather than as a second mark fading up over it. */
-/* After `.u-end-type`, and re-stating its shift: both rules set `transform`
-   and the later one wins outright. */
 .u-end-solid {
   opacity: var(--end-fill);
-  transform: translateX(calc((var(--cw) + var(--gap)) / 2))
-    scale(calc(1.012 - var(--end-fill) * 0.012));
+  /* No horizontal shift any more. The old lockup was type in SVG beside a
+     crest that was not, so every copy of the type had to be pushed half the
+     crest's width to centre the pair; one image centres itself. */
+  transform: scale(calc(1.012 - var(--end-fill) * 0.012));
   transform-origin: center;
-}
-
-/* The crest, set above the wordmark on the same fill ramp. Centred on the
-   type's own baseline anchor rather than on the box, so it stays with the
-   mark at every width. */
-.u-end-crest {
-  position: absolute;
-  left: calc(50% - (var(--gap) + var(--tw)) / 2);
-  top: calc(46% - var(--w) * 0.0795);
-  width: auto;
-  height: var(--ch);
-  transform: translate(-50%, -50%);
-  opacity: var(--end-fill);
 }
 
 /* The hairline. Overshoots inward and settles, and it is what tells you the
@@ -1270,35 +1164,6 @@ html.lenis, html.lenis body { height: auto; }
       rgba(10, 10, 11, 0) 100%
     );
   }
-}
-
-/* The ground behind the opening mark, and the one place on the film where the
-   overlay ADDS light instead of subtracting it.
-
-   The foundation mark is published in a single navy, rgb(40,67,156), and navy
-   is a dark ink: the vignette that makes red type legible is the exact wrong
-   thing behind it, because both the mark and the frame get darker together and
-   the gap between them never widens. So the mark gets a soft light plate of
-   its own, sitting over the vignette and cancelling it locally. Everything
-   else on the frame still wants the dark.
-
-   Blurred and with no hard edge, so it reads as light falling on the picture
-   rather than as a white shape laid on top of it. */
-.u-mark-halo {
-  position: absolute;
-  /* Wider than the lockup on both axes. A halo that stops at the artwork reads
-     as a shape sitting behind it; one that runs well past reads as light. */
-  inset: -60% -38%;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    58% 62% at 50% 50%,
-    rgba(255, 255, 255, 0.42) 0%,
-    rgba(255, 255, 255, 0.3) 38%,
-    rgba(255, 255, 255, 0.12) 66%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  filter: blur(16px);
 }
 
 /* Two stops, not one. The wide soft shadow that was here alone is a glow: it

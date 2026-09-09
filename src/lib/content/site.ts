@@ -68,23 +68,38 @@ export const LOGO = {
    */
   juMark: "/brand/ju-mark.webp",
   /**
-   * The founding entity's own published mark: navy roundel, "JECRC Foundation"
-   * wordmark, on transparent. Unlike `juMark` this is NOT recoloured — it is a
-   * published logo with its own brand colours, and a founding trust's mark is
-   * not ours to repaint. Converted from `ref/JECRC Foundation Logo_.png` with
-   * a plain trim + webp pass, nothing else.
+   * The published mark, unaltered, and what the film closes on.
+   *
+   * Navy on a near-black plate should not work, and the only reason it does is
+   * the lift: the ending washes the mark's own silhouette with white before the
+   * fill arrives, so the navy lands on a lifted ground rather than straight on
+   * the plate. Measured on the built page it reads cleanly at every size. If
+   * that lift is ever turned down, check this frame before shipping.
    */
   foundationMark: "/brand/jecrc-foundation-mark.webp",
   /**
    * The same mark reversed to white, by `npm run brand:foundation`.
    *
-   * Built when the navy went soft against a lightened film frame, then set
-   * aside: the group wants the published navy on the opening frame, so
-   * `foundationMark` above is what ships. Kept because the reverse is the
-   * obvious thing to reach for the next time this mark has to sit on a dark
-   * or coloured ground, and it is one command to regenerate either way.
+   * Used by the closing sequence to light the hole it cuts in the plate. It
+   * was built for the opening frame, where the published navy went soft
+   * against the film, then set aside when the group asked for the navy back —
+   * and the ending, which is very nearly black, turned out to be the dark
+   * ground it was always the right answer for.
    */
   foundationMarkReversed: "/brand/jecrc-foundation-mark-reversed.webp",
+  /**
+   * The same mark in black, for the closing sequence.
+   *
+   * The ending does three things to one piece of artwork: cuts it out of the
+   * plate, lights the hole, then fills it solid. The Cinzel wordmark this
+   * replaced was SVG <text> and could be recoloured per copy for nothing; a
+   * raster cannot, so each colour is its own file — this one is the luminance
+   * mask that punches the hole, `Reversed` above lights it, and the mark that
+   * settles in last is `foundationMark`, the published navy, unaltered.
+   *
+   * From `scripts/make-reversed-mark.mjs --ink 000000`.
+   */
+  foundationMarkBlack: "/brand/jecrc-foundation-mark-black.webp",
   /**
    * The hospital's published mark as given, for LIGHT surfaces. Nothing on the
    * site uses it today — the film and the crimson band both need the reversed

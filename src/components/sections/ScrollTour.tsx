@@ -1053,33 +1053,54 @@ export default function ScrollTour({ captions = [] }: Props) {
             visibility change but rebuilds it after a reflow. */}
         <div aria-hidden className="u-end pointer-events-none absolute inset-0">
           <span className="u-end-frame" />
+          {/* The closing mark is the foundation's, not the university's.
+
+              It is the same artwork three times over, because the ending does
+              three things to it: cuts it out of the plate, glows through the
+              hole, then fills it solid. The two-line Cinzel wordmark that used
+              to do this was SVG <text>, which could be recoloured per copy for
+              free; a raster cannot, so `npm run brand:foundation` (and the
+              same script with `--ink`) writes the three it needs — black to be
+              a luminance mask, white to light the hole, brand red to settle in.
+
+              Sizing is `preserveAspectRatio="xMidYMid meet"` inside a
+              percentage box rather than arithmetic: the mark fits the box and
+              centres itself, so it is bounded by the frame's HEIGHT as well as
+              its width without a single calc. The old lockup needed the
+              arithmetic because the type and the crest were separate elements
+              that had to be centred against each other; one image needs none
+              of it. */}
           <svg className="u-end-svg" width="100%" height="100%" preserveAspectRatio="none">
             <defs>
               {/* White passes the plate, black cuts it. */}
               <mask id={cutId} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
                 <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
-                <g className="u-end-type">
-                  <text className="u-end-word" x="50%" y="46%" fill="#000">
-                    JECRC
-                  </text>
-                  <text className="u-end-sub" x="50%" y="46%" dy="1.15em" fill="#000">
-                    UNIVERSITY
-                  </text>
-                </g>
+                <image
+                  href={LOGO.foundationMarkBlack}
+                  className="u-end-mark"
+                  x="18%"
+                  y="16%"
+                  width="64%"
+                  height="42%"
+                  preserveAspectRatio="xMidYMid meet"
+                />
               </mask>
-              {/* The same shapes, inverted: white where the letters are. */}
+              {/* The same shape, inverted: white where the mark is. */}
               <mask id={liftId} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
                 <rect x="0" y="0" width="100%" height="100%" fill="#000" />
-                <g className="u-end-type">
-                  <text className="u-end-word" x="50%" y="46%" fill="#fff">
-                    JECRC
-                  </text>
-                  <text className="u-end-sub" x="50%" y="46%" dy="1.15em" fill="#fff">
-                    UNIVERSITY
-                  </text>
-                </g>
+                <image
+                  href={LOGO.foundationMarkReversed}
+                  className="u-end-mark"
+                  x="18%"
+                  y="16%"
+                  width="64%"
+                  height="42%"
+                  preserveAspectRatio="xMidYMid meet"
+                />
               </mask>
             </defs>
+
+            {/* The plate, and the hole in it. */}
             <rect
               className="u-end-plate"
               x="0"
@@ -1089,7 +1110,7 @@ export default function ScrollTour({ captions = [] }: Props) {
               fill="#08080a"
               mask={`url(#${cutId})`}
             />
-            {/* A wash inside the letters and nowhere else.
+            {/* A wash inside the mark and nowhere else.
                 The cut alone is at the mercy of whatever the film happens to
                 have stopped on: this one stops on a tree canopy, and a hole
                 punched through a dark plate onto a darker canopy is a hole
@@ -1105,42 +1126,18 @@ export default function ScrollTour({ captions = [] }: Props) {
               mask={`url(#${liftId})`}
             />
 
-            {/* The same letterforms, solid, arriving last. The cut is the
-                trick; the fill is the mark actually being placed. */}
-            <g className="u-end-type u-end-solid">
-              <text className="u-end-word" x="50%" y="46%" fill="var(--color-crimson)">
-                JECRC
-              </text>
-              <text
-                className="u-end-sub"
-                x="50%"
-                y="46%"
-                dy="1.15em"
-                fill="var(--color-crimson)"
-              >
-                UNIVERSITY
-              </text>
-            </g>
+            {/* The same shape, solid, arriving last. The cut is the trick; the
+                fill is the mark actually being placed. */}
+            <image
+              className="u-end-solid u-end-mark"
+              href={LOGO.foundationMark}
+              x="18%"
+              y="16%"
+              width="64%"
+              height="42%"
+              preserveAspectRatio="xMidYMid meet"
+            />
           </svg>
-
-          {/* The crest, beside the wordmark and at the wordmark's own height:
-              the construction of the published lockup, which sets the mark to
-              the left of the type rather than over it.
-
-              The type is in SVG and the crest is not, so the two are centred
-              against each other arithmetically rather than by a flex box. It
-              costs one constant: "JECRC" and "UNIVERSITY" both set to 2.8x
-              the word's font-size, which holds at every width because the font
-              is fixed and both sizes are in vw. From that the group's total
-              width is known, and the type and the crest each get half of the
-              other's width as an offset. See "The ending" in globals.css. */}
-          <Image
-            src={LOGO.crestLarge}
-            alt=""
-            width={402}
-            height={464}
-            className="u-end-crest"
-          />
         </div>
 
         <div className="pointer-events-none absolute inset-0">
@@ -1188,31 +1185,15 @@ export default function ScrollTour({ captions = [] }: Props) {
               {c.variant === "hero" && (
                 <>
                   <span aria-hidden className="u-vignette" />
-                  {/* The clean identity frame: the founding entity's mark,
-                      then the group's name. Two elements, nothing else.
+                  {/* The clean identity frame: the group's name, and nothing
+                      else. The foundation mark that opened this has moved to
+                      the closing frame, where it is the thing the whole film
+                      arrives at rather than a badge introducing it — and the
+                      opening is stronger for carrying one idea instead of two.
 
-                      Both rules start life on the same centre line, so what
-                      draws out first reads as one hairline; they only become
-                      two when the band opens. See "The masthead" in
-                      globals.css for the sequence. */}
-                  <div className="u-masthead relative mb-9 w-[min(62vw,15rem)] sm:w-[min(36vw,17rem)] lg:w-[min(19vw,16rem)]">
-                    <span aria-hidden className="u-masthead-rule u-masthead-rule-top" />
-                    <span aria-hidden className="u-masthead-rule u-masthead-rule-bottom" />
-                    {/* Light, not dark — the mark is navy, so the vignette that
-                        serves the red type below is the wrong ground for it.
-                        See `.u-mark-halo` in globals.css. */}
-                    <span aria-hidden className="u-mark-halo" />
-                    <Image
-                      src={LOGO.foundationMark}
-                      alt="JECRC Foundation"
-                      width={408}
-                      height={203}
-                      priority
-                      fetchPriority="high"
-                      className="u-masthead-mark relative h-auto w-full"
-                    />
-                  </div>
-
+                      With the mark gone the masthead rules went with it: they
+                      exist to frame artwork, and two hairlines around empty
+                      space is furniture. */}
                   {/* Set in the wordmark's own face, not the interface sans.
                       `.u-wordmark` and `.u-wordmark-sub` are Cinzel at the two
                       weights and the two tracking values measured off the
@@ -1221,10 +1202,10 @@ export default function ScrollTour({ captions = [] }: Props) {
                       in the UI face made it read as a caption about the brand
                       rather than as the brand, which is what the sans is for
                       and what the serif is not. */}
-                  <p className="u-masthead-line u-wordmark u-onfilm-red relative text-[17vw] leading-[0.86] text-crimson-lit sm:text-[12vw] lg:text-[8.4vw]">
+                  <p className="u-masthead-line u-wordmark u-onfilm-red relative text-[20.4vw] leading-[0.86] text-crimson-lit sm:text-[14.4vw] lg:text-[10.1vw]">
                     {BRAND.group}
                   </p>
-                  <span className="u-wordmark-sub u-masthead-eyebrow u-onfilm-red relative mt-2 block text-[4.4vw] uppercase leading-none text-crimson-lit sm:mt-3 sm:text-[3vw] lg:text-[2.1vw]">
+                  <span className="u-wordmark-sub u-masthead-eyebrow u-onfilm-red relative mt-2 block text-[5.3vw] uppercase leading-none text-crimson-lit sm:mt-3 sm:text-[3.6vw] lg:text-[2.5vw]">
                     Group of institutions
                   </span>
                 </>
