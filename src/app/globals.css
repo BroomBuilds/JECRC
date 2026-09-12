@@ -561,6 +561,9 @@ html.lenis, html.lenis body { height: auto; }
    stagger between them is unchanged — only the dead time at the front is
    gone. */
 .u-masthead-line { animation: u-mast-unmask 620ms var(--ease-out-expo) 140ms both; }
+/* The enrolment figure under the name: last of the three, so the lockup places
+   itself before the fact about it arrives. */
+.u-masthead-stat { animation: u-mast-rise 500ms var(--ease-out-expo) 440ms both; }
 
 /* The invitation lands last, once the mark has finished placing itself. */
 .u-masthead-cue { animation: u-mast-rise 560ms var(--ease-out-expo) 700ms both; }
@@ -611,6 +614,13 @@ html.lenis, html.lenis body { height: auto; }
    only visible inside the letterforms, and scrimmed as usual it is a fifth of
    its own brightness, which turns the cut into a smudge. */
 .u-tour-scrim { opacity: calc(1 - var(--end-cut, 0) * 0.92); }
+
+/* The opening plate, the ending's mirror image: solid at the top of the film
+   and dissolved by the first scroll. The fallback is 1, not 0 — this is the
+   first paint of the page and it has to be black before any script has run,
+   which is also why it carries no transition. Same rule as everything else
+   here: the scroll writes the value, nothing eases it. */
+.u-tour-open { opacity: var(--open-plate, 1); }
 
 /* Every layer in here is driven from zero, so before the ending starts the
    whole thing is opacity 0 and a browser skips painting it. No visibility
@@ -1124,6 +1134,11 @@ html.lenis, html.lenis body { height: auto; }
   z-index: 0;
   inset: 0;
   pointer-events: none;
+  /* Stands down under the opening plate. The vignette is a dark radial and the
+     plate is flat black; painted over each other the gradient reads as a faint
+     ring on an otherwise empty frame, which is the one artefact a black opening
+     cannot carry. Falls back to fully on wherever the variable is not set. */
+  opacity: calc(1 - var(--open-plate, 0));
   /* Sized to the whole centred block — mark, sentence and the line of places —
      rather than to the mark alone, so nothing in it sits past the useful
      density.

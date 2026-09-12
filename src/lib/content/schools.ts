@@ -57,7 +57,12 @@ export const PROGRAMMES: Programme[] = [
     partner: "EC-Council, USA",
     school: "Engineering and Technology",
     why: "You graduate with the international certifications recruiters actually screen for, sat during the degree rather than after it.",
-    image: "/media/stills/s7.webp",
+    // s4, not s7. These stills are pulled from the scroll film at fixed
+    // fractions, so a re-cut moves what each one shows: s7 now lands on the
+    // medical college render, which is CGI of an unbuilt block and no card
+    // outside the coming-soon band should be carrying one. s4 is the Jaipur
+    // campus from the road. Re-check these three after every `npm run tour`.
+    image: "/media/stills/s4.webp",
   },
   {
     slug: "fintech-ai",

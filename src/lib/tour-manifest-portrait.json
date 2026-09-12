@@ -1,35 +1,32 @@
 {
-  "count": 333,
-  "rev": "6ffcae59",
+  "count": 302,
+  "rev": "ffea4be8",
   "fps": 15,
-  "duration": 22.2,
+  "duration": 20.133333,
   "pad": 4,
   "base": "/media/tour/v",
-  "poster": "/media/tour/v/poster.webp?v=6ffcae59",
-  "aspect": 0.5625,
+  "poster": "/media/tour/v/poster.webp?v=ffea4be8",
+  "aspect": 0.8035714285714286,
   "orientation": "portrait",
-  "spineStride": 4,
+  "spineStride": 3,
   "cuts": [
-    0.0931,
-    0.1832,
-    0.3033,
-    0.4219,
-    0.5661,
-    0.7267,
-    0.9069
+    0.2318,
+    0.5215,
+    0.6987,
+    0.8974
   ],
   "formats": {
     "avif": {
       "ext": "avif",
       "sizes": [
         {
-          "width": 720,
-          "height": 1280,
-          "dir": "720"
+          "width": 960,
+          "height": 1194,
+          "dir": "960"
         },
         {
           "width": 400,
-          "height": 712,
+          "height": 498,
           "dir": "400"
         }
       ]
@@ -39,11 +36,11 @@
       "sizes": [
         {
           "width": 640,
-          "height": 1138,
+          "height": 796,
           "dir": "640"
         }
       ]
     }
   },
-  "builtFrom": "website-vertical-new.mp4"
+  "builtFrom": "website update vertical.mp4"
 }

@@ -77,13 +77,13 @@ film per shape, the same edit at two aspects, and a device only ever fetches one
 ```
 npm run tour        # both, with the parameters that shipped
 
-ref/website-horizontal.mp4 ─> public/media/tour/h/avif/1400/f0001.avif … f0734.avif
+ref/"website update horizontal.mp4" ─> public/media/tour/h/avif/1400/f0001.avif … f0503.avif
                           └─> public/media/tour/h/avif/640/…            (the spine)
                           └─> public/media/tour/h/webp/1100/…           (fallback)
                           └─> public/media/tour/h/poster.webp
                           └─> public/media/tour/h/manifest.json  (+ src/lib/tour-manifest-landscape.json)
 
-ref/website-vertical_1.mp4 ─> public/media/tour/v/avif/720/…  640/…  webp/640/…
+ref/"website update vertical.mp4"   ─> public/media/tour/v/avif/720/…  400/…  webp/640/…
 ```
 
 ### Format: AVIF, with WebP behind it
@@ -123,15 +123,62 @@ sustained motion is a **plateau**. So each candidate is measured against a basel
 from each side separately, and the *smaller* of the two decides: a cut stands clear of at
 least one of the shots it joins, a plateau stands clear of neither.
 
+Height alone is not enough either, in the other direction. The current portrait cut joins two
+sunset aerials of near-identical brightness and that cut measures **21**, under the absolute
+floor of 25 — so the landscape cut of the *same edit* was found at 41 and the portrait one was
+not, and the portrait film shipped a hard swap where every other cut dissolved. A cut between
+two similar pictures is quiet but still *isolated*, so there are two ways in: above 25 the
+usual ratio of 3 decides, and between 15 and 25 the frame has to stand **6×** clear of its
+neighbourhood instead. The edge of a plateau cannot: entering a sustained high-motion run the
+outgoing side is quiet, which clears 3 comfortably and 6 not at all.
+
 The logic lives in `scripts/find-cuts.mjs` with its checks attached — `npm run tour:cuts`.
 Re-tune it without a five-minute re-encode using `--cuts-only`, which re-detects against an
 existing build and rewrites only the cut list, leaving the frames and therefore the rev alone.
 
-Both cuts of the current film run 29.36 s and cut at the same eleven fractions:
+Both cuts of the current film run 20.12 s and cut at the same four fractions, within .0032:
 
 ```
-.109 .168 .225 .305 .395 .459 .523 .607 .711 .783 .867
+landscape   .229 .521 .698 .897
+portrait    .232 .521 .699 .897
 ```
+
+### Reframing the portrait cut
+
+The portrait film is the landscape edit re-framed to 9:16, and re-framing a drone shot that
+way puts the horizon near the middle. On a phone the source is *taller* than the viewport, so
+the cover fit uses all of its height and trims the sides — which means every pixel of that sky
+is on screen, and the campus the shot is of ends up in the bottom third, under the caption.
+On the Jaipur beat the entire band above the caption was sky.
+
+So the build can re-frame: `--keep` is the fraction of source height kept, `--anchor` says
+where that window sits, one value per shot from 0 (top) to 1 (bottom). The shipped portrait
+build is `--keep 0.70 --anchor 1,1,0.35,0.55,0.75`:
+
+| shot | anchor | what it drops |
+|---|---|---|
+| the opening aerial | 1 | sky |
+| the Jaipur campus | 1 | sky |
+| the gate | 0.35 | foreground pavement |
+| the Block-2A render | 0.55 | a little of each |
+| the entrance render | 0.75 | the roofline and the burnt-in label |
+
+Two things make this a build step rather than a canvas transform. The crop lands **before** the
+downscale, so fitting 1344 rows into the tier width keeps every pixel the tier can hold, where
+the same reframe at runtime is an upscale of frames built for the old framing. And shot
+boundaries come from the **detected cuts**, so a re-cut of the same edit keeps its framing
+without a single number being retyped — only the anchors are written down, in film order.
+
+`crop` fixes its output size once and re-evaluates `y` per frame, which is why the window is
+one height for the whole film and only its position moves. Each move lands on a cut, where the
+picture is being replaced anyway.
+
+**What it costs.** A shorter frame is a wider one relative to the viewport, so the cover fit
+scales up more and trims more from the sides: about 42% of the width against 18% before. The
+shots that push in pay for that. The gate banner now runs out of frame at 13.0 s instead of
+13.3 s — it was going to be cropped either way, and a caption cropping as the camera arrives at
+it reads as the camera moving. Lower `--keep` for more building and more side-trim; raise it for
+the reverse.
 
 ### Choosing `--fps`
 
@@ -142,9 +189,11 @@ frames  =  duration × fps
 pixels per frame  =  (TOUR_VH / 100 × viewport height) / frames
 ```
 
-The landscape film is `--fps 25` against a 25 fps source: 734 frames, and at `--tour-vh: 1500`
-on a 900 px window that is 18 px of scroll per frame. The portrait film is `--fps 15` against
-a 30 fps source: 441 frames at `--tour-vh: 900`, or 18 px per frame as well.
+The landscape film is `--fps 25` against a 25 fps source: 503 frames, and at `--tour-vh: 1500`
+on a 900 px window that is 25 px of scroll per frame. The portrait film is `--fps 15` against
+a 30 fps source: 302 frames at `--tour-vh: 900`, or 24 px per frame. Both were 18 px against
+the 22.2 s cut these replaced; the film lost two seconds and the numbers moved with it, which
+is the direction that costs nothing — a frame held over more scroll is a frame held longer.
 
 **Keep `--fps` an integer divisor of the source rate.** A non-divisor makes ffmpeg pick the
 nearest source frame for each output slot, so the *content* intervals come out uneven while

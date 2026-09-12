@@ -19,6 +19,13 @@ export const BRAND = {
   promise: "Driven by a Culture of Excellence, Research and Innovation",
   foundedYear: 2000,
   copyrightYear: 2026,
+  /**
+   * Heads the scroll tour's opening frame under the group name. Given by the
+   * group as an exact roll rather than a rounded one, which is why it is not
+   * the "26,000+" that NUMBERS carries — that figure is the two universities
+   * only, this one is the whole group. Update both when the group does.
+   */
+  enrolled: "29,643",
 } as const;
 
 export const CONTACT = {

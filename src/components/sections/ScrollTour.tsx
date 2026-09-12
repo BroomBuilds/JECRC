@@ -798,6 +798,17 @@ export default function ScrollTour({ captions = [] }: Props) {
       if (bar.current) bar.current.style.transform = `scaleX(${p})`;
       if (cue.current) cue.current.style.opacity = String(1 - smooth(p, 0, 0.04));
 
+      // ---- the opening plate ----------------------------------------------
+      // Held solid for the first slice of the scroll so the name is read on
+      // black rather than glimpsed over a dissolve, then off by .055. The
+      // opening beat carries a shortened ramp so it does not begin leaving
+      // until .065, which puts the name at full strength on the picture for a
+      // moment in between — without that gap the two moves overlap and the
+      // reveal reads as the title fading rather than as the film arriving.
+      if (stage.current) {
+        stage.current.style.setProperty("--open-plate", String(1 - smooth(p, 0.012, 0.055)));
+      }
+
       // ---- the ending ----------------------------------------------------
       // The film's last cut is at .9058 and the frames stop mid-stride, which
       // left the closing fourteen percent of the scroll painting one identical
@@ -878,6 +889,12 @@ export default function ScrollTour({ captions = [] }: Props) {
         img.src = url(displayTier, 0);
       });
       applyOverlay(0);
+      // `applyOverlay(0)` leaves the opening plate solid, which is right for a
+      // film that is about to be scrubbed and wrong for one that never will
+      // be: there is no scroll here to dissolve it, so the visitor would hold
+      // a black rectangle for the whole section. The name still lands on the
+      // frame, just without the reveal.
+      stage.current?.style.setProperty("--open-plate", "0");
       return () => {
         disposed = true;
         window.removeEventListener("resize", resize);
@@ -1030,6 +1047,24 @@ export default function ScrollTour({ captions = [] }: Props) {
           aria-hidden
           className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/55 via-transparent to-ink/40"
         />
+
+        {/* ---- the opening plate ----
+            The tour does not begin as a picture. At the top it is black with
+            the group's name on it, and the first scroll dissolves the plate off
+            a film that has been running underneath the whole time — so the name
+            arrives first and the picture is what it opens onto, rather than the
+            name being a caption laid over a frame the visitor has already seen.
+
+            Opaque by default rather than raised by script: the plate has to BE
+            the first paint, and anything that fades it in is a flash of film
+            before the black. `applyOverlay` takes `--open-plate` over from
+            here on the first frame it runs.
+
+            Over the scrim, under the captions and under the ending. The scrim
+            exists to keep type readable over a moving picture and there is no
+            picture to be read over yet; the captions are the point of the
+            plate; and the two plates never run at the same end of the film. */}
+        <div aria-hidden className="u-tour-open pointer-events-none absolute inset-0 bg-ink" />
 
         {/* ---- the ending ----
             See "the ending" in applyOverlay above for why this exists, and
@@ -1207,6 +1242,14 @@ export default function ScrollTour({ captions = [] }: Props) {
                   </p>
                   <span className="u-wordmark-sub u-masthead-eyebrow u-onfilm-red relative mt-2 block text-[5.3vw] uppercase leading-none text-crimson-lit sm:mt-3 sm:text-[3.6vw] lg:text-[2.5vw]">
                     Group of institutions
+                  </span>
+                  {/* The one figure on the opening frame, and deliberately the
+                      smallest thing on it: set in the interface sans rather
+                      than the wordmark face, because it is a fact about the
+                      group and not part of the lockup. It rises last, after
+                      the name and the sub have placed themselves. */}
+                  <span className="u-eyebrow u-masthead-stat u-onfilm relative mt-4 block text-[0.8125rem] text-paper/85 sm:mt-5 sm:text-[0.9rem] lg:text-[1rem]">
+                    {BRAND.enrolled} Students Enrolled
                   </span>
                 </>
               )}
