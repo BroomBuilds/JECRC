@@ -14,6 +14,8 @@
  *   --quality <n>    WebP quality 0-100                     (default 50)
  *   --max <n>        hard cap on frame count                (default 900)
  *   --stills <n>     section stills pulled from this film   (default 0)
+ *   --keep <frac>    fraction of source HEIGHT kept           (default 1)
+ *   --anchor <list>  where that window sits, one per shot     (default 0.5)
  *   --out <dir>      output dir  (default public/media/tour/h)
  *
  * Writes:
@@ -78,7 +80,19 @@ const crf       = Number(opt("crf", 36));
 const quality   = Number(opt("quality", 50));
 const maxFrames = Number(opt("max", 900));
 const stills    = Number(opt("stills", 0));
+const keep      = Number(opt("keep", 1));
+const anchorArg = String(opt("anchor", "0.5"));
 const outDir    = resolve(opt("out", "public/media/tour/h"));
+
+if (!(keep > 0 && keep <= 1)) {
+  console.error(`✗ --keep must be over 0 and at most 1, got ${keep}`);
+  process.exit(1);
+}
+const anchorList = anchorArg.split(",").map((a) => Number(a.trim()));
+if (anchorList.some((a) => !(a >= 0 && a <= 1))) {
+  console.error(`✗ --anchor takes values from 0 (top) to 1 (bottom), got ${anchorArg}`);
+  process.exit(1);
+}
 
 if (!existsSync(input)) {
   console.error(`✗ no such file: ${input}`);
@@ -198,12 +212,91 @@ if (argv.includes("--cuts-only")) {
 }
 
 // ---------------------------------------------------------------------------
-// Frame extraction
-
+// Reframing
+//
+// The portrait cut of this film is the landscape edit re-framed to 9:16, and
+// re-framing a drone shot that way puts the horizon near the middle: the
+// aerials carry about half a frame of empty sky, and on a phone — where the
+// source is TALLER than the viewport is, so the cover fit uses all of its
+// height and trims the sides — every pixel of that sky is on screen. The
+// campus the shot is of ends up in the bottom third, under the caption.
+//
+// So the film can be re-framed here: keep a window of the source height and
+// choose, PER SHOT, where that window sits. The aerials take it from the
+// bottom and lose the sky; the gate and the renders have their dead space at
+// the other end — foreground pavement, an empty plaza — and take it from
+// nearer the top.
+//
+// Done at build time rather than in the canvas because the crop lands BEFORE
+// the downscale: cropping a quarter off 1920 and then fitting 1440 into the
+// tier width keeps every pixel the tier can hold. The same reframe done at
+// runtime is an upscale of frames already built for the old framing, which is
+// the same picture, softer, in more bytes.
+//
+// Shot boundaries are the cuts detected above rather than times written out
+// here, so a re-cut of the same edit keeps its framing without anything being
+// retyped. Only the anchors are given, in film order, one per shot.
 if (existsSync(outDir)) rmSync(outDir, { recursive: true });
 mkdirSync(outDir, { recursive: true });
 
-const heightFor = (w) => Math.round((w * srcH) / srcW / 2) * 2;
+/** Height of one frame after reframing. Even, because yuv420p needs it. */
+const frameH = keep >= 1 ? srcH : Math.round((srcH * keep) / 2) * 2;
+/** Top edge of the window for an anchor: 0 is the top of the source, 1 the bottom. */
+const yFor = (a) => Math.round((srcH - frameH) * a);
+
+/**
+ * The `crop` filter, or "" when there is nothing to do.
+ *
+ * `w` and `h` are fixed — crop evaluates them once and a filter cannot change
+ * its output size mid-stream — so the shot-by-shot decision is `y` alone,
+ * which crop DOES re-evaluate every frame. Each step lands on a cut, where the
+ * picture is being replaced anyway, so the jump is invisible.
+ *
+ * Commas inside the expression are escaped: in a filtergraph an unescaped one
+ * ends the filter.
+ */
+function reframeFilter() {
+  if (frameH === srcH) return "";
+  const shots = cuts.length + 1;
+  if (anchorList.length !== shots && anchorList.length !== 1) {
+    console.log(
+      `! --anchor has ${anchorList.length} values for ${shots} shots;` +
+      ` the last one covers the rest`
+    );
+  }
+  const anchorAt = (k) => anchorList[Math.min(k, anchorList.length - 1)];
+  // Innermost first: the last shot is the else of every test before it.
+  let y = String(yFor(anchorAt(cuts.length)));
+  for (let k = cuts.length - 1; k >= 0; k--) {
+    y = `if(lt(t\\,${(cuts[k] * span).toFixed(3)})\\,${yFor(anchorAt(k))}\\,${y})`;
+  }
+  return `crop=${srcW}:${frameH}:0:${y},`;
+}
+const reframe = reframeFilter();
+
+/**
+ * The same window, for a single frame pulled with `-ss`.
+ *
+ * Input seeking restarts the clock at the frame it lands on, so the time-based
+ * expression above would read 0 and hand every still the opening shot's
+ * anchor. This resolves the shot here and writes a plain number instead.
+ */
+function reframeAt(t) {
+  if (!reframe) return "";
+  const shots = cuts.length + 1;
+  let k = 0;
+  while (k < cuts.length && t >= cuts[k] * span) k++;
+  const a = anchorList[Math.min(k, Math.min(shots, anchorList.length) - 1)];
+  return `crop=${srcW}:${frameH}:0:${yFor(a)},`;
+}
+if (reframe) {
+  console.log(
+    `→ reframe     keeping ${Math.round(keep * 100)}% of the height` +
+    ` (${srcW}×${frameH}), anchors ${anchorList.join(", ")}`
+  );
+}
+
+const heightFor = (w) => Math.round((w * frameH) / srcW / 2) * 2;
 
 /** One ffmpeg pass: the whole segment, one width, one codec. */
 function extract(fmt, w, codecArgs) {
@@ -214,7 +307,7 @@ function extract(fmt, w, codecArgs) {
   if (start > 0) args.push("-ss", String(start));
   args.push("-i", input);
   if (endArg !== null || span < srcDuration) args.push("-t", String(span));
-  args.push("-vf", `fps=${effFps},scale=${w}:-2:flags=lanczos`);
+  args.push("-vf", `${reframe}fps=${effFps},scale=${w}:-2:flags=lanczos`);
   args.push(...codecArgs);
   // image2 must be forced: given an .avif pattern and an AV1 encoder, ffmpeg
   // otherwise writes ONE animated AVIF sequence instead of a still per frame.
@@ -265,7 +358,11 @@ if (stills > 0) {
     // that is otherwise entirely WebP, and they are decoded once and held,
     // where AVIF's slower decode is a cost with no matching benefit.
     execFileSync(FFMPEG, ["-v","error","-y","-ss",String(t),"-i",input,"-vframes","1",
-      "-vf","scale=1700:-2:flags=lanczos","-c:v","libwebp","-quality","78",
+      // The still is seeked to directly, so the reframe's `t` is 0 here and
+      // its first anchor would win whatever shot the still is from. Anchored
+      // by hand instead: `t` is the time within the segment, which is exactly
+      // what the expression tests.
+      "-vf",`${reframeAt(t - start)}scale=1700:-2:flags=lanczos`,"-c:v","libwebp","-quality","78",
       "-compression_level","6","-preset","picture", join(stillDir, `s${k + 1}.webp`)]);
   }
   console.log(`  … ${stills} stills → public/media/stills`);
@@ -275,7 +372,7 @@ if (stills > 0) {
 // frame has landed, so it stays WebP: universally decodable, no format probe in
 // front of it, no chance of it being the one image a browser cannot read.
 execFileSync(FFMPEG, ["-v","error","-y","-ss",String(start),"-i",input,"-vframes","1",
-  "-vf","scale=1400:-2:flags=lanczos","-c:v","libwebp","-quality","62",
+  "-vf",`${reframeAt(0)}scale=1400:-2:flags=lanczos`,"-c:v","libwebp","-quality","62",
   "-compression_level","6","-preset","picture", join(outDir,"poster.webp")]);
 
 // ---------------------------------------------------------------------------
@@ -298,7 +395,7 @@ const manifest = {
   pad: 4,
   base: `/${outDir.split(/[\\/]/).slice(-3).join("/")}`,
   poster: `/${outDir.split(/[\\/]/).slice(-3).join("/")}/poster.webp?v=${rev}`,
-  aspect: srcW / srcH,
+  aspect: srcW / frameH,
   orientation,
   spineStride,
   cuts,

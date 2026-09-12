@@ -21,8 +21,10 @@ const median = (xs) => {
 /**
  * @param {number[]} d      per-frame luma difference
  * @param {object}  [opt]
- * @param {number}  [opt.spike]  absolute floor; below this it is motion
+ * @param {number}  [opt.spike]  absolute floor; above this, `ratio` decides
  * @param {number}  [opt.ratio]  how far clear of its neighbourhood a cut stands
+ * @param {number}  [opt.soft]   floor for a QUIET cut, which needs `hard` instead
+ * @param {number}  [opt.hard]   the ratio a quiet cut has to clear
  * @param {number}  [opt.win]    frames either side that define "neighbourhood"
  * @returns {number[]} indices into `d` of the frames that begin a new shot
  *
@@ -44,15 +46,27 @@ const median = (xs) => {
  * motion stands clear of neither.
  */
 export function findCuts(d, opt = {}) {
-  const { spike = 25, ratio = 3, win = 8 } = opt;
+  const { spike = 25, ratio = 3, soft = 15, hard = 6, win = 8 } = opt;
   const n = d.length;
   const out = [];
   for (let i = 0; i < n; i++) {
-    if (d[i] <= spike) continue;
+    if (d[i] <= soft) continue;
     const before = d.slice(Math.max(0, i - win), i);
     const after = d.slice(i + 1, Math.min(n, i + 1 + win));
-    const base = Math.max(0.5, Math.min(median(before), median(after)));
-    if (d[i] / base < ratio) continue;
+    // Only the sides that exist. The very first and very last frame have one
+    // window each, and counting the empty one as a median of zero made every
+    // such frame look infinitely clear of its neighbourhood — masked for as
+    // long as the absolute floor was the first test, and a false cut on frame
+    // one the moment it stopped being.
+    const meds = [before, after].filter((a) => a.length).map(median);
+    const base = Math.max(0.5, meds.length ? Math.min(...meds) : 0);
+    // Two ways in. Above `spike` the usual `ratio` decides. Between `soft` and
+    // `spike` the frame is a QUIET cut and has to clear `hard` instead, which
+    // is what keeps the edges of a plateau out: entering a sustained
+    // high-motion run the outgoing side is quiet, so the edge frame clears
+    // `ratio` comfortably and `hard` not at all.
+    const need = d[i] > spike ? ratio : hard;
+    if (d[i] / base < need) continue;
     out.push(i);
   }
   return out;
@@ -88,6 +102,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     assert("finds the cut entering a high-motion run", cuts.includes(20));
     assert("finds the cut leaving a high-motion run", cuts.includes(68));
     assert("rejects all 47 plateau frames", cuts.length === 2);
+  }
+
+  // The case the portrait film shipped broken: a real cut between two shots
+  // of similar brightness, well clear of its neighbours but nowhere near the
+  // old floor of 25. Flat rather than noisy, because the numbers ARE the real
+  // ones — the portrait cut at 4.67s measured 20.97 against quiet footage
+  // around 2 to 4 — and a randomised version of this one sits close enough to
+  // the ratio to fail once in five runs.
+  {
+    const d = [...Array(20).fill(3), 21, ...Array(20).fill(2)];
+    assert("finds a low-contrast cut between two similar shots", JSON.stringify(findCuts(d)) === "[20]");
   }
 
   // Fast motion that never cuts must yield nothing at all, or every dolly in

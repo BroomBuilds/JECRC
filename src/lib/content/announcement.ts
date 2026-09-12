@@ -34,16 +34,17 @@ export const ANNOUNCEMENT = {
    * are renders of it. So it gets the pictures and the two universities keep
    * the plates, rather than the whole band waiting on news nobody has yet.
    *
-   * The eyebrow now reads "Established 2026", on the group's instruction —
-   * it previously read "Under construction". That is a date, and this block
-   * used to carry a rule against stating one, so the rule is worth restating
-   * with its exception: no BED COUNT and no FIRST INTAKE goes in here until
-   * the group confirms them, and the renders stay labelled as architectural
-   * visualisations rather than photographs. `detail` below still says the
-   * building is drawn and under way, which is what is actually known.
+   * The eyebrow reads "Coming soon", on the group's instruction — it has
+   * been "Under construction" and then "Established 2026" before this, and
+   * the hospital now carries the same label everywhere it appears (the scroll
+   * tour's beat 04 included). No BED COUNT and no FIRST INTAKE goes in here
+   * until the group confirms them, and the renders stay labelled as
+   * architectural visualisations rather than photographs. `detail` below
+   * still says the building is drawn and under way, which is what is
+   * actually known.
    */
   medical: {
-    eyebrow: "Established 2026",
+    eyebrow: "Coming soon",
     name: "JECRC Medical College and Hospital",
     place: "Jaipur",
     detail:
