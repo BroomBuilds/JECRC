@@ -640,26 +640,23 @@ html.lenis, html.lenis body { height: auto; }
    1280x720. The box is written on the element in ScrollTour.tsx. */
 .u-end-svg { position: absolute; inset: 0; display: block; }
 
-/* The box the closing mark is fitted into, on a phone.
+/* The box the closing mark is fitted into is written ONLY on the element, in
+   ScrollTour.tsx, and never here.
 
-   `preserveAspectRatio="meet"` fits the artwork inside its box, so whichever
-   axis is tighter decides the size. On a desktop that is the height; on a tall
-   narrow phone it is the WIDTH, and the desktop box's 64% left the mark small
-   in the middle of a lot of nothing. A wider, shorter box on small screens
-   makes the width term generous and lets the mark fill the frame the way it
-   does everywhere else.
+   A media query used to widen it on phones through the CSS geometry properties
+   `x`, `y`, `width` and `height`. Safari implements some of that set and not
+   all of it: it took the CSS `width` and `height` and kept the attribute `x`,
+   so the box ran from 18% to 106% of the screen and the mark sat at 62% across
+   with the wordmark cut off by the right edge. Every Chromium browser took all
+   four and centred it, which is why it only ever showed up on iPhones.
 
-   Written as CSS geometry properties over the attributes in the markup, which
-   stay as the desktop values: where these are not supported the attributes
-   still apply, so the mark is never unsized. */
-@media (max-width: 639px) {
-  .u-end-mark {
-    x: 6%;
-    y: 17%;
-    width: 88%;
-    height: 34%;
-  }
-}
+   One box now serves both, and it needs no override: `preserveAspectRatio`
+   `meet` fits the artwork inside the box and whichever axis is tighter decides
+   the size. At 2:1 the artwork is height-bound on any desktop window, so the
+   box can be as wide as it likes there without changing anything; on a tall
+   narrow phone width is what binds, and 88% is what makes the mark fill the
+   frame instead of sitting small in the middle of nothing. Same numbers, both
+   ends, no CSS geometry. */
 
 /* All three copies of the mark — the plate's hole, the lift, and the fill —
    are given the same box in the markup, so they cannot drift apart by a pixel.
