@@ -142,6 +142,28 @@ const AVIF_OK: Promise<boolean> =
       });
 
 /**
+ * The order of the apply portals on the closing frame.
+ *
+ * Chronological, so the three buttons repeat the order the film just put them
+ * in: the college the group grew out of, then Jaipur, then Alwar NCR. The
+ * navigation's order is a different question — there the flagship leads, which
+ * is why `APPLY_LINKS` is left as it is and re-ordered here rather than at
+ * the source.
+ *
+ * A rank rather than an index lookup: an id that is not in this list sorts to
+ * the end instead of throwing, so adding a fifth institution shows it rather
+ * than breaking the ending.
+ */
+const CLOSING_ORDER = ["foundation", "jaipur", "ncr"];
+const CLOSING_PORTALS = [...APPLY_LINKS].sort((a, b) => {
+  const rank = (id: string) => {
+    const i = CLOSING_ORDER.indexOf(id);
+    return i < 0 ? CLOSING_ORDER.length : i;
+  };
+  return rank(a.id) - rank(b.id);
+});
+
+/**
  * Scroll-driven film, rendered as an image sequence on a canvas.
  *
  * Not a <video> scrubbed with currentTime. Seeking compressed video is
@@ -1113,9 +1135,9 @@ export default function ScrollTour({ captions = [] }: Props) {
                 <image
                   href={LOGO.foundationMarkBlack}
                   className="u-end-mark"
-                  x="18%"
+                  x="6%"
                   y="16%"
-                  width="64%"
+                  width="88%"
                   height="42%"
                   preserveAspectRatio="xMidYMid meet"
                 />
@@ -1126,9 +1148,9 @@ export default function ScrollTour({ captions = [] }: Props) {
                 <image
                   href={LOGO.foundationMarkReversed}
                   className="u-end-mark"
-                  x="18%"
+                  x="6%"
                   y="16%"
-                  width="64%"
+                  width="88%"
                   height="42%"
                   preserveAspectRatio="xMidYMid meet"
                 />
@@ -1166,9 +1188,9 @@ export default function ScrollTour({ captions = [] }: Props) {
             <image
               className="u-end-solid u-end-mark"
               href={LOGO.foundationMark}
-              x="18%"
+              x="6%"
               y="16%"
-              width="64%"
+              width="88%"
               height="42%"
               preserveAspectRatio="xMidYMid meet"
             />
@@ -1359,7 +1381,7 @@ export default function ScrollTour({ captions = [] }: Props) {
                     </p>
                   )}
                   <div className="pointer-events-auto relative mt-7 flex w-full max-w-2xl flex-col items-stretch gap-2.5 sm:mt-9 sm:flex-row sm:justify-center sm:gap-3">
-                    {APPLY_LINKS.map((link) => (
+                    {CLOSING_PORTALS.map((link) => (
                       <a
                         key={link.id}
                         href={link.href}
