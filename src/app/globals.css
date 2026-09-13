@@ -638,7 +638,85 @@ html.lenis, html.lenis body { height: auto; }
    width, which is the property the old arithmetic had to be taught with a
    `min(vw, vh)` cap after the mark collided with the sentence below it at
    1280x720. The box is written on the element in ScrollTour.tsx. */
+/* The opening lockup, on a screen with no height to spare.
+
+   Centred, the group's name sits in the middle of the frame and the scroll cue
+   is pinned near the bottom, which is fine until the two run out of room
+   between them. A phone held sideways is that case — 390px of height against a
+   wordmark set in vw — and "SCROLL" printed straight through "29,643 STUDENTS
+   ENROLLED" at 844x390, 667x375 and 932x430.
+
+   Anchoring the lockup to the top instead of the middle gives the cue the whole
+   lower half back. Nothing moves on any screen tall enough for the centred
+   version, which is every phone held upright and every desktop window. */
+@media (max-height: 560px) {
+  .u-tour-hero {
+    justify-content: flex-start;
+    padding-top: 1.75rem;
+  }
+}
+
+/* ---- the stage, and the band under it ------------------------------
+   The sticky stage is the LARGEST viewport tall, not the current one.
+
+   Chrome on Android retracts its toolbar during a scroll gesture but does not
+   resize the layout viewport until the gesture ends. For those few hundred
+   milliseconds the page is visibly taller than it thinks it is, and a stage
+   sized to `dvh` comes up short: the strip below it shows the section's own
+   `bg-ink` as a dark band along the bottom edge, which then "corrects itself"
+   when the layout catches up. `lvh` is the viewport with the toolbar gone, so
+   a stage that tall covers the gap in every state instead of chasing it.
+
+   `dvh` first as the fallback: `lvh` is Safari 15.4 and Chrome 108, and a
+   dropped `height` would collapse the stage to nothing.
+
+   What this costs is that the bottom of the stage sits under the toolbar
+   whenever the toolbar is showing — fine for film, not fine for anything
+   with words in it, which is what `.u-tour-visible` is for. */
+.u-tour-stage {
+  height: 100dvh;
+  height: 100lvh;
+}
+
+/* Everything that has to stay where the visitor can see it — the captions,
+   the ending, the cue, the playhead — inside the stage but sized to the live
+   viewport rather than the largest one. `vh` first, same fallback reasoning. */
+.u-tour-visible {
+  height: 100vh;
+  height: 100dvh;
+}
+
 .u-end-svg { position: absolute; inset: 0; display: block; }
+
+/* The one thing about the mark's box that is NOT written on the element.
+   
+   The box is a percentage of the stage, the closing caption below it is a
+   fixed stack of pixels — a sentence, three portals and the padding under
+   them — so the two meet on a short viewport. An iPhone scrolling UP is
+   exactly that case: the toolbars come back, `dvh` drops to about 667, and
+   the wordmark landed on top of the sentence. It is not a phone-only shape
+   either; a 1024x700 laptop window cleared it by 18px.
+
+   So the box height is capped at the room actually left: 84% of the stage
+   (the box starts at 16%) less what the caption reserves — 353px with the
+   portals stacked, 276px once they sit in a row above 640px — plus 24px of
+   air. Below that the cap wins and the mark rides up; above it the 42% in
+   the markup wins and nothing moves, which is why every desktop window is
+   pixel-identical to before.
+
+   `height` and not `x`/`y`: Safari honours the CSS geometry properties for
+   width and height and ignores them for x and y, which is what put the mark
+   at 62% across on iPhones. Capping the height moves the box's centre without
+   ever naming a coordinate, so both engines agree. Verified in WebKit.
+
+   The mark is width-bound on a phone, so until the cap falls below the drawn
+   height it costs no size at all — at 393x667 the mark is the same 346x172 it
+   always was, 48px higher up. Below that it shrinks, which on a 375x553
+   screen is the only thing that fits. */
+.u-end-mark { height: min(42%, calc(84% - 377px)); }
+@media (min-width: 640px) {
+  .u-end-mark { height: min(42%, calc(84% - 300px)); }
+}
 
 /* The box the closing mark is fitted into is written ONLY on the element, in
    ScrollTour.tsx, and never here.

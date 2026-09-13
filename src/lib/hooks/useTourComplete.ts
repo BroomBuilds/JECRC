@@ -35,11 +35,31 @@ export function useTourComplete(targetId: string) {
 
     let last = false;
 
+    /**
+     * How far back past the line the tour has to come before this un-arrives.
+     *
+     * Asymmetric on purpose. `window.innerHeight` is not a constant on a
+     * phone: the browser's own toolbars retract on the way down and come back
+     * on the way up, and 60 to 130px of viewport arrives and leaves with them.
+     * A single threshold turns that into a scroll-direction flicker — a
+     * visitor who reaches the end of the film and then scrolls up a little
+     * makes the toolbar reappear, `innerHeight` drops by a toolbar, the test
+     * goes false again, and the navbar and the apply bar both retreat off
+     * screen while they are still reading.
+     *
+     * So arriving is exact, to keep the navbar landing on the beat the film
+     * ends on, and leaving needs a full toolbar's worth more than that. The
+     * only way back to false is genuinely scrolling the tour back into view.
+     */
+    const ARRIVE = 4;   // sub-pixel slack; the bottom edge rarely lands exactly
+    const LEAVE = 180;  // more than any mobile toolbar is tall
+
     const read = () => {
       frame = 0;
-      // 4px of slack: sub-pixel layout means the bottom edge rarely lands
-      // exactly on the viewport height.
-      const next = el.getBoundingClientRect().bottom <= window.innerHeight + 4;
+      const bottom = el.getBoundingClientRect().bottom;
+      const next = last
+        ? bottom <= window.innerHeight + LEAVE
+        : bottom <= window.innerHeight + ARRIVE;
       if (next !== last) {
         last = next;
         setDone(next);

@@ -214,9 +214,18 @@ export default function Navbar() {
           open ? "max-h-[85svh] opacity-100" : "max-h-0 opacity-0"
         )}
       >
+        {/* The same 85svh the wrapper is capped at, repeated here on purpose.
+            The wrapper animates its max-height and so has to clip, which means
+            `overflow-y-auto` on this element did nothing without a height to
+            scroll WITHIN: the nav simply grew to its content and the wrapper
+            cut the end off. On a 320x480 screen the drawer is 408px and the
+            links are 491px, so five of the thirteen were below the cut with no
+            way to reach them. Capping this element too gives it a scrollport of
+            its own, and `overscroll-contain` keeps that scroll from chaining
+            out to the page behind it once it hits the end. */}
         <nav
           aria-label="Mobile"
-          className="mx-auto flex w-full max-w-[1800px] flex-col gap-1 overflow-y-auto border-t border-rule px-[max(1.25rem,env(safe-area-inset-left))] py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:px-8"
+          className="mx-auto flex max-h-[85svh] w-full max-w-[1800px] flex-col gap-1 overflow-y-auto overscroll-contain border-t border-rule px-[max(1.25rem,env(safe-area-inset-left))] py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:px-8"
         >
           {/* Apply leads the drawer: the one thing a visitor opened this menu
               to do should not need a scroll. */}
