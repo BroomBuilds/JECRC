@@ -746,22 +746,28 @@ export default function ScrollTour({ captions = [] }: Props) {
     // tallest Android chrome; a genuine window resize is almost always more.
     const TOOLBAR_SLACK = 200;
     let lastW = window.innerWidth;
-    let stageH = window.innerHeight;
+    let stageH = 0; // set by the first resize(), from the stage rather than the window
 
     const resize = () => {
-      // The canvas always matches the live viewport, because the stage is
-      // `h-dvh` and tracks it too. Sizing the bitmap to a frozen height is
-      // what leaves an unpainted band under the film.
-      const w = Math.round(window.innerWidth * dpr);
-      const h = Math.round(window.innerHeight * dpr);
+      // Measured off the canvas rather than off the window. The canvas fills
+      // the stage, the stage is `lvh`, and the window is neither — on a phone
+      // `innerHeight` is whatever the toolbars have left, so sizing the bitmap
+      // from it stretched the film by the height of a toolbar. Its own box is
+      // the only thing that is always right.
+      const w = Math.round(cv.clientWidth * dpr);
+      const h = Math.round(cv.clientHeight * dpr);
       if (cv.width !== w || cv.height !== h) {
         cv.width = w;
         cv.height = h;
         dirty = true;
       }
-      if (window.innerWidth !== lastW || Math.abs(window.innerHeight - stageH) > TOOLBAR_SLACK) {
+      // The scrub denominator is how far the section travels while the stage
+      // is pinned, so it is the STAGE's height, which no longer moves when a
+      // toolbar does. TOOLBAR_SLACK stays as the guard for the browsers that
+      // drop `lvh` and leave the stage tracking `dvh` after all.
+      if (!stageH || window.innerWidth !== lastW || Math.abs(cv.clientHeight - stageH) > TOOLBAR_SLACK) {
         lastW = window.innerWidth;
-        stageH = window.innerHeight;
+        stageH = cv.clientHeight;
       }
     };
     resize();
@@ -1014,7 +1020,7 @@ export default function ScrollTour({ captions = [] }: Props) {
 
       <div
         ref={stage}
-        className="sticky top-0 h-dvh w-full overflow-hidden bg-ink"
+        className="u-tour-stage sticky top-0 w-full overflow-hidden bg-ink"
         style={{ "--end-cut": "0", "--end-fill": "0" } as React.CSSProperties}
       >
         <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden />
@@ -1087,6 +1093,15 @@ export default function ScrollTour({ captions = [] }: Props) {
             picture to be read over yet; the captions are the point of the
             plate; and the two plates never run at the same end of the film. */}
         <div aria-hidden className="u-tour-open pointer-events-none absolute inset-0 bg-ink" />
+
+        {/* ---- the visible layer ----
+            The film above fills the whole stage, which is the largest viewport
+            tall so a retracting Android toolbar can never expose a band under
+            it. Everything below this line carries words or marks and is sized
+            to the LIVE viewport instead, so none of it is ever parked under a
+            toolbar that happens to be showing. See `.u-tour-stage` in
+            globals.css. */}
+        <div className="u-tour-visible pointer-events-none absolute inset-x-0 top-0">
 
         {/* ---- the ending ----
             See "the ending" in applyOverlay above for why this exists, and
@@ -1224,7 +1239,7 @@ export default function ScrollTour({ captions = [] }: Props) {
                 c.variant === "group"
                   ? "flex-col items-center justify-end pb-[max(6rem,calc(4.5rem+env(safe-area-inset-bottom)))] text-center sm:pb-28"
                   : c.variant === "hero"
-                    ? "flex-col items-center justify-center text-center"
+                    ? "u-tour-hero flex-col items-center justify-center text-center"
                     : // Bottom-anchored on a phone, vertically centred everywhere
                       // above it. The lower third was where this sat before —
                       // moved back to centre on request. `u-plinth` carries a
@@ -1428,6 +1443,8 @@ export default function ScrollTour({ captions = [] }: Props) {
           className="u-masthead-track pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/12"
         >
           <span ref={bar} className="block h-px origin-left bg-crimson" style={{ transform: "scaleX(0)" }} />
+        </div>
+
         </div>
       </div>
     </section>
