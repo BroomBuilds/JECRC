@@ -826,7 +826,44 @@ export default function ScrollTour({ captions = [] }: Props) {
     let lastW = window.innerWidth;
     let stageH = 0; // set by the first resize(), from the stage rather than the window
 
+    /**
+     * The stage's height, taken from the VISUAL viewport rather than from CSS.
+     *
+     * This is the black gap at the bottom, and why `dvh` cannot close it.
+     *
+     * `dvh` tracks the LAYOUT viewport. When Chrome on Android retracts its
+     * address bar it reveals more of the page immediately but does not resize
+     * the layout viewport until the gesture ends — so for the length of the
+     * scroll the page is visibly taller than any CSS unit believes, the stage
+     * stops short of the bottom of the screen, and the strip below it shows the
+     * section's own `bg-ink`. It is invisible in devtools because device mode
+     * never retracts a toolbar; it is plain on a real phone.
+     *
+     * `visualViewport.height` is the one number that is right throughout: it is
+     * what the visitor can actually see, updated continuously as the bar moves.
+     * Driving the height from it keeps the film covering the screen at every
+     * point of the transition, and keeps the stage a SINGLE box — the playhead,
+     * the caption's ground and the closing plate all still measure against the
+     * same bottom edge, which is what broke when this was solved by making the
+     * stage `lvh` and nesting a `dvh` layer inside it.
+     *
+     * CSS keeps `100dvh` as the value before this runs and for anyone without
+     * JavaScript. The write is guarded on an actual change, so the toolbar
+     * moving does not thrash layout.
+     */
+    let stageCss = 0;
+    const sizeStage = () => {
+      const el = stage.current;
+      if (!el) return;
+      const h = Math.round(window.visualViewport?.height ?? window.innerHeight);
+      if (h > 0 && Math.abs(h - stageCss) >= 1) {
+        stageCss = h;
+        el.style.height = `${h}px`;
+      }
+    };
+
     const resize = () => {
+      sizeStage();
       // Measured off the canvas rather than off the window. The canvas fills
       // the stage and the stage is sized in CSS; `window.innerHeight` is a
       // different number on a phone, where the toolbars take a slice the CSS
@@ -839,6 +876,13 @@ export default function ScrollTour({ captions = [] }: Props) {
         cv.width = w;
         cv.height = h;
         dirty = true;
+        // Repaint here rather than waiting for the next animation frame.
+        // Writing `width` or `height` clears the bitmap, and with `alpha:false`
+        // it clears to BLACK — which is the very thing this resize exists to
+        // get rid of. A toolbar sliding away fires this many times in a row, so
+        // leaving each clear on screen until the next rAF would trade a black
+        // strip for a black flicker.
+        if (lastDrawn >= 0) paint(lastDrawn);
       }
       // The scrub denominator is how far the section travels while the stage
       // is pinned, so it is the STAGE's height. TOOLBAR_SLACK keeps it from
@@ -853,6 +897,10 @@ export default function ScrollTour({ captions = [] }: Props) {
     window.addEventListener("resize", resize);
     // iOS fires this and not always `resize` when the toolbar collapses.
     window.visualViewport?.addEventListener("resize", resize);
+    // `resize` alone fires when the bar has finished moving. `scroll` on the
+    // visual viewport is what fires WHILE it moves, which is the window the gap
+    // appears in.
+    window.visualViewport?.addEventListener("scroll", resize);
 
     // Scrub position and smoothed velocity, read by `applyOverlay` below.
     //
@@ -997,6 +1045,7 @@ export default function ScrollTour({ captions = [] }: Props) {
         disposed = true;
         window.removeEventListener("resize", resize);
         window.visualViewport?.removeEventListener("resize", resize);
+        window.visualViewport?.removeEventListener("scroll", resize);
       };
     }
 
@@ -1072,6 +1121,7 @@ export default function ScrollTour({ captions = [] }: Props) {
       for (const g of GESTURES) window.removeEventListener(g, open);
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("scroll", resize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

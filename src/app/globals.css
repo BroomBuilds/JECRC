@@ -673,11 +673,16 @@ html.lenis, html.lenis body { height: auto; }
    a toolbar's height above the bottom of the screen, which is what shipped and
    what came back as a bug report.
 
-   One box. The Android strip is transient and self-correcting; a progress bar
-   that will not stay on the bottom edge is neither.
+   One box — and its height comes from JavaScript, not from here. `dvh` tracks
+   the LAYOUT viewport, which on Chrome for Android does not grow until the
+   scroll gesture ENDS, so the whole time the address bar is sliding away the
+   page is visibly taller than any CSS unit believes and a black strip sits
+   under the stage. `visualViewport.height` is the only number that is right
+   during the transition, and `sizeStage` in ScrollTour.tsx writes it here.
 
-   `vh` first as the fallback: `dvh` is Safari 15.4 and Chrome 108, and a
-   dropped `height` would collapse the stage to nothing. */
+   What is left in this rule is the value before that runs, and for anyone
+   without JavaScript. `vh` first as its own fallback: `dvh` is Safari 15.4 and
+   Chrome 108, and a dropped `height` would collapse the stage to nothing. */
 .u-tour-stage {
   height: 100vh;
   height: 100dvh;
