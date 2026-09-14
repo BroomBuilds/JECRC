@@ -828,10 +828,11 @@ export default function ScrollTour({ captions = [] }: Props) {
 
     const resize = () => {
       // Measured off the canvas rather than off the window. The canvas fills
-      // the stage, the stage is `lvh`, and the window is neither — on a phone
-      // `innerHeight` is whatever the toolbars have left, so sizing the bitmap
-      // from it stretched the film by the height of a toolbar. Its own box is
-      // the only thing that is always right.
+      // the stage and the stage is sized in CSS; `window.innerHeight` is a
+      // different number on a phone, where the toolbars take a slice the CSS
+      // box may not have caught up with yet. Sizing the bitmap from the window
+      // stretched the film by the height of a toolbar. Its own box is the only
+      // thing that is always right.
       const w = Math.round(cv.clientWidth * dpr);
       const h = Math.round(cv.clientHeight * dpr);
       if (cv.width !== w || cv.height !== h) {
@@ -840,9 +841,9 @@ export default function ScrollTour({ captions = [] }: Props) {
         dirty = true;
       }
       // The scrub denominator is how far the section travels while the stage
-      // is pinned, so it is the STAGE's height, which no longer moves when a
-      // toolbar does. TOOLBAR_SLACK stays as the guard for the browsers that
-      // drop `lvh` and leave the stage tracking `dvh` after all.
+      // is pinned, so it is the STAGE's height. TOOLBAR_SLACK keeps it from
+      // being re-read for the 60 to 130px a toolbar takes and back: the film's
+      // mapping stays put while the browser's furniture comes and goes.
       if (!stageH || window.innerWidth !== lastW || Math.abs(cv.clientHeight - stageH) > TOOLBAR_SLACK) {
         lastW = window.innerWidth;
         stageH = cv.clientHeight;
@@ -1163,20 +1164,6 @@ export default function ScrollTour({ captions = [] }: Props) {
             plate; and the two plates never run at the same end of the film. */}
         <div aria-hidden className="u-tour-open pointer-events-none absolute inset-0 bg-ink" />
 
-        {/* ---- the visible layer ----
-            The film above fills the whole stage, which is the largest viewport
-            tall so a retracting Android toolbar can never expose a band under
-            it. Everything below this line carries words or marks and is sized
-            to the LIVE viewport instead, so none of it is ever parked under a
-            toolbar that happens to be showing.
-
-            The ending is NOT in here, and that is deliberate: its plate has to
-            cover the whole stage. Anchored to the live viewport it stopped
-            short of the stage's bottom edge, and the last strip of film showed
-            through underneath the closing plate as a bright band — visible on
-            an iPhone every time the tour finished. Its hairline and its mark
-            are pulled back into view by `100lvh - 100dvh` instead. See
-            `.u-tour-stage` in globals.css. */}
         {/* ---- the ending ----
             See "the ending" in applyOverlay above for why this exists, and
             "The ending" in globals.css for the ramps.
@@ -1285,9 +1272,6 @@ export default function ScrollTour({ captions = [] }: Props) {
             />
           </svg>
         </div>
-
-        <div className="u-tour-visible pointer-events-none absolute inset-x-0 top-0">
-
 
         <div className="pointer-events-none absolute inset-0">
           {captions.map((c, i) => {
@@ -1520,8 +1504,6 @@ export default function ScrollTour({ captions = [] }: Props) {
           className="u-masthead-track pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/12"
         >
           <span ref={bar} className="block h-px origin-left bg-crimson" style={{ transform: "scaleX(0)" }} />
-        </div>
-
         </div>
       </div>
     </section>
