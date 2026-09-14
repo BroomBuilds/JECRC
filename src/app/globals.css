@@ -656,32 +656,29 @@ html.lenis, html.lenis body { height: auto; }
   }
 }
 
-/* ---- the stage, and the band under it ------------------------------
-   The sticky stage is the LARGEST viewport tall, not the current one.
+/* ---- the stage -----------------------------------------------------
+   Exactly the viewport the visitor has, and everything inside it measured
+   against that one box.
 
-   Chrome on Android retracts its toolbar during a scroll gesture but does not
-   resize the layout viewport until the gesture ends. For those few hundred
-   milliseconds the page is visibly taller than it thinks it is, and a stage
-   sized to `dvh` comes up short: the strip below it shows the section's own
-   `bg-ink` as a dark band along the bottom edge, which then "corrects itself"
-   when the layout catches up. `lvh` is the viewport with the toolbar gone, so
-   a stage that tall covers the gap in every state instead of chasing it.
+   This was `lvh` for a while, to cover a Chrome-on-Android quirk: the toolbar
+   retracts during a scroll gesture but the layout viewport does not resize
+   until the gesture ends, so for a few hundred milliseconds the page is
+   visibly taller than it thinks it is and a dvh-tall stage leaves a dark strip
+   along the bottom. An lvh stage covers that — and pays for it everywhere
+   else, because then the stage is TALLER than the viewport and everything
+   anchored to its bottom edge sits below the fold. Splitting the difference,
+   with the film at lvh and the words in a dvh layer inside it, moved the
+   problem rather than solving it: the two boxes disagree by a toolbar, and the
+   playhead, the caption's ground and the closing plate all ended up floating
+   a toolbar's height above the bottom of the screen, which is what shipped and
+   what came back as a bug report.
 
-   `dvh` first as the fallback: `lvh` is Safari 15.4 and Chrome 108, and a
-   dropped `height` would collapse the stage to nothing.
+   One box. The Android strip is transient and self-correcting; a progress bar
+   that will not stay on the bottom edge is neither.
 
-   What this costs is that the bottom of the stage sits under the toolbar
-   whenever the toolbar is showing — fine for film, not fine for anything
-   with words in it, which is what `.u-tour-visible` is for. */
+   `vh` first as the fallback: `dvh` is Safari 15.4 and Chrome 108, and a
+   dropped `height` would collapse the stage to nothing. */
 .u-tour-stage {
-  height: 100dvh;
-  height: 100lvh;
-}
-
-/* Everything that has to stay where the visitor can see it — the captions,
-   the ending, the cue, the playhead — inside the stage but sized to the live
-   viewport rather than the largest one. `vh` first, same fallback reasoning. */
-.u-tour-visible {
   height: 100vh;
   height: 100dvh;
 }
@@ -709,19 +706,13 @@ html.lenis, html.lenis body { height: auto; }
    at 62% across on iPhones. Capping the height moves the box's centre without
    ever naming a coordinate, so both engines agree. Verified in WebKit.
 
-   `- 100lvh + 100dvh` is the same correction the hairline carries: the box is a
-   percentage of the STAGE, which is `lvh` tall, while the caption it must clear
-   sits in the visible `dvh` layer below it. Without the term the reserve is
-   short by a toolbar on exactly the device the collision was reported on, and
-   it is zero everywhere the two units agree.
-
    The mark is width-bound on a phone, so until the cap falls below the drawn
    height it costs no size at all — at 393x667 the mark is the same 346x172 it
    always was, 48px higher up. Below that it shrinks, which on a 375x553
    screen is the only thing that fits. */
-.u-end-mark { height: min(42%, calc(84% - 377px - 100lvh + 100dvh)); }
+.u-end-mark { height: min(42%, calc(84% - 377px)); }
 @media (min-width: 640px) {
-  .u-end-mark { height: min(42%, calc(84% - 300px - 100lvh + 100dvh)); }
+  .u-end-mark { height: min(42%, calc(84% - 300px)); }
 }
 
 /* The box the closing mark is fitted into is written ONLY on the element, in
@@ -771,12 +762,6 @@ html.lenis, html.lenis body { height: auto; }
 .u-end-frame {
   position: absolute;
   inset: 4.5vmin;
-  /* The ending lives in the stage, which is `lvh` tall so its plate can cover
-     a retracting toolbar. The frame is the one part of it that has to sit
-     inside what the visitor can actually see, so its bottom edge comes up by
-     whatever the toolbars are currently taking. Zero on every desktop, where
-     the two units are the same number. */
-  bottom: calc(4.5vmin + 100lvh - 100dvh);
   border: 1px solid rgba(255, 255, 255, 0.34);
   opacity: calc(var(--end-cut) * var(--end-cut));
   transform: scale(calc(1.035 - var(--end-cut) * 0.035));
