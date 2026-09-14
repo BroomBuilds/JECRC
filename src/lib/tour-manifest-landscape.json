@@ -1,11 +1,11 @@
 {
   "count": 503,
-  "rev": "311e4eeb",
+  "rev": "3ff15d36",
   "fps": 25,
   "duration": 20.12,
   "pad": 4,
   "base": "/media/tour/h",
-  "poster": "/media/tour/h/poster.webp?v=311e4eeb",
+  "poster": "/media/tour/h/poster.webp?v=3ff15d36",
   "aspect": 1.7777777777777777,
   "orientation": "landscape",
   "spineStride": 6,
@@ -19,6 +19,11 @@
     "avif": {
       "ext": "avif",
       "sizes": [
+        {
+          "width": 1920,
+          "height": 1080,
+          "dir": "1920"
+        },
         {
           "width": 1400,
           "height": 788,

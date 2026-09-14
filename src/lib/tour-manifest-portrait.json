@@ -1,11 +1,11 @@
 {
   "count": 302,
-  "rev": "ffea4be8",
+  "rev": "6628ce72",
   "fps": 15,
   "duration": 20.133333,
   "pad": 4,
   "base": "/media/tour/v",
-  "poster": "/media/tour/v/poster.webp?v=ffea4be8",
+  "poster": "/media/tour/v/poster.webp?v=6628ce72",
   "aspect": 0.8035714285714286,
   "orientation": "portrait",
   "spineStride": 3,
@@ -20,9 +20,9 @@
       "ext": "avif",
       "sizes": [
         {
-          "width": 960,
-          "height": 1194,
-          "dir": "960"
+          "width": 1080,
+          "height": 1344,
+          "dir": "1080"
         },
         {
           "width": 400,

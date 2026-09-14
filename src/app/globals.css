@@ -709,13 +709,19 @@ html.lenis, html.lenis body { height: auto; }
    at 62% across on iPhones. Capping the height moves the box's centre without
    ever naming a coordinate, so both engines agree. Verified in WebKit.
 
+   `- 100lvh + 100dvh` is the same correction the hairline carries: the box is a
+   percentage of the STAGE, which is `lvh` tall, while the caption it must clear
+   sits in the visible `dvh` layer below it. Without the term the reserve is
+   short by a toolbar on exactly the device the collision was reported on, and
+   it is zero everywhere the two units agree.
+
    The mark is width-bound on a phone, so until the cap falls below the drawn
    height it costs no size at all — at 393x667 the mark is the same 346x172 it
    always was, 48px higher up. Below that it shrinks, which on a 375x553
    screen is the only thing that fits. */
-.u-end-mark { height: min(42%, calc(84% - 377px)); }
+.u-end-mark { height: min(42%, calc(84% - 377px - 100lvh + 100dvh)); }
 @media (min-width: 640px) {
-  .u-end-mark { height: min(42%, calc(84% - 300px)); }
+  .u-end-mark { height: min(42%, calc(84% - 300px - 100lvh + 100dvh)); }
 }
 
 /* The box the closing mark is fitted into is written ONLY on the element, in
@@ -765,6 +771,12 @@ html.lenis, html.lenis body { height: auto; }
 .u-end-frame {
   position: absolute;
   inset: 4.5vmin;
+  /* The ending lives in the stage, which is `lvh` tall so its plate can cover
+     a retracting toolbar. The frame is the one part of it that has to sit
+     inside what the visitor can actually see, so its bottom edge comes up by
+     whatever the toolbars are currently taking. Zero on every desktop, where
+     the two units are the same number. */
+  bottom: calc(4.5vmin + 100lvh - 100dvh);
   border: 1px solid rgba(255, 255, 255, 0.34);
   opacity: calc(var(--end-cut) * var(--end-cut));
   transform: scale(calc(1.035 - var(--end-cut) * 0.035));
