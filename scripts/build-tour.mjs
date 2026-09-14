@@ -8,7 +8,7 @@
  *   --fps <n>        frames extracted per second of video   (default 18)
  *   --start <sec>    trim from                              (default 0)
  *   --end <sec>      trim to                                (default end of file)
- *   --widths <list>  AVIF widths, display first, comma sep  (default 1400,640)
+ *   --widths <list>  AVIF widths, widest first, SPINE LAST  (default 1400,640)
  *   --webp <n>       width of the single WebP fallback tier (default 1100)
  *   --crf <n>        AVIF quality for the display tier      (default 36)
  *   --quality <n>    WebP quality 0-100                     (default 50)
@@ -29,17 +29,23 @@
  * ---------------------------------------------------------------------------
  * Why two formats and two AVIF tiers
  *
- * Measured on this footage, on the densest stretch of the film:
+ * Measured on this footage, all-intra, which is the only kind of AVIF a
+ * browser can decode one frame at a time:
  *
- *   WebP q50 @1100   41.9 KB/frame      <- what the site shipped before
- *   AVIF crf40 @1400  8.9 KB/frame
- *   AVIF crf42 @640   4.2 KB/frame
+ *   WebP q50 @1100   33.7 KB/frame      <- the fallback tier
+ *   AVIF crf36 @1920  33.5 KB/frame     <- the display tier, native width
+ *   AVIF crf36 @1400  22.2 KB/frame
+ *   AVIF crf46 @640    2.5 KB/frame     <- the spine
  *
- * AVIF at full width costs a fifth of WebP at a smaller one. Over a link
- * measured at 5.5 Mbps that is the difference between 16 frames/s delivered
- * and 36 — and a deliberate scroll through the tour needs about 16, while a
- * normal scroll-past needs 66. So the format choice is the single largest
- * lever on whether the film flows for a first-time visitor.
+ * So AVIF buys about a third off WebP at the same width, or the SAME bytes at
+ * the source's full 1920 — which is what ships, because the film is drawn to
+ * cover the stage and a 1440x900 window at 2x asks for about 2,800 device
+ * pixels across. Anything narrower than the source is upscaled before it is
+ * ever seen.
+ *
+ * The earlier numbers here claimed 8.9 KB/frame at 1400 and a fifth of WebP.
+ * Those were inter frames — see `-g 1` below — and no browser could decode
+ * any of them.
  *
  * The WebP tier is the fallback for browsers without AVIF (Safari below 16,
  * some Android WebViews — a few percent). It is built at the width the site
@@ -53,7 +59,7 @@
  * is why `spineStride` is recorded in the manifest rather than a frame set.
  */
 
-import { execFileSync, execSync } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync, statSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import { tourRev } from "./tour-rev.mjs";
@@ -329,20 +335,140 @@ function extract(fmt, w, codecArgs) {
 // yuv420p rather than ffmpeg's default 444: half the chroma, no visible
 // difference on soft-focus footage, and the only subsampling every AVIF decoder
 // is fast at. row-mt keeps libaom on all cores.
+//
+// `-g 1` is the whole ballgame and was missing.
+//
+// libaom is a VIDEO encoder. Handed a sequence and an .avif pattern it does
+// what a video encoder does: frame one is a keyframe and the rest are INTER
+// frames, each written into its own AVIF container holding a delta against a
+// picture that is not in the file. The containers are valid — `ftypavif`, the
+// right dimensions in `ispe`, and ffprobe reads them back happily — so this
+// looks like a working build right up until something tries to decode the
+// pixels. Nothing can. 502 of the 503 frames the last build wrote are
+// undecodable in Chrome, Safari and Firefox alike, which is why every visitor
+// has silently been served the WebP fallback: a smaller picture, five times
+// the bytes, and the softness that prompted this.
+//
+// It is also why the byte figures in the header above were too good to be
+// true. 6.5 KB for a 1400x788 still is not compression, it is a delta frame.
+// All-intra, the same frame is 22 KB — still a third less than the WebP tier
+// at a larger size, which is the real number.
+//
+// `enable-keyframe-filtering=0` and `-lag-in-frames 0` go with it, and both
+// are load-bearing rather than tuning. libaom runs a temporal filter over
+// keyframes and holds a lookahead to feed it; when EVERY frame is a keyframe
+// it over-allocates against both and the encoder dies — in
+// smooth_filter_noise() at 1400, and with a plain access violation at 1920.
+// A still picture has no neighbours to filter against and nothing to look
+// ahead to, so neither costs a byte of quality here. Without the pair, this
+// crashes partway through the film rather than writing anything wrong, which
+// at least fails loudly.
+//
+// Check after any change to this: decode the frames, do not just probe them.
+//   ffmpeg -v error -i f0100.avif -frames:v 1 -f null -
 const avifArgs = (q) => [
   "-c:v","libaom-av1","-crf",String(q),"-cpu-used","6",
-  "-row-mt","1","-threads","0","-pix_fmt","yuv420p",
+  "-row-mt","1","-threads",String(ENC_THREADS),"-pix_fmt","yuv420p",
+  "-g","1","-lag-in-frames","0","-aom-params","enable-keyframe-filtering=0",
 ];
+
+/**
+ * One frame at a time, through the `avif` muxer, N at once.
+ *
+ * THE MUXER IS NOT OPTIONAL. `-f image2` will happily write a file that opens
+ * in ffmpeg, in an image viewer, and in ffprobe — and that no browser will
+ * display, because it writes an EIGHT byte `av1C`: the AV1 configuration box
+ * with its configuration record missing. A conformant one is twelve. ffmpeg's
+ * own decoder reads the sequence header out of the OBUs and never notices;
+ * Chrome and Firefox check the box and refuse the image outright. That single
+ * box is why the AVIF tiers went unused from the day they were added — the
+ * format probe is itself an AVIF written this way, so it failed too, every
+ * visitor fell back to WebP, and the film has been running at the fallback's
+ * width ever since.
+ *
+ * `-f avif` writes the box properly, but only one image per invocation: given
+ * `f%04d.avif` it produces a single animated file with a `moov` in it, which
+ * is the opposite of what this needs. So the sequence is extracted once to
+ * PNG and each frame encoded on its own, `ENC_POOL` at a time.
+ *
+ * Verify with the box, not with a decoder that tolerates it:
+ *   xxd f0001.avif | grep av1C     # the size word before it must be 12
+ */
+const ENC_POOL = 4;
+const ENC_THREADS = 3;
+
+const runFfmpeg = (args) =>
+  new Promise((res, rej) => {
+    const child = spawn(FFMPEG, args, { stdio: ["ignore", "ignore", "inherit"] });
+    child.on("error", rej);
+    child.on("close", (code) => (code === 0 ? res() : rej(new Error(`ffmpeg exited ${code}`))));
+  });
+
+async function pool(items, limit, fn) {
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) await fn(items[next++]);
+    })
+  );
+}
 const webpArgs = ["-c:v","libwebp","-quality",String(quality),"-compression_level","6","-preset","picture"];
 
+/** The AVIF path: one pass to PNG, then one `-f avif` encode per frame. */
+async function extractAvif(w, q) {
+  const dir = join(outDir, "avif", String(w));
+  mkdirSync(dir, { recursive: true });
+  const tmp = join(outDir, `.frames-${w}`);
+  rmSync(tmp, { recursive: true, force: true });
+  mkdirSync(tmp, { recursive: true });
+
+  const args = ["-v","error","-y"];
+  if (start > 0) args.push("-ss", String(start));
+  args.push("-i", input);
+  if (endArg !== null || span < srcDuration) args.push("-t", String(span));
+  args.push("-vf", `${reframe}fps=${effFps},scale=${w}:-2:flags=lanczos`);
+  args.push("-f", "image2", join(tmp, `f%0${4}d.png`));
+
+  process.stdout.write(`  … avif ${w}px `);
+  const t0 = Date.now();
+  execFileSync(FFMPEG, args, { stdio: ["ignore","ignore","inherit"] });
+
+  const frames = readdirSync(tmp).filter((f) => f.endsWith(".png")).sort();
+  await pool(frames, ENC_POOL, async (name) => {
+    const src = join(tmp, name);
+    await runFfmpeg([
+      "-v","error","-y","-i",src,"-frames:v","1",
+      ...avifArgs(q),
+      "-f","avif", join(dir, name.replace(/\.png$/, ".avif")),
+    ]);
+    rmSync(src, { force: true });
+  });
+  rmSync(tmp, { recursive: true, force: true });
+
+  const files = readdirSync(dir).filter((f) => f.endsWith("avif")).sort();
+  const bytes = files.reduce((n, f) => n + statSync(join(dir, f)).size, 0);
+  console.log(
+    `→ ${files.length} frames, ${(bytes / 1048576).toFixed(1)} MB` +
+    ` (${(bytes / files.length / 1024).toFixed(1)} KB/frame, ${((Date.now() - t0) / 1000).toFixed(0)}s)`
+  );
+  return { width: w, height: heightFor(w), dir: String(w), count: files.length, bytes };
+}
+
 const avifSizes = [];
-widths.forEach((w, i) => {
-  // The spine tier is transient by design — every frame in it is on screen for
-  // a few milliseconds while the visitor is moving fast, and will be replaced
-  // by the display tier the moment they slow down. Spending display-tier bytes
-  // on it buys nothing, so it is encoded appreciably harder.
-  avifSizes.push(extract("avif", w, avifArgs(i === 0 ? crf : crf + 10)));
-});
+for (const [i, w] of widths.entries()) {
+  // The LAST width is the spine, and only the spine gets the harder quality.
+  // Every frame in it is on screen for a few milliseconds while the visitor is
+  // moving fast, and is replaced by a display tier the moment they slow down,
+  // so display-tier bytes are wasted on it.
+  //
+  // Everything before it is a display tier the component may choose between:
+  // a 1,280 to 1,536px laptop at 1x asks for about 1,400 device pixels across,
+  // and handing it the 1,920 built for retina costs it a third more bytes for
+  // pixels its screen cannot show. `--widths 1920,1400,640` is display, display,
+  // spine — widest first, spine last.
+  const spine = i === widths.length - 1;
+  avifSizes.push(await extractAvif(w, spine ? crf + 10 : crf));
+}
 const webpSizes = [extract("webp", webpWidth, webpArgs)];
 
 // ---------------------------------------------------------------------------
@@ -374,6 +500,65 @@ if (stills > 0) {
 execFileSync(FFMPEG, ["-v","error","-y","-ss",String(start),"-i",input,"-vframes","1",
   "-vf",`${reframeAt(0)}scale=1400:-2:flags=lanczos`,"-c:v","libwebp","-quality","62",
   "-compression_level","6","-preset","picture", join(outDir,"poster.webp")]);
+
+// ---------------------------------------------------------------------------
+// Verify, before the manifest says any of this is usable
+//
+// Every AVIF defect this build has shipped was SILENT. The frames opened in
+// ffmpeg, ffprobe read their dimensions back, and an image viewer showed them;
+// only a browser refused, and the component's answer to a browser refusing is
+// to fall back to WebP without a word. The site ran at the fallback's width for
+// months on end and nothing anywhere said so.
+//
+// So the build now proves its own output before writing a manifest that claims
+// it works. Both checks are cheap and both catch a real regression that has
+// already happened once:
+//
+//   av1C  — `-f image2` writes the AV1 configuration box eight bytes long, with
+//           its configuration record missing. Chrome and Firefox reject such a
+//           file; ffmpeg does not care. Twelve is the conformant length.
+//   decode — without `-g 1` libaom writes inter frames, each a delta against a
+//           picture that is not in the file. They parse. They do not decode.
+function verifyTier(dir, label) {
+  const files = readdirSync(dir).filter((f) => f.endsWith(".avif")).sort();
+  if (!files.length) throw new Error(`${label}: no frames written`);
+
+  // Every frame, for the box: reading twelve bytes of header is nearly free.
+  for (const f of files) {
+    const head = readFileSync(join(dir, f)).subarray(0, 512);
+    const at = head.indexOf("av1C");
+    if (at < 4) throw new Error(`${label}/${f}: no av1C box — not an AVIF a browser will read`);
+    const size = head.readUInt32BE(at - 4);
+    if (size < 12) {
+      throw new Error(
+        `${label}/${f}: av1C is ${size} bytes, needs 12. ` +
+        `This is the -f image2 defect: encode through the avif muxer.`
+      );
+    }
+  }
+
+  // A spread of frames, for the pixels. Frame one is always a keyframe even
+  // when the rest are not, so checking only the first would have passed every
+  // broken build this file has produced.
+  const sample = [0, 1, 2, Math.floor(files.length / 3), Math.floor(files.length / 2), files.length - 2, files.length - 1]
+    .filter((i, k, a) => i >= 0 && i < files.length && a.indexOf(i) === k);
+  for (const i of sample) {
+    try {
+      execFileSync(FFMPEG, ["-v","error","-i",join(dir, files[i]),"-frames:v","1","-f","null","-"], { stdio: "ignore" });
+    } catch {
+      throw new Error(
+        `${label}/${files[i]}: will not decode. ` +
+        `Inter frames written as stills — check -g 1 is on.`
+      );
+    }
+  }
+  return { checked: files.length, decoded: sample.length };
+}
+
+for (const size of avifSizes) {
+  const { checked, decoded } = verifyTier(join(outDir, "avif", size.dir), `avif/${size.dir}`);
+  console.log(`  ✓ avif ${size.dir}px — av1C on ${checked} frames, ${decoded} decoded`);
+}
 
 // ---------------------------------------------------------------------------
 // Manifest

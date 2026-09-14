@@ -88,27 +88,82 @@ ref/"website update vertical.mp4"   ─> public/media/tour/v/avif/720/…  400/�
 
 ### Format: AVIF, with WebP behind it
 
-The single largest decision here. Measured on this footage, on its densest stretch:
+The single largest decision here. Measured on this footage, all-intra:
 
 | | bytes/frame |
 |---|---|
-| WebP q50 @1100 (what the site shipped before) | 55.1 KB |
-| **AVIF crf36 @1400** | **8.9 KB** |
-| AVIF crf46 @640 (the spine) | 1.7 KB |
+| WebP q50 @1100 (the fallback tier) | 33.7 KB |
+| **AVIF crf36 @1920** (the display tier, native width) | **33.5 KB** |
+| AVIF crf36 @1400 | 22.2 KB |
+| AVIF crf46 @640 (the spine) | 2.5 KB |
 
-AVIF at a *larger* size costs a sixth of WebP. Over a link measured at 5.5 Mbps to the
-Singapore edge that is the difference between 16 frames a second delivered and 36 — against
-16 needed for a deliberate scroll and 66 for a normal scroll-past. Format is most of the
-answer to whether the film flows on a first visit.
+So AVIF buys about a third off WebP at the same width — or, as it ships, the SAME bytes at
+the source's full 1920. The film is drawn to *cover* the stage, so a 1440×900 window at 2x
+asks for about 2,800 device pixels across; anything narrower than the source is enlarged
+before it is ever seen, which is what the old 1400 tier was doing.
 
-Browsers without AVIF get a WebP tier built at the width the site shipped before, so they are
-never worse off than they were; they simply do not get the improvement. `ScrollTour` probes
-support once, at module scope, with a 2×2 AVIF data URI.
+Browsers without AVIF get the WebP tier, so they are never worse off; they simply do not get
+the improvement. `ScrollTour` probes support once, at module scope, with a 2×2 AVIF data URI.
 
-AVIF encodes at ~0.15 s/frame at `-cpu-used 6`, so a full two-orientation build is about five
-minutes. It also decodes slower than WebP, which is why decoding stays off the paint path
-(see 4c) and matters most on cheap Android — **the one number here not yet measured on real
-low-end hardware.**
+**The numbers in this table used to read 8.9 KB at 1400 and "a sixth of WebP", and the AVIF
+tiers had never been fetched by anybody.** Two defects, both silent:
+
+- `-f image2` writes an eight-byte `av1C` — the AV1 configuration box with its configuration
+  record missing. ffmpeg reads such a file back without complaint; Chrome and Firefox refuse
+  it. Every frame, and the probe blob itself, was written that way, so the probe answered NO
+  everywhere and every visitor took the WebP fallback. The build now encodes one frame at a
+  time through the `avif` muxer, which writes the box properly.
+- Without `-g 1` libaom did what a video encoder does: one keyframe and 502 inter frames,
+  each sealed in its own file with nothing to reference. A 1400×788 "still" of 288 bytes is
+  the tell. That is where 8.9 KB/frame came from.
+
+Check the box, not a decoder that tolerates it: `xxd f0001.avif | grep av1C`, and the size
+word before it must read 12.
+
+All-intra costs more to encode — about 0.5 s/frame at 1920, four at a time, so a full
+two-orientation build is roughly six minutes. AVIF also decodes slower than WebP, which is
+why decoding stays off the paint path (see 4c) and matters most on cheap Android — **the one
+number here not yet measured on real low-end hardware.**
+
+### What the build refuses to ship
+
+Every AVIF defect this project has had was silent: the frames opened in ffmpeg, ffprobe read
+their dimensions, an image viewer showed them, and only a browser refused — whereupon the
+component fell back to WebP without a word. So `build-tour.mjs` now proves its own output
+before it writes a manifest claiming the tiers work. Both checks fail the build loudly, and
+both have been tested against the defect they exist for:
+
+| check | catches | how it was verified |
+|---|---|---|
+| `av1C` box is 12 bytes, every frame | `-f image2`, which writes it 8 bytes long with the codec configuration record missing | a tier built through image2 — build stops on frame 1 |
+| a spread of frames really decodes | inter frames written as stills, i.e. `-g 1` missing | a tier built without `-g 1` — build stops on frame 2 |
+
+The decode check samples the first three frames, a third of the way in, the middle and the last
+two. It deliberately does not check only frame one: frame one is a keyframe even in a broken
+build, which is exactly how the inter-frame defect survived.
+
+Neither check is a substitute for opening the thing in a browser, and the box check is the one
+to run by hand after touching the encoder:
+
+```
+xxd public/media/tour/h/avif/1920/f0100.avif | grep av1C   # size word before it must be 12
+```
+
+### Tiers, and who gets which
+
+Three AVIF widths landscape, two portrait, chosen by the width the film is actually DRAWN at —
+which is not the viewport width, because the film covers the stage and overflows the narrow
+axis. A 1440×900 window at 2x asks for about 2,800 device pixels across; a 393pt phone asks for
+about 1,180.
+
+| screen | tier | a full pass |
+|---|---|---|
+| 1280–1536 wide at 1x | 1400 | 16.8 MB |
+| 1920 at 1x, or 1440 at 2x | 1920 | 19.5–21.3 MB |
+| any phone, any tablet in portrait | 1080 | 10.3 MB |
+
+The 1400 tier exists for the laptop sizes. They were being handed the 1920 built for retina and
+paying a third more bytes for pixels their screens cannot resolve.
 
 ### Cut detection
 

@@ -293,6 +293,23 @@ export default function Ledger() {
                       alt={r.name}
                       width={480}
                       height={120}
+                      // Eager, at the lowest priority the platform offers.
+                      //
+                      // Lazy is the wrong default for a marquee. These logos
+                      // sit on a track five thousand pixels wide that is
+                      // translated past a narrow window, so a lazy one is
+                      // requested at the moment it slides into view and arrives
+                      // some time after — on a 1.6 Mbps phone, nine of the
+                      // forty-two had loaded after sixteen seconds and gaps
+                      // rode through the window continuously.
+                      //
+                      // Eager asks for all twenty during parse instead. They
+                      // are tiny (340 KB the lot, and the duplicate copy is the
+                      // same twenty URLs out of cache), and `fetchPriority`
+                      // low keeps them behind the poster and the film so
+                      // nothing above the fold waits on them.
+                      loading={copy === 0 ? "eager" : "lazy"}
+                      fetchPriority="low"
                       className="u-rec-co"
                       style={{ "--s": r.scale } as React.CSSProperties}
                     />

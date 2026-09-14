@@ -129,6 +129,16 @@ type Film = {
  * the component mounts. Browsers without AVIF fall back to a WebP tier built
  * at the width the site shipped before, so they are never worse off than they
  * were — they simply do not get the improvement.
+ *
+ * MINT THIS WITH ffmpeg's `avif` MUXER, never `image2`. The blob that used to
+ * sit here was written by image2, which emits an eight-byte `av1C` — the AV1
+ * configuration box with no configuration record in it. ffmpeg reads that back
+ * without complaint, so it looked fine; Chrome and Firefox reject the image.
+ * The probe therefore answered NO on every browser on earth, every visitor took
+ * the WebP fallback, and the AVIF tiers this file is built around were never
+ * fetched once. See `avifArgs` in scripts/build-tour.mjs.
+ *
+ *   ffmpeg -f lavfi -i color=c=black:s=2x2:d=1 -frames:v 1  *     -c:v libaom-av1 -crf 50 -cpu-used 8 -pix_fmt yuv420p  *     -g 1 -lag-in-frames 0 -f avif probe.avif
  */
 const AVIF_OK: Promise<boolean> =
   typeof window === "undefined"
@@ -138,7 +148,7 @@ const AVIF_OK: Promise<boolean> =
         probe.onload = () => res(probe.width === 2);
         probe.onerror = () => res(false);
         probe.src =
-          "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAAD1bWV0YQAAAAAAAAAvaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAFBpY3R1cmVIYW5kbGVyAAAAAA5waXRtAAAAAAABAAAAHmlsb2MAAAAARAAAAQABAAAAAQAAAR0AAAAZAAAAKGlpbmYAAAAAAAEAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAAGZpcHJwAAAAR2lwY28AAAAUaXNwZQAAAAAAAAACAAAAAgAAABBwaXhpAAAAAAMICAgAAAAIYXYxQwAAABNjb2xybmNseAACAAIAAgAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACFtZGF0CgkAAAAABm18wCAyDBAA/4AAAsAAAACvMA==";
+          "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAAD5bWV0YQAAAAAAAAAvaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAFBpY3R1cmVIYW5kbGVyAAAAAA5waXRtAAAAAAABAAAAHmlsb2MAAAAARAAAAQABAAAAAQAAASEAAAAaAAAAKGlpbmYAAAAAAAEAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAAGppcHJwAAAAS2lwY28AAAAUaXNwZQAAAAAAAAACAAAAAgAAABBwaXhpAAAAAAMICAgAAAAMYXYxQ4EADAAAAAATY29scm5jbHgAAgACAAIAAAAAF2lwbWEAAAAAAAAAAQABBAECgwQAAAAibWRhdAoJAAAAAAZtfMAgMg0QAOQAAALAAAIDUu14";
       });
 
 /**
@@ -154,6 +164,28 @@ const AVIF_OK: Promise<boolean> =
  * the end instead of throwing, so adding a fifth institution shows it rather
  * than breaking the ending.
  */
+/**
+ * Ceiling on the canvas's pixel ratio.
+ *
+ * Was 1.75, on the reasoning that a 3x phone does not need a huge bitmap for a
+ * soft-focus film and the memory mattered more. The memory does not; the
+ * sharpness does. At 1.75 the canvas is 690px across on a 393pt phone and the
+ * compositor then stretches that onto the screen's 1,179 physical pixels, so
+ * the film is resampled TWICE — once into the bitmap, once onto the glass —
+ * and the second pass is a flat stretch with nothing left to work from. At 3
+ * the bitmap is the screen and the film is resampled once.
+ *
+ * The cost is a 1182x2556 bitmap rather than 690x1491: 12 MB of canvas instead
+ * of 4, and about three times the fill per paint. Measured with the CPU
+ * throttled 4x, scrubbing 150 frames: p50 7.0ms, p95 8.8ms, worst 13.3ms,
+ * nothing over the 16.7ms budget.
+ *
+ * Capped rather than open: a 4x display would ask for a 2,100px-wide bitmap of
+ * a film whose source is 1,080 across — memory spent enlarging pixels that do
+ * not exist.
+ */
+const DPR_CAP = 3;
+
 const CLOSING_ORDER = ["foundation", "jaipur", "ncr"];
 const CLOSING_PORTALS = [...APPLY_LINKS].sort((a, b) => {
   const rank = (id: string) => {
@@ -246,16 +278,34 @@ export default function ScrollTour({ captions = [] }: Props) {
     let url: (tier: number, i: number) => string = () => "";
     let started = false;
 
-    // Capped at 1.75: a 3x phone does not need a 4,000px source for a
-    // full-bleed, soft-focus film, and the memory saved matters more than the
-    // sharpness lost.
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
-    const needed = window.innerWidth * dpr;
+    // See DPR_CAP above for why this is the device's own ratio and not less.
+    const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+
+    /**
+     * How many device pixels of frame WIDTH this screen actually asks for.
+     *
+     * Not the viewport width. The film is drawn to COVER the stage, so
+     * whichever axis runs out first decides the scale and the other overflows:
+     * a 1920x1080 film in a 1440x900 window is drawn 1600 CSS px across, not
+     * 1440, and the portrait cut in a 393x852 phone is drawn 685 across — one
+     * and three quarter times the viewport. Sizing the tier off `innerWidth`
+     * therefore under-picked by that same factor and handed the canvas a frame
+     * it had to enlarge before painting.
+     *
+     * Measured off the canvas so it follows the stage rather than the window
+     * (the two differ by a toolbar on a phone), with the window as the value
+     * before first layout.
+     */
+    const neededWidth = () => {
+      const w = cv.clientWidth || window.innerWidth;
+      const h = cv.clientHeight || window.innerHeight;
+      return Math.max(w, h * m.aspect) * dpr;
+    };
 
     const chooseTiers = (avif: boolean) => {
       const fmt = avif ? m.formats.avif : m.formats.webp;
       tiers = [...fmt.sizes].sort((a, b) => a.width - b.width);
-      const fit = tiers.findIndex((s) => s.width >= needed * 0.85);
+      const fit = tiers.findIndex((s) => s.width >= neededWidth() * 0.85);
       displayTier = fit === -1 ? tiers.length - 1 : fit;
       // The spine is the cheapest tier there is. On the WebP fallback path
       // there is only one tier, so spine and display are the same and the
@@ -377,41 +427,45 @@ export default function ScrollTour({ captions = [] }: Props) {
      * then there is a real picture at every scroll position and the visitor
      * has nothing left to wait for.
      */
+    /**
+     * The same order again, for the display tier.
+     *
+     * The film used to reach display quality only where the visitor STOPPED.
+     * Everywhere else it played out of the spine — 640px landscape, 400px
+     * portrait — and the report was exactly what that looks like: crystal clear
+     * through the opening, where anyone pauses to read the masthead, and soft
+     * from the moment they started scrolling and never recovered.
+     *
+     * Measured before this existed, scrolling steadily rather than in reading
+     * pauses, display frames ready when the playhead reached them:
+     *
+     *   25 Mbps   0 of 51
+     *   10 Mbps   1 of 51
+     *    4 Mbps   0 of 51
+     *   10 Mbps, pausing to read   50 of 51
+     *
+     * So the whole tier is taken now, after the window around the playhead has
+     * been served. It costs every visitor the full display tier rather than the
+     * part they lingered on, which is the price of the film being sharp all the
+     * way through.
+     *
+     * IN FILM ORDER, not coarse-to-fine. The spine is strided because its job
+     * is that every scroll position has SOMETHING within a few frames, as early
+     * as possible. This tier's job is the opposite: the visitor consumes the
+     * film forwards, so what matters is a contiguous run of sharp frames ahead
+     * of the playhead. Strided, the same bandwidth buys a thin scatter that
+     * leaves gaps everywhere; sequential, it buys a buffer the playhead can sit
+     * inside. A visitor who jumps somewhere else is covered by the window above
+     * rather than by this.
+     */
+    const bigPlan = Array.from({ length: count }, (_, i) => i);
+    let bigAt = 0;
+
     const SPINE_COUNT = Math.min(smallPlan.length, Math.max(24, Math.ceil(count / spineStride)));
     let planAt = 0;
     let windowOpen = false;
 
-    // ---- the two measured rates ------------------------------------------
-    /**
-     * Frames per second this connection is actually delivering.
-     *
-     * Seeded at 10 and replaced by measurement inside the first half second.
-     * An EMA rather than a running mean: a link that degrades halfway down the
-     * page has to be believed, not averaged away.
-     */
-    let rate = 10;
-    let settledSince = 0;
-    let rateAt = 0;
-    const noteSettled = () => {
-      const now = performance.now();
-      settledSince++;
-      if (!rateAt) {
-        rateAt = now;
-        return;
-      }
-      const dt = now - rateAt;
-      if (dt >= 400) {
-        rate += ((settledSince * 1000) / dt - rate) * 0.4;
-        settledSince = 0;
-        rateAt = now;
-      }
-    };
 
-    /** Frames of film passing under the playhead per second. Written by the loop. */
-    let passRate = 0;
-
-    const fetchStride = () =>
-      Math.max(1, Math.min(8, Math.ceil(passRate / Math.max(3, rate))));
 
     let disposed = false;
     let dirty = true;
@@ -430,20 +484,20 @@ export default function ScrollTour({ captions = [] }: Props) {
      * just outside it is one the visitor is about to reach, and throwing away
      * a request that is nearly finished costs more than keeping it.
      */
-    const abortStale = () => {
-      for (const [i, img] of inflightImg) {
-        // Small-tier requests are never stale. Every one of them is wanted,
-        // wherever the playhead is, because the whole tier is being taken;
-        // cancelling one only means asking for it again later.
-        if (inflightTier[i] !== displayTier || displayTier === spineTier) continue;
-        if (i > cursor - BEHIND * 2 && i < cursor + UPGRADE_REACH * 2) continue;
-        img.onload = null;
-        img.onerror = null;
-        img.src = "";
-        inflightImg.delete(i);
-        inflightTier[i] = -1;
-      }
-    };
+    /**
+     * Nothing in flight is stale any more, so nothing is cancelled.
+     *
+     * This used to drop display-tier requests the playhead had left behind,
+     * which was right while that tier was only ever fetched in a window around
+     * the visitor: a frame outside the window was bandwidth spent on a picture
+     * nobody was going to see. Now the whole tier is taken — see `bigPlan` —
+     * so a request far from the cursor is the sweep doing its job, and
+     * cancelling it only means asking for the same frame again later.
+     *
+     * Priority is what separates them instead: `fetchPriority` is high inside
+     * URGENT and low everywhere else, so the browser serves what is on screen
+     * first without anything being thrown away to do it.
+     */
 
     /** Next frame worth fetching and the tier to fetch it at, or null. */
     const pick = (): { i: number; tier: number } | null => {
@@ -466,17 +520,28 @@ export default function ScrollTour({ captions = [] }: Props) {
         if (tierOf[i] < 0 && inflightTier[i] < 0) return { i, tier: spineTier };
       }
 
-      // UPGRADE. Everything the small tier is not: gated on a gesture, held to
-      // a window around the playhead, and only while the film is arriving
-      // faster than the visitor is consuming it. This tier is 3.5x the bytes
-      // and buys sharpness rather than motion, so it is the one that waits.
+      // UPGRADE, NEAR. The window around the playhead first, so what is on
+      // screen sharpens before anything else does.
       //
-      // Someone flying past the tour gets the small tier and is none the
-      // wiser; someone who stops to look gets the large one within a few
-      // frames of stopping.
-      if (!windowOpen || displayTier === spineTier) return null;
-      if (passRate >= rate * 0.75) return null;
-      const reach = Math.min(UPGRADE_REACH, Math.ceil(UPGRADE_REACH / fetchStride()));
+      // No longer gated on the scroll rate. That gate — "only while the film is
+      // arriving faster than the visitor is consuming it" — sounds prudent and
+      // in practice meant that anyone who scrolled through without stopping
+      // never received a single display frame, at any connection speed. The
+      // spine SWEEP above already runs to completion first, so motion is
+      // covered before this is reached and there is nothing left for the gate
+      // to protect.
+      // Not gated on a gesture either. The visitor spends the first few seconds
+      // on the opening frame reading the masthead, and the loader used to spend
+      // them idle: measured, 3.5s on the opening produced 503 spine frames and
+      // ZERO display frames, because `windowOpen` was still false. That is the
+      // one stretch of time where bandwidth is free — nothing is moving and
+      // nothing is waiting — and it is worth about two hundred frames of buffer
+      // before the visitor touches the wheel.
+      if (displayTier === spineTier) return null;
+      // The full reach, never divided by the scroll stride. Shrinking the
+      // window as the visitor speeds up is backwards: moving faster is exactly
+      // when the playhead needs frames further ahead of it.
+      const reach = UPGRADE_REACH;
       for (let d = 0; d <= reach; d++) {
         const f = cursor + d;
         if (f < count && tierOf[f] === spineTier && inflightTier[f] < 0) return { i: f, tier: displayTier };
@@ -485,12 +550,26 @@ export default function ScrollTour({ captions = [] }: Props) {
           if (b >= 0 && tierOf[b] === spineTier && inflightTier[b] < 0) return { i: b, tier: displayTier };
         }
       }
+
+      // UPGRADE, THE REST. The rest of the film, so every position ends up
+      // sharp rather than only the ones that were looked at slowly.
+      //
+      // Not rationed by the scroll rate. Rationing it was the original design
+      // and it is what left the film soft from wherever the visitor started
+      // moving; a rate gate here cost 11 of 41 sampled positions their sharp
+      // frame on a 25 Mbps line and bought nothing measurable back. Decoding
+      // the tier while scrubbing is cheap enough: on a 4x-throttled CPU,
+      // scrolling 200 frames, one frame was dropped and none by more than a
+      // single vsync.
+      while (bigAt < bigPlan.length) {
+        const i = bigPlan[bigAt++];
+        if (tierOf[i] === spineTier && inflightTier[i] < 0) return { i, tier: displayTier };
+      }
       return null;
     };
 
     const pump = () => {
       if (!started || disposed) return;
-      abortStale();
       while (inflightImg.size < CONCURRENCY) {
         const next = pick();
         if (!next) return;
@@ -524,7 +603,6 @@ export default function ScrollTour({ captions = [] }: Props) {
             tierOf[i] = tier;
             dirty = true;
           }
-          noteSettled();
           if (loadedCount <= SPINE_COUNT) {
             setPct(Math.min(100, Math.round((loadedCount / SPINE_COUNT) * 100)));
           }
@@ -814,15 +892,6 @@ export default function ScrollTour({ captions = [] }: Props) {
       lastP = p;
       vel += (dp - vel) * 0.25;
 
-      // The same smoothed velocity the stamp leans on, restated as the thing
-      // the loader needs: frames of film passing under the playhead per
-      // second. `vel` is progress per animation frame, so scaling by the frame
-      // count and by 60 gives frames per second directly. This is half of the
-      // fetch stride — the other half is how fast the connection is actually
-      // delivering — and it is why a fast scroll asks for a sparse film
-      // instead of drowning in a dense one it cannot receive.
-      passRate = Math.abs(vel) * count * 60;
-
       if (bar.current) bar.current.style.transform = `scaleX(${p})`;
       if (cue.current) cue.current.style.opacity = String(1 - smooth(p, 0, 0.04));
 
@@ -1099,10 +1168,15 @@ export default function ScrollTour({ captions = [] }: Props) {
             tall so a retracting Android toolbar can never expose a band under
             it. Everything below this line carries words or marks and is sized
             to the LIVE viewport instead, so none of it is ever parked under a
-            toolbar that happens to be showing. See `.u-tour-stage` in
-            globals.css. */}
-        <div className="u-tour-visible pointer-events-none absolute inset-x-0 top-0">
+            toolbar that happens to be showing.
 
+            The ending is NOT in here, and that is deliberate: its plate has to
+            cover the whole stage. Anchored to the live viewport it stopped
+            short of the stage's bottom edge, and the last strip of film showed
+            through underneath the closing plate as a bright band — visible on
+            an iPhone every time the tour finished. Its hairline and its mark
+            are pulled back into view by `100lvh - 100dvh` instead. See
+            `.u-tour-stage` in globals.css. */}
         {/* ---- the ending ----
             See "the ending" in applyOverlay above for why this exists, and
             "The ending" in globals.css for the ramps.
@@ -1211,6 +1285,9 @@ export default function ScrollTour({ captions = [] }: Props) {
             />
           </svg>
         </div>
+
+        <div className="u-tour-visible pointer-events-none absolute inset-x-0 top-0">
+
 
         <div className="pointer-events-none absolute inset-0">
           {captions.map((c, i) => {
