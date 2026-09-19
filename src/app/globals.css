@@ -1158,15 +1158,22 @@ html.lenis, html.lenis body { height: auto; }
        no edge of its own to give away. */
     radial-gradient(
       130% 100% at 10% 100%,
-      rgba(10, 10, 11, 0.44) 0%,
-      rgba(10, 10, 11, 0.22) 45%,
+      rgba(10, 10, 11, 0.32) 0%,
+      rgba(10, 10, 11, 0.15) 45%,
       rgba(10, 10, 11, 0) 78%
     ),
+    /* Lightened with the desktop rule above, by about a quarter rather than by
+       half. A phone keeps more of its ground on purpose: the caption is
+       bottom-anchored over whatever the film is doing down there, which on
+       this edit is foliage and rooftops — high-frequency detail, the hardest
+       thing to set type over — and the plinth only covers the lower 54% here
+       rather than the whole frame, so it is not what was darkening the
+       picture. */
     linear-gradient(
       to top,
-      rgba(10, 10, 11, 0.72) 0%,
-      rgba(10, 10, 11, 0.58) 26%,
-      rgba(10, 10, 11, 0.28) 58%,
+      rgba(10, 10, 11, 0.55) 0%,
+      rgba(10, 10, 11, 0.42) 26%,
+      rgba(10, 10, 11, 0.18) 58%,
       rgba(10, 10, 11, 0) 100%
     );
 }
@@ -1181,20 +1188,34 @@ html.lenis, html.lenis body { height: auto; }
   .u-plinth {
     inset: 0;
     height: auto;
-    background:
-      radial-gradient(
-        130% 100% at 10% 50%,
-        rgba(10, 10, 11, 0.44) 0%,
-        rgba(10, 10, 11, 0.22) 45%,
-        rgba(10, 10, 11, 0) 78%
-      ),
-      radial-gradient(
-        66% 46% at 50% 50%,
-        rgba(10, 10, 11, 0.66) 0%,
-        rgba(10, 10, 11, 0.5) 42%,
-        rgba(10, 10, 11, 0.22) 70%,
-        rgba(10, 10, 11, 0) 100%
-      );
+    /* ONE ellipse, over the title column, and nothing over the picture.
+
+       This is where the film's light was going, and it was not the vignette or
+       the scrim — it was here. The rule this replaces stacked a left-anchored
+       ellipse at 0.44 on a CENTRED one at 0.66, across a box that is `inset: 0`
+       above the phone breakpoint, so the two compounded over the middle of the
+       frame: 1 - (1-0.29)(1-0.66), about three quarters black at the centre of
+       every chapter beat. Measured against the master at the same timestamp,
+       the page was keeping 61% of the film's brightness overall and 46% across
+       the middle band. That is the "how dark it looks compared to the actual
+       video" report, in one declaration.
+
+       The centred layer had no job the left one was not already doing. Every
+       chapter's type is in the left column; the right column is a 15px line and
+       two buttons that bring their own grounds. So the ground goes where the
+       words are and the rest of the frame is left alone — which is what the
+       `u-plinth` comment above has claimed since it was written.
+
+       Peak is 0.34 rather than 0.44 as well. The display type is white at
+       3.5vw carrying `u-onfilm`'s two stops; it does not need a third of the
+       picture to sit on, and the small caps under it are the only thing here
+       that was ever marginal. */
+    background: radial-gradient(
+      120% 90% at 8% 50%,
+      rgba(10, 10, 11, 0.34) 0%,
+      rgba(10, 10, 11, 0.16) 42%,
+      rgba(10, 10, 11, 0) 72%
+    );
   }
 }
 
@@ -1227,14 +1248,32 @@ html.lenis, html.lenis body { height: auto; }
      wordmark set in white rather than red, the only things still leaning on
      this are the crest and one line of places, and both survive at roughly two
      thirds the density. Legibility is the floor here, not the goal; the film
-     is the reason anyone is looking. */
-  background: radial-gradient(
+     is the reason anyone is looking.
+
+     Lightened again, by about a third, after the group reported the opening
+     frame as too dark. Two things had changed under it and both point the same
+     way: the film is a 1920x1080 video now rather than a 1400px AVIF frame, so
+     the picture it is sitting on is brighter and sharper to begin with; and
+     the type it protects is one wordmark, one sub and two short figures, all
+     of which carry `u-onfilm`'s two-stop shadow. The shadow is the cheap half
+     of legibility and it costs the picture nothing, so it does the work and
+     this does less of it.
+
+     OFF, ON REQUEST, WHILE THE OPENING FRAME IS BEING JUDGED WITHOUT IT.
+     Lightening it was not enough of an answer to "too dark", so the whole
+     ground is commented out rather than tuned again — the box still exists and
+     is still positioned, so nothing about the layout changes and putting it
+     back is uncommenting two declarations. The type keeps `u-onfilm` /
+     `u-onfilm-red`, which is now the only thing holding it off the picture.
+     Judge it over the BRIGHT part of the opening shot — the sunlit sky behind
+     the sub-line is where a missing ground shows first, not the city. */
+  /* background: radial-gradient(
     70% 48% at 50% 50%,
-    rgba(10, 10, 11, 0.46) 0%,
-    rgba(10, 10, 11, 0.36) 44%,
-    rgba(10, 10, 11, 0.16) 74%,
+    rgba(10, 10, 11, 0.3) 0%,
+    rgba(10, 10, 11, 0.23) 44%,
+    rgba(10, 10, 11, 0.1) 74%,
     rgba(10, 10, 11, 0) 100%
-  );
+  ); */
 }
 
 /* Phones get appreciably less of it.
@@ -1248,13 +1287,19 @@ html.lenis, html.lenis body { height: auto; }
    sit inside a much smaller area. */
 @media (max-width: 639px) {
   .u-vignette {
-    background: radial-gradient(
+    /* Off with the desktop one above. The ask named desktop, but leaving this
+       live would mean the two shapes were being judged against different
+       grounds — and a phone is the harder case for a missing one, not the
+       easier: the ellipse covers proportionally more of a 390x844 frame, so
+       it was doing proportionally more work. If the verdict is "keep it on
+       phones, lose it on desktop", this block is the one to uncomment. */
+    /* background: radial-gradient(
       74% 42% at 50% 46%,
-      rgba(10, 10, 11, 0.52) 0%,
-      rgba(10, 10, 11, 0.4) 46%,
-      rgba(10, 10, 11, 0.18) 76%,
+      rgba(10, 10, 11, 0.36) 0%,
+      rgba(10, 10, 11, 0.27) 46%,
+      rgba(10, 10, 11, 0.12) 76%,
       rgba(10, 10, 11, 0) 100%
-    );
+    ); */
   }
 }
 
@@ -1281,11 +1326,20 @@ html.lenis, html.lenis body { height: auto; }
      started reading as an outline drawn around the type — thick and dark
      enough to be the thing you noticed instead of the word. One close stop for
      the edge and one wide one for separation is all red needs; the rest was
-     the scrim's job, and the scrim is already doing it. */
+     the scrim's job, and the scrim is already doing it.
+
+     Nudged back up when the vignette under it was lightened by a third. That
+     trade is the whole point of this class existing: the group asked for a
+     brighter opening frame, and the thing brightness costs is the ONE red line
+     on it — red against a sunlit sky is the lowest-contrast pairing anywhere
+     in this section, and on a phone, where the sub-line lands on haze rather
+     than on the city, it went soft. A halo is paid for by the letterforms; a
+     scrim is paid for by the picture. So this moves and the scrim does not.
+     Still two stops and still no tight ring, for the reason above. */
   text-shadow:
-    0 0 4px rgba(0, 0, 0, 0.42),
-    0 1px 2px rgba(0, 0, 0, 0.82),
-    0 2px 16px rgba(0, 0, 0, 0.62);
+    0 0 5px rgba(0, 0, 0, 0.56),
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 2px 18px rgba(0, 0, 0, 0.74);
 }
 
 /* ---- actions over film -------------------------------------------------

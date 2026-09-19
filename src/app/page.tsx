@@ -44,6 +44,23 @@ export default function HomePage() {
       <Navbar />
       <ApplyBar />
       <main>
+        {/* The image sequence on a canvas: one scroll position, one frame,
+            drawn from memory on the animation frame.
+
+            Two video engines were built and both came back choppy. A `<video>`
+            scrubbed with `currentTime` costs a seek per picture (p95 69.5ms).
+            WebCodecs removes the seek and got it to p95 45.6ms, still behind
+            the sequence's 36.6ms, because a decode has to happen somewhere and
+            the sequence has already done it. "Two engines" in TOUR.md has both
+            sets of measurements.
+
+            The quality complaint that started it was never the engine. The
+            display tier was picked with a 15% slack, so a 1440x900 desktop
+            asked for 1600px and was handed the 1400 tier to ENLARGE; and it
+            was encoded at crf 36. Both are fixed: TIER_SLACK in
+            ScrollTour.tsx, and `--crf 30` in `tour:h`. SSIM at the drawn size
+            went 0.9717 to 0.9811 — past what the crf-20 video managed per
+            byte, because the two formats sit on the same curve. */}
         <ScrollTour captions={TOUR_CAPTIONS} />
         <Ambassador />
         <ScratchReveal image={SCRATCH_IMAGE} imagePortrait={SCRATCH_IMAGE_PORTRAIT} />

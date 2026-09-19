@@ -23,8 +23,8 @@ import fs from "node:fs/promises";
 const OUT = "public";
 const b64 = async (p) => (await fs.readFile(p)).toString("base64");
 
-const lockup = await b64("public/brand/jecrc-lockup-mono.png");
-const crest = await b64("public/brand/jecrc-crest.png");
+const lockup = await b64("brand-src/jecrc-lockup-mono.png");
+const crest = await b64("brand-src/jecrc-crest.png");
 
 const browser = await chromium.launch();
 

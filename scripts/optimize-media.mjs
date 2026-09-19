@@ -44,6 +44,16 @@ import { readdirSync, readFileSync, writeFileSync, statSync, existsSync } from "
 import { join, basename, sep } from "node:path";
 
 const DRY = process.argv.includes("--dry");
+
+/**
+ * The brand marks' working format, and where the site's copies land.
+ *
+ * `brand-src/` is deliberately NOT under `public/`. Next serves everything in
+ * `public/` verbatim, so a PNG kept there for a script to read is a PNG
+ * deployed for nobody to fetch.
+ */
+const BRAND_SRC = "brand-src";
+const BRAND_OUT = "public/brand";
 const kb = (n) => (n / 1024).toFixed(1).padStart(7) + " KB";
 
 let before = 0;
@@ -67,8 +77,12 @@ const list = (dir, re) =>
  * the pipeline lives, and re-encoding a .webp over itself then fails with
  * EPERM. A Buffer has no handle to still be holding.
  */
-async function toWebp(src, { lossless = false, quality = 80, width = null } = {}) {
-  const out = src.replace(/\.(png|jpe?g|webp)$/i, ".webp");
+async function toWebp(src, { lossless = false, quality = 80, width = null, outDir = null } = {}) {
+  // Beside the input by default. `outDir` is for the brand marks, whose
+  // working PNGs live outside `public/` so they are never deployed — see the
+  // brand block below.
+  const named = basename(src).replace(/\.(png|jpe?g|webp)$/i, ".webp");
+  const out = outDir ? join(outDir, named) : src.replace(/\.(png|jpe?g|webp)$/i, ".webp");
   const a = statSync(src).size;
   const input = sharp(readFileSync(src));
 
@@ -118,10 +132,19 @@ for (const f of list("public/media/recruiters", /\.png$/i))
 // ---- the brand marks --------------------------------------------------
 // Lossless. Flat colour, serif type on a hard edge, and the mark carries the
 // university's name at the top of every screen: this is the exact case lossy
-// WebP rings on. The PNGs stay put — they are what `brand:mono` and
-// `brand:crest` read and write, and what the published artwork arrives as.
-for (const f of list("public/brand", /\.png$/i))
-  if (f !== "jecrc-crest-lg.png") await toWebp(join("public/brand", f), { lossless: true });
+// WebP rings on.
+//
+// IN FROM `brand-src/`, OUT TO `public/brand/`. The PNGs are the working
+// format — what `brand:mono` and `brand:crest` read and write, and what the
+// published artwork arrives as — and they used to sit in `public/brand`
+// beside their own output. Everything in `public/` is deployed, so that was
+// 572 KB of intermediates shipped to every visitor's CDN edge for a set of
+// files the site never links. Nothing requests them, so it cost no visitor a
+// byte; it cost the deploy, and it made "which of these is the real asset?"
+// a question anyone touching the brand pipeline had to answer from the code.
+for (const f of list(BRAND_SRC, /\.png$/i))
+  if (f !== "jecrc-crest-lg.png")
+    await toWebp(join(BRAND_SRC, f), { lossless: true, outDir: BRAND_OUT });
 
 // ---- the crest at ending size -----------------------------------------
 // Lossy, unlike the four marks in `brand:webp`. This one is not flat colour —
@@ -129,8 +152,8 @@ for (const f of list("public/brand", /\.png$/i))
 // nothing to predict and lands at 128 KB against 78 KB at q88. It is also the
 // only mark that is never drawn near its own size: it appears once, at the end
 // of the film, at cap height.
-if (existsSync("public/brand/jecrc-crest-lg.png"))
-  await toWebp("public/brand/jecrc-crest-lg.png", { quality: 88 });
+if (existsSync(join(BRAND_SRC, "jecrc-crest-lg.png")))
+  await toWebp(join(BRAND_SRC, "jecrc-crest-lg.png"), { quality: 88, outDir: BRAND_OUT });
 
 // ---- icons and the social card: PNG in, PNG out ------------------------
 for (const f of ["icon-192.png", "icon-512.png", "apple-icon.png", "opengraph-image.png"])

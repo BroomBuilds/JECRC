@@ -29,7 +29,7 @@
 import sharp from "sharp";
 
 const IN = process.argv[2] ?? "ref/JU logo.png";
-const OUT = process.argv[3] ?? "public/brand/ju-mark.png";
+const OUT = process.argv[3] ?? "brand-src/ju-mark.png";
 const CREST = (process.argv[4] ?? "#df1919").replace("#", "");
 const WORD = (process.argv[5] ?? "#ffffff").replace("#", "");
 const rgb = (h) => [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));

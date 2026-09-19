@@ -37,7 +37,7 @@
 import sharp from "sharp";
 
 const IN = process.argv[2] ?? "ref/hospital logo.png";
-const OUT = process.argv[3] ?? "public/brand/jecrc-hospital-mark-reversed.png";
+const OUT = process.argv[3] ?? "brand-src/jecrc-hospital-mark-reversed.png";
 
 /**
  * The flat colour every ink pixel is repainted to, as `--ink rrggbb`.

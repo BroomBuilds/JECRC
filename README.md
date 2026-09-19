@@ -39,13 +39,20 @@ src/
     seo/             the JSON-LD graph
     hooks/           useTourComplete
     utils/           cn
+brand-src/           the brand marks' WORKING PNGs. Not served — see below
 public/
-  brand/             the lockup, and the keyed white version of it
-  media/tour/        828 WebP frames at two widths, plus the poster
-  media/stills/      frames lifted from the film, used to dress the sections
+  brand/             the marks the page actually links, lossless WebP
+  media/tour/        the film, as AVIF frames at three widths plus a WebP
+                     fallback tier, per orientation, and the poster
+  media/stills/      s4-s6, lifted from the film to dress the sections
   llms.txt           the page's facts as plain text, for answer engines
   _headers           Cloudflare's copy of the cache and security headers
 ```
+
+**`brand-src/` is deliberately outside `public/`.** Everything in `public/` is deployed
+verbatim, so a PNG kept there for a build script to read is a PNG shipped to every edge for
+nobody to fetch. The `brand:*` scripts read and write `brand-src/`; `npm run media` converts
+it into `public/brand/`, and the page links only the WebP.
 
 **All copy lives in `src/lib/content/`.** Nothing is hardcoded in a component, so a content
 change never means reading JSX. The files are `site`, `universities`, `navigation`,

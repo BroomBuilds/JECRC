@@ -21,7 +21,7 @@
 import sharp from "sharp";
 import fs from "node:fs/promises";
 
-const IN = process.argv[2] ?? "public/brand/jecrc-crest.png";
+const IN = process.argv[2] ?? "brand-src/jecrc-crest.png";
 const PAPER = { r: 255, g: 255, b: 255, alpha: 1 };
 const CLEAR = { r: 0, g: 0, b: 0, alpha: 0 };
 
