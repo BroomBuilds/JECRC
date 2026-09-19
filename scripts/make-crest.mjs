@@ -12,8 +12,8 @@
 import { chromium } from "playwright";
 import fs from "node:fs/promises";
 
-const IN = process.argv[2] ?? "public/brand/jecrc-lockup-red.png";
-const OUT = process.argv[3] ?? "public/brand/jecrc-crest.png";
+const IN = process.argv[2] ?? "brand-src/jecrc-lockup-red.png";
+const OUT = process.argv[3] ?? "brand-src/jecrc-crest.png";
 /** The crest sits inside the first fifth of the lockup, ahead of the wordmark. */
 const SLICE = 0.2;
 

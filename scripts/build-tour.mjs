@@ -478,7 +478,21 @@ if (stills > 0) {
   const stillDir = resolve("public/media/stills");
   mkdirSync(stillDir, { recursive: true });
   for (const f of readdirSync(stillDir)) if (/^s\d+\.(jpg|webp)$/.test(f)) rmSync(join(stillDir, f));
+  /**
+   * Which of the stills to actually write, 1-based. Empty means all of them.
+   *
+   * `--stills` has to stay at the number the SPACING was chosen for, because
+   * the still for slot k is pulled from `(k + 0.5) / stills` of the way through
+   * the film — lower it to three and you get three different pictures, not the
+   * three you had. So the count stays 8 and this says which of the eight are
+   * wanted.
+   *
+   * `src/lib/content/schools.ts` uses s4, s5 and s6. The other five were being
+   * written, committed and deployed for nothing.
+   */
+  const keep = String(opt("stills-keep", "")).split(",").map(Number).filter(Boolean);
   for (let k = 0; k < stills; k++) {
+    if (keep.length && !keep.includes(k + 1)) continue;
     const t = start + (span * (k + 0.5)) / stills;
     // WebP, not AVIF: these are section imagery inside next/image on a page
     // that is otherwise entirely WebP, and they are decoded once and held,

@@ -69,6 +69,108 @@ version essentially never does, in either direction.
 
 ---
 
+## 2b. Two video engines, both built, both rejected
+
+Section 2 is right about `<video>`. The conclusion it drew — that the image sequence is the
+answer — survived two serious attempts to beat it, and the attempts are worth recording so
+nobody spends the time again.
+
+The complaint that started them was real: to keep 503 frames x 3 tiers inside a sane
+download the display tier was **1400px at crf 36**, drawn 1600px wide, and an enlarged
+compressed frame is soft. "The video quality is lost." True — but it was never the engine's
+fault, which took two builds to establish.
+
+### Attempt 1: a `<video>` scrubbed with `currentTime`
+
+Shipped for review, reported as "quite choppy". Measured on the built page under a real
+wheel scroll, counting **distinct pictures presented** via `requestVideoFrameCallback`:
+
+| | median gap | p95 | worst |
+|---|---|---|---|
+| down | 27.8 ms | 69.5 ms | 166.7 ms |
+| up | 27.8 ms | 62.5 ms | 187.5 ms |
+
+Symmetric, so the 0.4s GOP did its job — this is not the asymmetry section 2 describes. It
+is the floor: **one seek per picture**, ~20 ms alone, ~28 ms beside the page's own work.
+Shortening the GOP cannot help, because forward and backward seeks already cost the same.
+
+### Attempt 2: WebCodecs, no seeking at all
+
+`VideoDecoder` skips the seek entirely — **4.4 ms a frame**, software, no GPU — so a whole
+12-frame group costs about what one `<video>` seek did. Decode a group, keep it as
+`ImageBitmap`s, and scrubbing inside it is free. Three things had to be right:
+
+- **Nothing may be awaited.** Awaiting each group measured p50 **0 ms** / p95 **128 ms**:
+  free inside a group, a stall at every boundary. Groups had to be requested a group AHEAD
+  in the direction of travel, with the loop never blocking.
+- **The decoder's output pool is small.** Chrome silently stops when its output frames are
+  all still open — 10 frames of 12, queue drained, `flush()` never settles. Frames must be
+  released inside the output callback, which rules out `createImageBitmap` (a promise; that
+  path failed with "Decoding error"). `OffscreenCanvas.transferToImageBitmap()` is
+  synchronous and works.
+- **mp4box recycles its sample buffers.** Chunks have to be copied out or they decode to
+  nothing — same wedge, different cause.
+
+It got there, and it still lost:
+
+| | frames, crf 30 | `<video>` | WebCodecs |
+|---|---|---|---|
+| down p95 | **36.6 ms** | 69.5 ms | 45.6 ms |
+| up p95 | **30.0 ms** | 62.5 ms | 42.3 ms |
+| desktop bytes | 38.7 MB | 32 MB | 32 MB |
+| SSIM at drawn size | 0.9811 | — | 0.9824 |
+| phones | yes | yes | no — 100 MB a group, decoder died at load #60 |
+| browsers | all | all | Chrome 94+, Safari 16.4+, Firefox 130+ |
+
+Reported as choppy again, and removed. **A decode has to happen somewhere, and the sequence
+has already done it at build time.** That is the whole of it.
+
+### The finding that actually mattered
+
+Both deliveries, same 14 frames, decoded and scaled to the 1600x900 a 1440-wide window
+paints, SSIM against the master at that size:
+
+| | total MB | SSIM |
+|---|---|---|
+| AVIF sequence crf 36 (what shipped) | 21.0 | 0.9717 |
+| AVIF sequence crf 32 | 27.4 | 0.9780 |
+| **AVIF sequence crf 30 (ships now)** | **31.7** | **0.9811** |
+| H.264 crf 20, GOP 12 | 31.8 | 0.9824 |
+| AVIF sequence crf 28 | 35.3 | 0.9832 |
+| AVIF sequence crf 26 | 39.6 | 0.9851 |
+| H.264 crf 17, GOP 12 | 45.7 | 0.9873 |
+
+**The two formats sit on the same quality-per-byte curve.** Video is not a route to a
+sharper film — the film is a fast-cut montage with a short GOP, so inter-frame prediction
+buys almost nothing against AV1 intra coding. Anyone reaching for video to fix sharpness
+should spend the bytes on the sequence instead and skip the two weeks.
+
+### So where the quality actually came from
+
+Two changes, neither of them an engine:
+
+- **`TIER_SLACK` 0.85 → 0.97.** The film is drawn to COVER, so a 1440x900 window asks for
+  `max(1440, 900 x 16/9)` = 1600px. The old slack accepted anything within 15% of that, took
+  the **1400** tier, and let the browser enlarge a crf-36 AVIF by fourteen percent.
+  Upscaling compressed frames is where artefacts stop being subtle. The 1920 tier it skipped
+  was already built and already served.
+- **`--crf 36 → 30`** landscape, **32 → 28** portrait.
+
+Together: SSIM 0.9717 → 0.9811, past what the crf-20 video managed per byte.
+
+### Knobs that are NOT worth turning
+
+- **Encoder effort.** `-cpu-used` 6 → 4 buys **+0.0007 SSIM** and 0.6% fewer bytes for 2.6x
+  the encode time; 6 → 3 is +0.0008 for 3.5x. libaom is already near its ceiling on stills.
+  Leave it at 6.
+- **Resolution.** 1920 is the master's own width. A 2x display is upscaling whatever is
+  served; there is nothing above the source to reach for.
+- **Lower crf still.** crf 28 and 26 are on the table (35.3 MB, 39.6 MB) and they do look
+  better. It is straight bytes, and bigger AVIF frames also cost more to decode during a
+  scroll. `--crf` in `tour:h` is the dial.
+
+---
+
 ## 3. The build step
 
 `scripts/build-tour.mjs` wraps ffmpeg. It is run once per orientation — the page ships one

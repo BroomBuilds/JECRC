@@ -26,6 +26,14 @@ export const BRAND = {
    * only, this one is the whole group. Update both when the group does.
    */
   enrolled: "29,643",
+  /**
+   * Sits beside `enrolled` on the same opening frame, and is deliberately the
+   * rounder of the two. Enrolment is a roll the group can count on any given
+   * morning; an alumni body going back to 2001 is not, so the figure they gave
+   * is the one printed — do not "tidy" it into an exact number to match its
+   * neighbour, and do not derive one from NUMBERS.
+   */
+  alumni: "30,000+",
 } as const;
 
 export const CONTACT = {

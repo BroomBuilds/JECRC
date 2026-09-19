@@ -19,8 +19,8 @@ import { chromium } from "playwright";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const IN = process.argv[2] ?? "public/brand/jecrc-lockup.png";
-const OUT = process.argv[3] ?? "public/brand/jecrc-lockup-mono.png";
+const IN = process.argv[2] ?? "brand-src/jecrc-lockup.png";
+const OUT = process.argv[3] ?? "brand-src/jecrc-lockup-mono.png";
 /** Flat colour to paint the keyed artwork in. Default white, for dark grounds. */
 const INK = (process.argv[4] ?? "#ffffff").replace("#", "");
 const RGB = [0, 2, 4].map((i) => parseInt(INK.slice(i, i + 2), 16));

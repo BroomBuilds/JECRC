@@ -1,4 +1,4 @@
-import { BRAND, CONTACT, SITE_URL, SOCIAL } from "@/lib/content/site";
+import { BRAND, CONTACT, LOGO, SITE_URL, SOCIAL } from "@/lib/content/site";
 import { INSTITUTIONS } from "@/lib/content/universities";
 import { FAQS } from "@/lib/content/faq";
 import { AMBASSADOR } from "@/lib/content/ambassador";
@@ -123,9 +123,15 @@ export function buildGraph() {
           "JECRC is a group of three institutions in Rajasthan, India: JECRC University in Jaipur, JECRC University's NCR campus in Alwar, and JECRC Foundation, the Jaipur Engineering College and Research Centre.",
         url: SITE_URL,
         logo: {
+          // WebP, not the PNG this used to name. The PNG was the last thing
+          // keeping the brand marks' working files inside `public/` — it was
+          // the one path in the whole site that pointed at an intermediate
+          // rather than at the artwork the page itself uses. The .webp beside
+          // it is lossless, is what every <img> on the site already loads, and
+          // is a format Google's structured-data image guidance accepts.
           "@type": "ImageObject",
           "@id": id("logo"),
-          url: `${SITE_URL}/brand/jecrc-lockup.png`,
+          url: `${SITE_URL}${LOGO.lockup}`,
           width: 557,
           height: 258,
           caption: `${BRAND.name} lockup`,

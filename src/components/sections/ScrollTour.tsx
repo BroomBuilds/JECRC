@@ -223,8 +223,10 @@ export default function ScrollTour({ captions = [] }: Props) {
 
   useEffect(() => {
     const sec = section.current;
+    if (!sec) return;
+
     const cv = canvas.current;
-    if (!sec || !cv) return;
+    if (!cv) return;
 
     const ctx = cv.getContext("2d", { alpha: false });
     if (!ctx) return;
@@ -305,7 +307,33 @@ export default function ScrollTour({ captions = [] }: Props) {
     const chooseTiers = (avif: boolean) => {
       const fmt = avif ? m.formats.avif : m.formats.webp;
       tiers = [...fmt.sizes].sort((a, b) => a.width - b.width);
-      const fit = tiers.findIndex((s) => s.width >= neededWidth() * 0.85);
+      /**
+       * How far short of what the screen asks for a tier may fall and still be
+       * taken. The calibration knob for sharpness against bytes.
+       *
+       * Was 0.85, and that is where the "the video quality is lost" report
+       * came from. Worked through for the commonest desktop, 1440x900 at 1x:
+       * the film is drawn to COVER, so the width actually asked for is
+       * max(1440, 900 x 16/9) = 1600. Against 0.85 that accepts any tier at or
+       * above 1360, so it took the 1400 and the browser then enlarged a
+       * crf-36 AVIF by fourteen percent to fill the stage. Upscaling
+       * compressed frames is where compression artefacts stop being subtle —
+       * and the 1920 tier it skipped is already built, already committed and
+       * already served.
+       *
+       * 0.97 keeps the protection the fudge existed for and drops the part
+       * that was costing the picture. A 1280x800 window asks for 1422, which
+       * is 1.6% over the 1400 tier — still inside the margin, still one tier
+       * of bytes, and 1.6% of upscale is invisible. A 1440x900 window asks for
+       * 1600, which is not, and now gets 1920 and no upscale at all.
+       *
+       * The cost is real and it is the display tier's whole size: the loader
+       * takes all of whichever tier it picks, so landscape desktops go from
+       * 16 MB to 23 MB. If that is the wrong trade, this number is the only
+       * thing to change.
+       */
+      const TIER_SLACK = 0.97;
+      const fit = tiers.findIndex((s) => s.width >= neededWidth() * TIER_SLACK);
       displayTier = fit === -1 ? tiers.length - 1 : fit;
       // The spine is the cheapest tier there is. On the WebP fallback path
       // there is only one tier, so spine and display are the same and the
@@ -469,6 +497,26 @@ export default function ScrollTour({ captions = [] }: Props) {
 
     let disposed = false;
     let dirty = true;
+    /**
+     * Is the tour anywhere near the viewport?
+     *
+     * Written by the IntersectionObserver at the bottom, read by `pick` — and
+     * it is the difference between this page costing a visitor 27 MB and
+     * costing them what they actually looked at.
+     *
+     * The sweeps are unconditional by design: the whole small tier, then the
+     * whole display tier, because a visitor who scrolls the film steadily
+     * needs frames everywhere rather than only where they stopped. What that
+     * missed is that they keep running after the visitor has LEFT. The rAF
+     * loop already stands down here; the loader did not, so someone who
+     * scrolled past the tour in two seconds and settled on the FAQ went on
+     * quietly downloading twenty-two megabytes of film they had finished with.
+     *
+     * Starts true rather than waiting for the observer's first callback: the
+     * tour is the top of the page, it is on screen at load, and a first paint
+     * that waits a frame for an observer is a first paint that waits.
+     */
+    let onScreen = true;
 
     /**
      * Abandon requests the playhead has left behind.
@@ -510,6 +558,13 @@ export default function ScrollTour({ captions = [] }: Props) {
         const f = cursor + d;
         if (f < count && tierOf[f] < 0 && inflightTier[f] < 0) return { i: f, tier: spineTier };
       }
+
+      // Everything past this point is a SWEEP — film the visitor is not
+      // looking at yet — so none of it is worth a byte while the tour is off
+      // screen. URGENT above is deliberately not gated: it is at most 24 small
+      // frames, about 150 KB, and it is what makes scrolling BACK to the tour
+      // instant instead of a reload.
+      if (!onScreen) return null;
 
       // SWEEP. The entire small tier, coarse-to-fine, unconditionally. Not
       // gated on a gesture and not strided by velocity: at 2.2 MB for the whole
@@ -612,7 +667,7 @@ export default function ScrollTour({ captions = [] }: Props) {
           // something better to show.
           if (!disposed && loadedCount >= Math.min(count, Math.ceil(SPINE_COUNT / 4))) {
             setPrimed(true);
-          }
+            }
           pump();
         };
 
@@ -1099,9 +1154,15 @@ export default function ScrollTour({ captions = [] }: Props) {
 
     const io = new IntersectionObserver(
       ([entry]) => {
+        onScreen = entry.isIntersecting;
         if (entry.isIntersecting && !running) {
           running = true;
           raf = requestAnimationFrame(tick);
+          // The sweeps stood down while the tour was off screen; this is what
+          // starts them again. `pump` is otherwise only ever called by a
+          // request completing, so once the queue drains there is nothing left
+          // to restart it.
+          pump();
         } else if (!entry.isIntersecting && running) {
           running = false;
           cancelAnimationFrame(raf);
@@ -1191,9 +1252,27 @@ export default function ScrollTour({ captions = [] }: Props) {
             between the two falloffs. Each card brings its own ground now
             (`u-plinth`, `u-vignette`), which means the ground fades in and out
             with the words it exists for instead of being on the whole time. */}
+        {/* 55/40, then 36/26, now 12/16 — and the two ends are no longer the
+            same number, because they never had the same job.
+
+            These falloffs run over the WHOLE tour, every beat at once, so they
+            are the cheapest place to buy brightness back. They were not where
+            most of it was going (that was `u-plinth`, see globals.css), but
+            they were still costing about a sixth of the picture.
+
+            The TOP stop was protecting nothing. The navigation is an opaque
+            crimson-and-paper header that scrolls away; it never floats over
+            the film, and once the stage is pinned there is nothing in the top
+            of the frame at all. So it was cinematic framing, charged against
+            the sky — which on this edit is a sunset, and the brightest, most
+            striking thing in the whole film. It keeps a trace and no more.
+
+            The BOTTOM stop is real: the playhead, the scroll cue and the
+            loading readout all sit down there in white, over whatever the film
+            happens to be doing. That one stays. */}
         <div
           aria-hidden
-          className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/55 via-transparent to-ink/40"
+          className="u-tour-scrim pointer-events-none absolute inset-0 bg-linear-to-b from-ink/12 via-transparent to-ink/16"
         />
 
         {/* ---- the opening plate ----
@@ -1391,13 +1470,23 @@ export default function ScrollTour({ captions = [] }: Props) {
                   <span className="u-wordmark-sub u-masthead-eyebrow u-onfilm-red relative mt-2 block text-[5.3vw] uppercase leading-none text-crimson-lit sm:mt-3 sm:text-[3.6vw] lg:text-[2.5vw]">
                     Group of institutions
                   </span>
-                  {/* The one figure on the opening frame, and deliberately the
-                      smallest thing on it: set in the interface sans rather
-                      than the wordmark face, because it is a fact about the
-                      group and not part of the lockup. It rises last, after
-                      the name and the sub have placed themselves. */}
-                  <span className="u-eyebrow u-masthead-stat u-onfilm relative mt-4 block text-[0.8125rem] text-paper/85 sm:mt-5 sm:text-[0.9rem] lg:text-[1rem]">
-                    {BRAND.enrolled} Students Enrolled
+                  {/* The two figures on the opening frame, and deliberately
+                      the smallest things on it: set in the interface sans
+                      rather than the wordmark face, because they are facts
+                      about the group and not part of the lockup. They rise
+                      last, after the name and the sub have placed themselves.
+
+                      A flex row that wraps, not one string with a separator
+                      glyph in it. At 13px with .16em of tracking the pair runs
+                      past 360px of screen, and a wrapped string breaks
+                      wherever the line happens to end — mid-figure, with the
+                      divider stranded. Wrapping between the two items instead
+                      puts each fact on its own line and drops the rule, which
+                      is what a rule between two stacked items should do. */}
+                  <span className="u-eyebrow u-masthead-stat u-onfilm relative mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[0.8125rem] text-paper/85 sm:mt-5 sm:gap-x-4 sm:text-[0.9rem] lg:text-[1rem]">
+                    <span>{BRAND.enrolled} Students Enrolled</span>
+                    <span aria-hidden className="hidden h-3 w-px bg-paper/40 sm:block" />
+                    <span>{BRAND.alumni} Alumni</span>
                   </span>
                 </>
               )}
