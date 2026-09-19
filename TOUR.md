@@ -158,6 +158,40 @@ Two changes, neither of them an engine:
 
 Together: SSIM 0.9717 → 0.9811, past what the crf-20 video managed per byte.
 
+### The first visit was soft, and it was an ordering bug
+
+Reported as: "blurry while I keep scrolling; wait a minute or reload and it's sharp."
+
+That is not a decode problem or a compression problem. `pick()` ran the spine SWEEP — the
+**whole** small tier, all 503 frames — before it requested a single display frame. Every one
+of those is 640px enlarged to fill a 1600px draw, two and a half times up. Reloading looked
+like a cure only because the spine was already cached.
+
+The sweep is coarse-to-fine, so the film is covered end to end after `SPINE_COUNT` frames —
+the manifest's own definition, every `spineStride`th frame, 84 of 503, about 800 KB.
+Everything after that is closing gaps of a few frames, and at 25 fps a one-frame
+substitution is invisible while a 2.5x upscale is not. So the order is now: cover the film,
+sharpen what the visitor is looking at, THEN finish the spine, then sharpen the rest.
+
+Nothing can be left blank by this. URGENT still outranks everything and still guarantees a
+frame at or just ahead of the playhead at some tier.
+
+Measured on a cold cache at 12 Mbps / 40 ms, scrolling steadily from load:
+
+| | sweep first (before) | coverage first (now) |
+|---|---|---|
+| first sharp frame | t+6.4s, after 494 spine frames | **t+1.8s, after 90** |
+| sharp frames by t+5s | **0** | **69** |
+| by t+10s | 100 | 181 |
+| by t+20s | 284 | 347 |
+
+The first five seconds — a visitor landing and starting to scroll, which is the only part of
+this anyone experiences — went from zero sharp frames to sixty-nine.
+
+What is left is the ~1.8s before coverage completes, which is genuinely the 640px spine. The
+dial for that is the last entry in `--widths`: a wider spine is sharper sooner and costs
+bytes on the critical path, which is the one place in this loader where bytes are expensive.
+
 ### Knobs that are NOT worth turning
 
 - **Encoder effort.** `-cpu-used` 6 → 4 buys **+0.0007 SSIM** and 0.6% fewer bytes for 2.6x

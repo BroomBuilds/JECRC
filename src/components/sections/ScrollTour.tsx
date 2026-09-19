@@ -566,8 +566,68 @@ export default function ScrollTour({ captions = [] }: Props) {
       // instant instead of a reload.
       if (!onScreen) return null;
 
-      // SWEEP. The entire small tier, coarse-to-fine, unconditionally. Not
-      // gated on a gesture and not strided by velocity: at 2.2 MB for the whole
+      /**
+       * UPGRADE, NEAR. Sharpen the window around the playhead.
+       *
+       * Not gated on the scroll rate. That gate — "only while the film is
+       * arriving faster than the visitor is consuming it" — sounds prudent and
+       * in practice meant that anyone who scrolled through without stopping
+       * never received a single display frame, at any connection speed.
+       *
+       * Not gated on a gesture either. The visitor spends the first few seconds
+       * on the opening frame reading the masthead, and the loader used to spend
+       * them idle: measured, 3.5s on the opening produced 503 spine frames and
+       * ZERO display frames, because `windowOpen` was still false. That is the
+       * one stretch of time where bandwidth is free.
+       *
+       * The full reach, never divided by the scroll stride. Shrinking the
+       * window as the visitor speeds up is backwards: moving faster is exactly
+       * when the playhead needs frames further ahead of it.
+       */
+      const upgradeNear = (): { i: number; tier: number } | null => {
+        if (displayTier === spineTier) return null;
+        for (let d = 0; d <= UPGRADE_REACH; d++) {
+          const f = cursor + d;
+          if (f < count && tierOf[f] === spineTier && inflightTier[f] < 0) {
+            return { i: f, tier: displayTier };
+          }
+          if (d > 0 && d <= BEHIND) {
+            const b = cursor - d;
+            if (b >= 0 && tierOf[b] === spineTier && inflightTier[b] < 0) {
+              return { i: b, tier: displayTier };
+            }
+          }
+        }
+        return null;
+      };
+
+      // ONCE THE SPINE COVERS THE FILM, SHARPEN WHAT IS ON SCREEN.
+      //
+      // This used to sit below the sweep, and the sweep is the WHOLE small
+      // tier — so a first visitor watched 503 spine frames land before a
+      // single sharp one was even requested. Every one of those frames is
+      // 640px enlarged to fill a 1600px draw, two and a half times up, and
+      // that is exactly the "blurry while I keep scrolling, sharp after I wait
+      // or reload" report. Reloading looked like a fix only because the spine
+      // was already in cache.
+      //
+      // `SPINE_COUNT` is the manifest's own definition of end-to-end cover —
+      // every `spineStride`th frame, which is 84 of 503 here, about 800 KB.
+      // Past that the sweep is closing gaps of a few frames, and at 25 fps a
+      // one-frame substitution is invisible while a 2.5x upscale is not. So
+      // coverage first, then the picture the visitor is actually looking at,
+      // then the rest of the spine.
+      //
+      // Nothing can be left without a picture by this: URGENT above already
+      // guarantees a frame at or just ahead of the playhead at some tier, and
+      // it outranks everything here.
+      if (loadedCount >= SPINE_COUNT) {
+        const near = upgradeNear();
+        if (near) return near;
+      }
+
+      // SWEEP. The rest of the small tier, coarse-to-fine. Not gated on a
+      // gesture and not strided by velocity: at a few megabytes for the whole
       // film there is nothing here worth rationing, and rationing it is what
       // made a first visit feel worse than a reload.
       while (planAt < smallPlan.length) {
@@ -575,36 +635,9 @@ export default function ScrollTour({ captions = [] }: Props) {
         if (tierOf[i] < 0 && inflightTier[i] < 0) return { i, tier: spineTier };
       }
 
-      // UPGRADE, NEAR. The window around the playhead first, so what is on
-      // screen sharpens before anything else does.
-      //
-      // No longer gated on the scroll rate. That gate — "only while the film is
-      // arriving faster than the visitor is consuming it" — sounds prudent and
-      // in practice meant that anyone who scrolled through without stopping
-      // never received a single display frame, at any connection speed. The
-      // spine SWEEP above already runs to completion first, so motion is
-      // covered before this is reached and there is nothing left for the gate
-      // to protect.
-      // Not gated on a gesture either. The visitor spends the first few seconds
-      // on the opening frame reading the masthead, and the loader used to spend
-      // them idle: measured, 3.5s on the opening produced 503 spine frames and
-      // ZERO display frames, because `windowOpen` was still false. That is the
-      // one stretch of time where bandwidth is free — nothing is moving and
-      // nothing is waiting — and it is worth about two hundred frames of buffer
-      // before the visitor touches the wheel.
+      const near = upgradeNear();
+      if (near) return near;
       if (displayTier === spineTier) return null;
-      // The full reach, never divided by the scroll stride. Shrinking the
-      // window as the visitor speeds up is backwards: moving faster is exactly
-      // when the playhead needs frames further ahead of it.
-      const reach = UPGRADE_REACH;
-      for (let d = 0; d <= reach; d++) {
-        const f = cursor + d;
-        if (f < count && tierOf[f] === spineTier && inflightTier[f] < 0) return { i: f, tier: displayTier };
-        if (d > 0 && d <= BEHIND) {
-          const b = cursor - d;
-          if (b >= 0 && tierOf[b] === spineTier && inflightTier[b] < 0) return { i: b, tier: displayTier };
-        }
-      }
 
       // UPGRADE, THE REST. The rest of the film, so every position ends up
       // sharp rather than only the ones that were looked at slowly.
