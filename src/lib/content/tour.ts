@@ -9,58 +9,43 @@ const foundation = INSTITUTIONS.find((i) => i.id === "foundation")!;
 /**
  * Beats of the scroll film, as fractions of the tour's scroll length.
  *
- * The film is one chronological story — 2001, 2012, 2026, 2026 — opening on the
- * group identity and closing on it again. Six beats: the mark, four
- * institutions, the mark. Nothing else is on screen at any point.
+ * One chronological story — 2001, 2012, 2026, 2026 — opening on the group mark
+ * and closing on it again. Six beats: the mark, four institutions, the mark.
  *
- * Every window lands on a shot boundary rather than on a round number, AND on
- * the shot that actually shows the thing it names. `website update horizontal.mp4`
- * runs 20.12s, cuts at
+ * Every window lands on a shot boundary rather than a round number, and on the
+ * shot that shows the thing it names. `website update horizontal.mp4` runs
+ * 20.12s and cuts at .2286 / .5209 / .6978 / .8966:
  *
- *   .2286  .5209  .6978  .8966
+ *   S0  .000-.229   sunset aerial over the original college   the mark, then 01
+ *   S1  .229-.521   the Jaipur campus from the road           02, 2012
+ *   S2  .521-.698   a campus gate, "Welcome Class of 2026"    03, Alwar NCR
+ *   S3  .698-.897   the medical college render, Block 2A      04, the hospital
+ *   S4  .897-1.00   the medical building at ground level      the closing mark
  *
- * and those five shots are:
+ * Every `at[1]` IS a cut and every `at[0]` is the cut its shot starts on. A
+ * caption that fades out exactly as the picture changes reads as edited; the
+ * same line fading mid-shot reads as dropped on top afterwards, and no easing
+ * fixes it.
  *
- *   S0  .000-.229   sunset aerial over the original college  -> the mark, then 01
- *   S1  .229-.521   the Jaipur campus, red brick, from the road -> 02, 2012
- *   S2  .521-.698   a campus gate, "Welcome Class of 2026"   -> 03, Alwar NCR
- *   S3  .698-.897   the medical college render, Block 2A     -> 04, the hospital
- *   S4  .897-1.00   the medical building render, ground level -> the closing mark
+ * Two exceptions in the current edit:
  *
- * Three things about this edit are worth knowing:
+ *   - S0 is the only window that does not open on a cut. It carries both the
+ *     opening mark and beat 01, because this cut has no separate shot for the
+ *     identity frame. Give S0 its own shot in the next re-cut and beat 01
+ *     moves onto the cut like the others.
+ *   - S2 carries JECRC UNIVERSITY banners and is most likely the Jaipur gate,
+ *     not Alwar. No shot in this edit reads as the Alwar NCR campus. Beat 03
+ *     sits there because it is the slot left in chronological order, not
+ *     because the picture is right.
  *
- *   - It is the only window here that does NOT open on a cut: S0 carries both
- *     the opening mark and beat 01, because this cut dropped the letter-monument
- *     shot the previous one opened on and there is no longer a separate picture
- *     for the identity frame. The mark holds the first 1.8s of the aerial and 01
- *     takes the rest of it. Give S0 a shot of its own in the next re-cut and
- *     beat 01 moves onto the cut like the others.
- *   - S2 carries JECRC UNIVERSITY banners and is most likely the JAIPUR gate,
- *     not Alwar. There is no shot in this edit that I can identify as the Alwar
- *     NCR campus. Beat 03 sits there because it is the only slot left in
- *     chronological order, not because the picture is right.
- *   - The vertical cut is the same edit at a different aspect and its cuts land
- *     within .0032 of these (.2318 .5215 .6987 .8974), so one set of windows
- *     serves both films. Check that still holds after any re-cut. It is also
- *     re-framed per shot at build time — the aerials lose their sky, the gate
- *     and the renders lose foreground — so a phone sees a tighter picture than
- *     these fractions suggest. See "Reframing the portrait cut" in TOUR.md.
+ * The vertical cut is the same edit at a different aspect and its cuts land
+ * within .0032 of these, so one set of windows serves both. Check that still
+ * holds after any re-cut. It is also re-framed per shot at build time, so a
+ * phone sees a tighter picture than these fractions suggest.
  *
- * A caption whose fade-out completes exactly as the picture changes reads as
- * edited: the line and the shot end together and the film moves on. The same
- * line fading two thirds of the way through a shot reads as a caption someone
- * dropped on top afterwards, and no amount of easing fixes it. So every `at[1]`
- * here IS a cut, and every `at[0]` is the cut the new shot starts on — with the
- * one exception above.
- *
- * At 20.12s the four institution frames run 2.8s, 5.9s, 3.6s and 4.0s. The
- * brief asked for 3-4s each; 01 runs short because it shares its shot with the
- * opening mark, and 02 runs long because its single shot is the longest in the
- * film. Both are properties of the edit, not of these numbers.
- *
- * After a re-cut, read the new cut list off `src/lib/tour-manifest-landscape.json`
- * (the build prints it, and `--cuts-only` re-detects without re-encoding), work
- * out what each new shot shows, and move each window onto the right one.
+ * After a re-cut, read the new cut list off
+ * `src/lib/tour-manifest-landscape.json` (`--cuts-only` re-detects without
+ * re-encoding), work out what each shot shows, and move each window onto it.
  */
 export const TOUR_CAPTIONS: Caption[] = [
   {

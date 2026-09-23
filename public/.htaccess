@@ -1,0 +1,74 @@
+# Cache and security headers for Apache / LiteSpeed, which is what Hostinger
+# runs. Only read when the site is served as static files; on Hostinger's
+# Node.js hosting the `headers()` block in next.config.ts does the same job and
+# this file is ignored. Keep the two in step.
+#
+# WRITE Cache-Control EXACTLY ONCE PER REQUEST. `Header set` replaces rather
+# than appends, so a second matching rule overwrites instead of producing two
+# max-age values in one field — but the rules below are still written to be
+# mutually exclusive, because a browser reading a duplicated max-age takes the
+# FIRST one and the mistake is silent.
+#
+# The patterns that look redundant are not:
+#   ^/media/tour/      the film, immutable, matched before anything else
+#   ^/media/[^/]+$     ONLY the loose files sitting directly in /media. Without
+#                      the `$` this would swallow the film.
+#
+# Verify after any change — exactly one max-age per response:
+#   curl -sI https://<host>/media/tour/h/avif/1920/f0400.avif | grep -i cache
+#   curl -sI https://<host>/media/schools/law.webp            | grep -i cache
+
+<IfModule mod_mime.c>
+  # The film is ~800 AVIF frames a visit. A wrong MIME type here does not
+  # degrade, it breaks the tour outright.
+  AddType image/avif  .avif
+  AddType image/webp  .webp
+  AddType text/plain  .txt
+</IfModule>
+
+<IfModule mod_headers.c>
+  # ---- security, on everything ----
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+  # ---- which cache bucket this request falls in ----
+  # A year: content-hashed or fingerprinted URLs. The tour frames repeat their
+  # paths build to build, so what makes them immutable is the ?v= fingerprint
+  # every frame URL carries (see scripts/tour-rev.mjs).
+  SetEnvIf Request_URI "^/media/tour/"   cc_year
+  SetEnvIf Request_URI "^/_next/static/" cc_year
+
+  # A month: replaced by editing the file rather than by minting a new URL.
+  SetEnvIf Request_URI "^/media/[^/]+$"                        cc_month
+  SetEnvIf Request_URI "^/media/(stills|medical|recruiters|schools)/" cc_month
+  SetEnvIf Request_URI "^/brand/"                              cc_month
+  SetEnvIf Request_URI "^/(apple-icon|icon-192|icon-512|opengraph-image)\.png$" cc_month
+  SetEnvIf Request_URI "^/llms\.txt$"                          cc_month
+
+  # The document, revalidated every visit. The ?v= fingerprint on the frames
+  # lives in this HTML, so a visitor holding a stale document asks for stale
+  # frames and no amount of fingerprinting reaches them. max-age=0 against an
+  # ETag is a conditional request, not a re-download: 304, no body.
+  SetEnvIf Request_URI "^/$"            cc_revalidate
+  SetEnvIf Request_URI "^/index\.html$" cc_revalidate
+
+  Header always set Cache-Control "public, max-age=31536000, immutable" env=cc_year
+  Header always set Cache-Control "public, max-age=2592000"             env=cc_month
+  Header always set Cache-Control "public, max-age=0, must-revalidate"  env=cc_revalidate
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript application/json image/svg+xml
+</IfModule>
+
+# Static hosting only. Serves /404.html for anything that is not a real file.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ /404.html [L]
+</IfModule>
+ErrorDocument 404 /404.html

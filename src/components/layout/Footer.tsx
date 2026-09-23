@@ -6,18 +6,12 @@ import { SOCIAL_ICONS } from "@/components/ui/Icons";
 import ScrollTopButton from "@/components/ui/ScrollTopButton";
 
 /**
- * The footer, on the arts.vcu.edu anatomy.
- *
  * Five bands separated by hairlines: identity and social marks, three
- * full-width pills, four link columns with the first set noticeably heavier,
- * the statutory paragraph, then the ribbon. The weight jump between column one
- * and the rest is the whole hierarchy; every column at one size turns a footer
- * into a wall.
+ * full-width pills, the link columns, the statutory paragraph, then the
+ * ribbon.
  *
- * Black ground, white lockup, white rules. This is the one place on the page
- * that inverts to a flat black, and it stays that way: an earlier pass tinted
- * it oxblood and ran red through every rule, which turned the quietest part of
- * the page into the loudest.
+ * The weight jump between the first column and the rest is the whole
+ * hierarchy — every column at one size turns a footer into a wall.
  */
 
 const PRIMARY: NavItem[] = FOOTER_NAV.study;

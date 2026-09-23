@@ -13,30 +13,20 @@ import { TOUR_CAPTIONS } from "@/lib/content/tour";
 /**
  * The board the scratch band reveals. Swap the files, not the code.
  *
- * Two crops rather than one. The landscape board puts its photographs across
- * the left two thirds, which is exactly where a phone's `object-cover` throws
- * them away; the portrait poster is the same board reset for a tall frame.
+ * Two crops: the landscape board puts its photographs across the left two
+ * thirds, which is where a phone's `object-cover` throws them away, so the
+ * portrait poster is the same board reset for a tall frame.
  */
 const SCRATCH_IMAGE = "/media/scratch-bg.webp";
 const SCRATCH_IMAGE_PORTRAIT = "/media/scratch-bg-portrait.webp";
 
 /**
- * Section order is the argument the page makes:
+ * Sections in page order. Grounds alternate paper, bone, paper so nothing runs
+ * together, with the black programmes band and the dark footer bracketing the
+ * second half.
  *
- *   film        establish the place
- *   ambassador  the moment
- *   scratch     the promise, and the only place the visitor plays with it
- *   schools     what you would study that you could not study elsewhere
- *   numbers     what it is worth
- *   coming soon what is next, once the case for today is made (held back)
- *   faq         the objections
- *
- * The ask is not a section. It rides along as a capsule pinned to the bottom
- * centre, so it is half a click away from anywhere, and it stands down once the
- * footer arrives with the same three portals laid out full width.
- *
- * Grounds alternate paper, bone, paper so nothing runs together; the black
- * programmes band and the oxblood footer bracket the second half.
+ * Applying is not a section: it rides along as a capsule pinned to the bottom
+ * centre and stands down once the footer arrives with the same three portals.
  */
 export default function HomePage() {
   return (

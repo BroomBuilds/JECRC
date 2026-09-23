@@ -4,9 +4,8 @@
    JECRC design system, light
 
    Paper ground, black type, JECRC red as the one accent. Two bands
-   invert to true black on purpose: the majors list and the footer.
-   That is the arrangement on arts.vcu.edu, and the contrast is what
-   makes those two bands land.
+   invert to true black on purpose — the programmes list and the footer —
+   and that contrast is what makes them land.
 
    One text face, DM Sans, and nothing else. Hierarchy comes from size,
    weight and tracking rather than from a second face. The wordmark is the
@@ -331,7 +330,7 @@ html.lenis, html.lenis body { height: auto; }
 .u-underline:focus-visible { background-size: 100% 1px; }
 
 /* ------------------------------------------------------------------
-   Pill button, the shape used across arts.vcu.edu and adopted here
+   Pill button
    ------------------------------------------------------------------ */
 
 .u-pill {

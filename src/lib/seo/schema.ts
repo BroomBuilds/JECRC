@@ -82,12 +82,11 @@ const campusNode = (i: (typeof INSTITUTIONS)[number]) => ({
 /**
  * One node per school.
  *
- * This used to be one node per featured degree, because the page used to list
- * degrees. It lists the eleven schools now, and a school is an organisation
- * rather than a programme — so each one is an `EducationalOrganization` under
- * the Jaipur campus, carrying its own page as `url` and its representative
- * awards as an offer catalogue. The awards are named only; nothing here
- * invents a credential the university has not published.
+ * A school is an organisation rather than a programme, so each is an
+ * `EducationalOrganization` under the Jaipur campus, carrying its own page as
+ * `url` and its representative awards as an offer catalogue. The awards are
+ * named only — nothing here invents a credential the university has not
+ * published.
  */
 const schoolNode = (s: (typeof SCHOOLS)[number]) => ({
   "@type": "EducationalOrganization",
@@ -128,12 +127,8 @@ export function buildGraph() {
           "JECRC is a group of three institutions in Rajasthan, India: JECRC University in Jaipur, JECRC University's NCR campus in Alwar, and JECRC Foundation, the Jaipur Engineering College and Research Centre.",
         url: SITE_URL,
         logo: {
-          // WebP, not the PNG this used to name. The PNG was the last thing
-          // keeping the brand marks' working files inside `public/` — it was
-          // the one path in the whole site that pointed at an intermediate
-          // rather than at the artwork the page itself uses. The .webp beside
-          // it is lossless, is what every <img> on the site already loads, and
-          // is a format Google's structured-data image guidance accepts.
+          // The same WebP every <img> on the site loads, rather than an
+          // intermediate. Accepted by Google's structured-data image guidance.
           "@type": "ImageObject",
           "@id": id("logo"),
           url: `${SITE_URL}${LOGO.lockup}`,

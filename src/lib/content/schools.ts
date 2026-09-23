@@ -1,41 +1,17 @@
 /**
- * The eleven schools.
+ * The eleven schools. Every row links out to the school's own page on
+ * jecrcuniversity.edu.in, where the fee, the eligibility and the full
+ * catalogue are kept current.
  *
- * This replaced a list of eight hand-picked degrees. That list was an argument
- * — "here are the degrees you could not take elsewhere" — and it was a good
- * one, but it answered a question nobody arriving on the page had yet. The
- * question is "do you teach the thing I want to study", and the only honest
- * answer to that is the school list with a way through to each one.
+ * `lead` is the school's OWN sentence, taken off that page. Where a page leads
+ * with its dean rather than with itself, the dean's opening line is used and
+ * is marked as such. Do not write new ones — a sentence invented here is a
+ * claim the university has not made.
  *
- * So every row now leaves the page. `href` is the school's own page on
- * jecrcuniversity.edu.in, which is where the fee, the eligibility and the full
- * catalogue live and where they are kept current by people who are not us.
- *
- * `lead` is the school's OWN sentence, taken off that page, trimmed only for
- * punctuation. Where a school's page leads with its dean rather than with
- * itself, the dean's opening line is used and is marked as such below. Do not
- * write new ones: a sentence invented here is a claim the university has not
- * made.
- *
- * `programmes` is representative, not exhaustive — six or seven awards off
- * each page, partner named where the page names one. The full list is one
- * click away by construction.
+ * `programmes` is representative, not exhaustive.
  *
  * `image` is always `/media/schools/<slug>.webp`, so a photograph is swapped
- * by replacing a file and nothing here has to change. What is in that folder
- * today is eleven distinct CC0 photographs — StockSnap and Rawpixel, via the
- * Openverse API — which replaced a set of placeholders whose licence was
- * unknown and three of which repeated. They are stock, not JECRC: campus
- * photography beats all of them. public/media/schools/README.md records where
- * each one came from and how to swap it.
- *
- * Nothing was pulled from the school pages themselves: every image in their
- * served HTML is a lazy-loaded SVG placeholder, so there was no artwork to
- * take.
- *
- * The figure is `aria-hidden` with an empty alt, so these are decorative and
- * carry no information a screen reader needs. That is also why a wrong-ish
- * placeholder is survivable and a slow one is not — keep them light.
+ * by replacing a file. See public/media/schools/README.md.
  */
 
 export type School = {

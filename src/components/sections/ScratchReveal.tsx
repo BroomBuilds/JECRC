@@ -8,79 +8,47 @@ import { ArrowRight } from "@/components/ui/Icons";
  * The scratch band.
  *
  * A board sits at the bottom of the stack. Over it lies a canvas whose CSS
- * background is white and whose blend mode is `screen`. Screen against white is
- * white, so the band reads as blank paper; paint BLACK into the canvas and
- * screen against black is the backdrop, so wherever the brush has been, the
+ * background is white and whose blend mode is `screen`. Screen against white
+ * is white, so the band reads as blank paper; paint BLACK into the canvas and
+ * screen against black is the backdrop, so wherever the brush has been the
  * board shows through. No masks, no clip paths, no second copy of the image.
  *
  * The brush is a core disc of about 52px with a dozen small satellites strung
- * out VERTICALLY, radii five to thirteen, all breathing on one slow phase. The
- * vertical string is what gives the reveal ragged top and bottom edges and
- * clean horizontal sweeps.
+ * out VERTICALLY, radii five to thirteen, breathing on one slow phase. The
+ * vertical string gives the reveal ragged top and bottom edges and clean
+ * horizontal sweeps. It does not heal — a trail that closes up behind you is
+ * a nervous tic rather than an interaction.
  *
- * It does not heal. An earlier pass washed the canvas with a low-alpha white
- * each frame so the trail closed up behind you. Scratching something that
- * repairs itself is a nervous tic, not an interaction.
+ * ---- the idle wave ----
  *
- * ---- the wave, and why there is one ----
+ * Left blank, a visitor who scrolls past without moving the cursor over the
+ * band never learns there is anything to find. So the band takes the first two
+ * strokes itself: a brush travels the width on a slow sine, twice, at two
+ * heights. It is a demonstration and nothing else — it stops dead on the first
+ * pointer event, and the cells it opens are NOT counted toward the threshold
+ * that lifts the rest of the sheet, so it can neither finish the job nor bring
+ * the flood on by itself.
  *
- * It used to sit there blank. A visitor who scrolled past without moving the
- * cursor over the band never found out there was anything to find: a white
- * rectangle with a line of type under it looks like a white rectangle with a
- * line of type under it, and "Scratch to see the place" is eight words below
- * the fold of the block it describes. The affordance was a caption, which is
- * the weakest form an affordance takes.
- *
- * So the band now takes the first two strokes itself. A brush travels the
- * width on a slow sine, twice, at two heights, and the board opens along a
- * wave. It is the demonstration and nothing else: it stops dead on the first
- * pointer event over the stage, and the cells it opened are NOT counted
- * toward the threshold that lifts the rest of the sheet, so it cannot finish
- * the job for the visitor or bring the flood on by itself.
- *
- * Two passes is the whole budget. It has to be long enough to be seen
- * starting — motion that is already underway when you look at it teaches
- * nothing — and short enough that it is over before anyone decides the page
- * is playing at them.
- *
- * ---- and on a phone ----
+ * ---- on a phone ----
  *
  * A finger dragged across the band scrolls the page, and taking that away with
- * `touch-action: none` would trap the visitor inside a decorative section. So a
- * coarse pointer does not scratch at all: the sheet tears itself off, once, on
- * a 900ms clock, the first time half the band is on screen.
+ * `touch-action: none` would trap the visitor inside a decorative section. So
+ * a coarse pointer does not scratch at all: the sheet tears itself off once,
+ * on a clock, the first time half the band is on screen. The section stays an
+ * ordinary scrolling block before and after.
  *
- * It got there the long way. First the reveal rode the band's ordinary travel
- * through the viewport, which meant it was mostly open before the band was
- * centred and readable — the visitor arrived after the event. Then it PINNED
- * and scrubbed, which fixed that and cost more: the band became the one place
- * on the page where scrolling did not move the page, and it charged that toll
- * on every pass, in both directions, long after there was anything left to
- * see. Latching the scrub so it could not re-cover the board made the dead
- * travel worse rather than better, because now nothing happened inside it.
+ * ---- the last move ----
  *
- * A one-shot on a clock keeps the only thing the pin was actually buying — the
- * reveal happening while the visitor is looking at it, which is what the
- * observer's 0.5 threshold is for — and gives back the scroll. The section is
- * an ordinary block before and after, and there is no second run to guard
- * against because there is no second run.
+ * On a fine pointer a coarse occupancy grid records which cells the brush has
+ * touched, and once enough is open the rest goes.
  *
- * On a fine pointer it keeps score instead. A coarse occupancy grid records
- * which cells the brush has touched, and once enough of the band is open the
- * rest goes.
- *
- * How that last move happens matters. Fading the canvas out looks like the
- * obvious answer and is wrong: the canvas is `screen` blended over white, so
- * dropping its opacity lifts the ALREADY-scratched areas back toward white on
- * the way down before they return at zero. The picture you had disappears and
- * then comes back, which is exactly the flinch you feel.
- *
- * So the canvas never changes opacity. It floods: a low-alpha black is painted
- * over the whole bitmap each frame until the sheet is black everywhere.
- * Painting black over black is a no-op, so what you already opened does not
- * move at all, and the rest arrives from where it stood.
+ * It floods rather than fades. The canvas is `screen` blended over white, so
+ * dropping its opacity lifts the already-scratched areas back toward white on
+ * the way down — the picture you had disappears and then comes back. Painting
+ * a low-alpha black over the whole bitmap each frame is a no-op where the
+ * board is already open, so what you opened does not move and the rest
+ * arrives from where it stood.
  */
-
 /** Core brush radius, before the breathing modulation. */
 const CORE = 52;
 const SATELLITES = 12;
@@ -218,7 +186,7 @@ export default function ScratchReveal({
       // So the tear is a one-shot on a clock instead, fired the first time the
       // band is properly on screen, and the section is an ordinary block
       // before and after. It is latched by construction — there is no second
-      // run to guard against — and everything the pin used to buy (the reveal
+      // run to guard against, and the observer's threshold buys the reveal
       // happening while the visitor is looking at it, rather than before they
       // arrive) is bought by the threshold on the observer instead.
       let frame = 0;

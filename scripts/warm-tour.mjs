@@ -3,8 +3,8 @@
  * warm-tour.mjs: pull every frame of the film through the CDN once, so the
  * first real visitor is never the one who pays for a cold edge.
  *
- *   node scripts/warm-tour.mjs https://jecrc.broombuilds.com
- *   npm run tour:warm -- https://jecrc.broombuilds.com
+ *   node scripts/warm-tour.mjs https://www.jecrcinstitutions.com
+ *   npm run tour:warm -- https://www.jecrcinstitutions.com
  *
  * Options
  *   --concurrency <n>   requests in flight            (default 24)
@@ -14,38 +14,34 @@
  * ---------------------------------------------------------------------------
  * Why this exists
  *
- * Measured against the deployed site, the same 100 frames, same client, same
+ * Measured against a deployed build, the same 100 frames, same client, same
  * connection, back to back:
  *
- *   cold at the edge (cf-cache-status: MISS, fetched from origin)    3 frames/s
- *   warm at the edge (cf-cache-status: HIT)                         32 frames/s
+ *   cold at the edge (MISS, fetched from origin)    3 frames/s
+ *   warm at the edge (HIT)                         32 frames/s
  *
  * Ten times. That gap is the whole of "the first visit is clunky and every
- * visit after it is perfect" — and note that it is NOT the browser cache,
- * because those two numbers come from the same client with nothing cached
- * locally either time. It is Cloudflare's edge.
+ * visit after it is perfect" — and it is NOT the browser cache, because both
+ * numbers come from the same client with nothing cached locally.
  *
- * A film split into hundreds of small objects is close to the worst possible
- * shape for an edge cache: no single frame is requested often enough to stay
- * resident, so they age out and the next visitor to that region pays an origin
- * round trip per frame. Deploying replaces the fingerprint on every URL, which
- * empties the edge completely — so without this, the first visitor after every
- * single deploy gets the bad version of the site.
+ * A film split into hundreds of small objects is close to the worst shape for
+ * an edge cache: no single frame is requested often enough to stay resident,
+ * so they age out and the next visitor to that region pays an origin round
+ * trip per frame. Deploying replaces the fingerprint on every URL, which
+ * empties the edge completely.
  *
  * ---------------------------------------------------------------------------
  * The limitation, stated plainly
  *
- * This warms the ONE Cloudflare PoP that serves the machine it runs on. Run it
- * from Jaipur and it warms Singapore, which is where Indian traffic lands
- * (`cf-ray: …-SIN`). Run it from a US CI runner and it warms a US PoP and does
- * nothing whatsoever for visitors in India.
+ * This warms the ONE edge location that serves the machine it runs on. Run it
+ * from Jaipur and it warms the Indian or Singapore PoP, which is where the
+ * audience lands. Run it from a US CI runner and it warms a US PoP and does
+ * nothing for visitors in India. Run it near the audience.
  *
- * So: run it from a machine near the audience, and turn on Cloudflare's
- * **Tiered Cache** (free, Caching → Tiered Cache). Tiered Cache makes a miss at
- * one PoP fetch from a regional parent instead of the origin, which both makes
- * every miss cheaper and lets a single warm-up populate the parent for every
- * PoP behind it. The two together are what actually fixes this; either alone is
- * a partial answer.
+ * It only helps where a CDN sits in front of the origin at all. Serving
+ * straight off a single Hostinger host, there is no edge to warm and this
+ * script is a no-op worth skipping — the HIT rate it reports will simply stay
+ * at zero because no cache-status header comes back.
  */
 
 import { readFileSync } from "node:fs";
@@ -55,6 +51,20 @@ const argv = process.argv.slice(2);
 const opt = (name, fallback) => {
   const i = argv.indexOf(`--${name}`);
   return i > -1 && argv[i + 1] ? argv[i + 1] : fallback;
+};
+
+/**
+ * Did this response come from an edge cache?
+ *
+ * Every CDN spells it differently and some spell it not at all, so this reads
+ * the common ones and treats an absent header as a miss.
+ */
+const isHit = (r) => {
+  for (const h of ["cf-cache-status", "x-cache", "x-litespeed-cache", "x-proxy-cache"]) {
+    const v = (r.headers.get(h) || "").toUpperCase();
+    if (v.includes("HIT")) return true;
+  }
+  return false;
 };
 
 const origin = argv.find((a) => a.startsWith("http"));
@@ -125,8 +135,7 @@ async function fetchOne(url) {
     const buf = await r.arrayBuffer();
     bytes += buf.byteLength;
     if (!r.ok) failed++;
-    const cs = (r.headers.get("cf-cache-status") || "").toUpperCase();
-    if (cs === "HIT") hit++;
+    if (isHit(r)) hit++;
     else if (cs) miss++;
   } catch {
     failed++;
@@ -156,11 +165,12 @@ if (verify) {
   for (const u of sample) {
     const r = await fetch(u);
     await r.arrayBuffer();
-    if ((r.headers.get("cf-cache-status") || "").toUpperCase() === "HIT") h++;
+    if (isHit(r)) h++;
   }
   console.log(`✓ verify: ${h}/${sample.length} served from the edge`);
   if (h < sample.length * 0.9) {
-    console.log("! low HIT rate. The edge is evicting the film faster than it is being asked for.");
+    console.log("! low HIT rate — either the edge is evicting the film faster");
+    console.log("  than it is asked for, or there is no CDN in front of the origin.");
     console.log("  Turn on Tiered Cache, and consider the atlas transport — fewer, larger objects stay resident.");
   }
 }

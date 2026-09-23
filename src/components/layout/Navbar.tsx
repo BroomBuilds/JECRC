@@ -11,97 +11,46 @@ import { SOCIAL_ICONS } from "@/components/ui/Icons";
 import ScrollTopButton from "@/components/ui/ScrollTopButton";
 
 /**
- * The navigation, from jecrcuniversity.edu.in and cut down to what one page
- * needs.
+ * A red utility strip over a white primary strip, with the crest on a plate
+ * hanging through the seam between them.
  *
- * The anatomy is theirs: a red utility strip over a white primary strip, with
- * the crest on a white plate hanging through the seam between them. The plate
- * is drawn rather than photographed, so it stays crisp at any density — see
- * the block above `PLATE` for its geometry and why the V starts where it
- * does.
- *
- * The contents are not theirs. Their bar carries a full site's menu; this
- * fronts one page, so it carries the social marks, three in-page jumps and the
- * apply button, and nothing else. A directory belongs in the footer.
- *
- * It does not exist while the scroll tour is playing: the film gets a clean
- * frame, and the bar drops in on the beat the tour ends.
+ * Hidden while the scroll tour plays, so the film gets a clean frame; it drops
+ * in on the beat the tour ends.
  */
 
-/**
- * ---- the crest plate ----
- *
- * A white plate with a crimson edge, hanging through the seam between the two
- * strips. Back to that after a crimson-pendant version, which read well on its
- * own and read as a red slab sitting in the middle of the bar.
- *
- * ---- where the sides end ----
- *
- * This is the part every earlier version got wrong, and it is the only thing
- * that makes the shape look considered rather than clipped.
- *
- * The straight sides run the WHOLE height of the bar. `shoulder` is the bar's
- * own height, so the plate's flanks stop exactly on the white strip's bottom
- * edge, and the V is the part that hangs below into the page. The plate
- * therefore has two jobs in two places: above the seam it is a panel flush
- * with the chrome, below it a pendant. Earlier versions started the V about
- * two thirds of the way up, which put a taper inside the bar — the eye reads
- * that as the plate being cut off by the strip rather than passing through it.
- *
- * Because the flanks are the bar's height, the bar's height is also the
- * mark's budget: `STRIP_PRIMARY` is back to 56, which gives a 98px bar and a
- * 78px mark with 10px of air above and below it.
- *
- * ---- the edge ----
- *
- * One crimson hairline round the silhouette, no fill tricks and no inner
- * rule. Where the plate crosses the red utility strip the stroke is crimson on
- * crimson and vanishes; below the seam it reads on white. One property, and
- * the plate looks cut out of the band rather than laid on top of it.
- *
- * Drawn as an inline SVG rather than a `clip-path` for exactly that: a clip
- * has no edge to stroke. The shadow is a `drop-shadow` filter so it follows
- * the V instead of the element's rectangle, and it is warm — the page's blacks
- * all carry a red cast, and a neutral grey shadow under a crimson band reads
- * as dirt.
- */
+/** The two strips, and the bar height they add up to. */
 const STRIP_UTILITY = 42;
 const STRIP_PRIMARY = 56;
-
-/** The bar, and so the height of the plate's straight sides. */
 const BAR_H = STRIP_UTILITY + STRIP_PRIMARY;
 
+/**
+ * The crest plate.
+ *
+ * Its straight flanks are exactly the bar's height, so they stop on the white
+ * strip's bottom edge and only the V hangs into the page. The bar height is
+ * therefore also the mark's budget: 98px of bar carries a 78px mark with 10px
+ * of air either side.
+ *
+ * `markTop` sits the mark on the whole silhouette's centre of area rather than
+ * the bar's centre, so it does not read as riding high in its own plate. It
+ * crosses the seam by a couple of pixels, which is invisible — the plate is
+ * one continuous white shape and the bar's crimson rule passes behind it.
+ */
 const PLATE = {
   w: 268,
   /** How far the V hangs below the bar. */
   drop: 34,
   /** The lockup's height. 2.365:1, so this is 184px across. */
   mark: 78,
-  /**
-   * Top of the mark.
-   *
-   * Centred on the SILHOUETTE's centre of area, not on the bar. Centred in the
-   * bar the mark sat 10px from the top and 44px from the point, which is what
-   * made it read as riding high in its own plate: the eye weighs the whole
-   * shape, and a third of that shape is below the seam.
-   *
-   * The flanks contribute 268x98 about their midpoint at 49, the V roughly
-   * 55% of 268x34 about a point near 112, which puts the centre of area at
-   * 59 and the mark's top at 59 - 78/2 = 20. It crosses the seam by a hair
-   * and that is invisible — the plate is one continuous white shape, and the
-   * bar's crimson rule passes behind it rather than across it.
-   */
   markTop: 20,
 };
 
 /**
- * The silhouette: straight flanks for the full bar, then the V.
+ * Straight flanks for the full bar, then the V.
  *
- * The 6px flat at the bottom centre is what keeps the point *soft*. A true
- * point at this scale renders as one hard pixel and catches the eye as a
- * defect, and rounding it with a curve instead makes the whole base read as a
- * bowl. Coordinates are inset half a pixel so the 1px stroke is not clipped by
- * the viewBox at the flanks.
+ * The 6px flat at the bottom centre keeps the point soft: a true point at this
+ * scale renders as one hard pixel and reads as a defect. Coordinates are inset
+ * half a pixel so the 1px stroke is not clipped by the viewBox.
  */
 const PLATE_H = BAR_H + PLATE.drop;
 const PLATE_PATH =
@@ -111,10 +60,9 @@ const PLATE_PATH =
   `C78,${PLATE_H - 7} 0.5,${BAR_H + 9} 0.5,${BAR_H} Z`;
 
 /**
- * The chrome runs wider and with tighter gutters than the editorial shell, the
- * way the live navbar does. Three grid columns rather than flex with a spacer:
- * two `minmax(0, 1fr)` tracks are always equal, so the fixed centre column sits
- * exactly on the viewport centre and the crest can never drift onto a link.
+ * Three grid columns rather than flex with a spacer: two `minmax(0, 1fr)`
+ * tracks are always equal, so the fixed centre column sits exactly on the
+ * viewport centre and the crest can never drift onto a link.
  */
 const BAR =
   "mx-auto grid w-full max-w-[1800px] grid-cols-[minmax(0,1fr)_340px_minmax(0,1fr)] items-center px-[max(1.25rem,env(safe-area-inset-left))] md:px-8 lg:px-6 2xl:px-10";
@@ -211,12 +159,9 @@ export default function Navbar() {
       </div>
 
       {/* ---- white primary strip ---- */}
-      {/* The 1px crimson rule is the same weight and colour as the plate's
-          own stroke, and it is a box-shadow rather than a border so it costs
-          the bar no height. The plate is a later sibling and paints over it,
-          so the rule runs in from each side, disappears behind the plate's
-          flanks, and comes back as the plate's own edge around the V — one
-          line across the whole bar with a dip in the middle of it. */}
+      {/* Box-shadow rather than a border, so the rule costs the bar no height.
+          The plate is a later sibling and paints over it, so the line runs in
+          from each side and continues as the plate's own edge around the V. */}
       <div className="bg-paper shadow-[0_1px_0_0_var(--color-crimson)]">
         {/* Mobile row: lockup left, menu right, no centre column. */}
         <div className={`${BAR_MOBILE} h-[62px] lg:hidden`}>

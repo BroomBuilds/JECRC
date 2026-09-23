@@ -117,18 +117,15 @@ type Film = {
 /**
  * Does this browser decode AVIF?
  *
- * It matters more than any other single decision here. Measured on this
- * footage: WebP q50 at 1100px is 55 KB a frame, AVIF crf36 at 1400px is 8.9 —
- * a fifth of the bytes at a larger size. Over a link measured at 5.5 Mbps that
- * is 16 frames a second delivered against 36, and a deliberate scroll through
- * the tour needs about 16 while a normal scroll-past needs 66. Format is the
- * difference between a film that flows on a first visit and one that cannot.
+ * The single most consequential decision here. On this footage WebP q50 at
+ * 1100px is 55 KB a frame against AVIF crf36 at 1400px at 8.9 — a fifth of
+ * the bytes at a larger size, which is the difference between a film that
+ * flows on a first visit and one that cannot. Browsers without AVIF fall back
+ * to a WebP tier and are simply no better off than before.
  *
- * A 2×2 AVIF as a data URI: no network, resolves in about a millisecond, and
- * started here at module scope so the answer is already waiting by the time
- * the component mounts. Browsers without AVIF fall back to a WebP tier built
- * at the width the site shipped before, so they are never worse off than they
- * were — they simply do not get the improvement.
+ * A 2x2 AVIF as a data URI: no network, resolves in about a millisecond, and
+ * kicked off at module scope so the answer is waiting when the component
+ * mounts.
  *
  * MINT THIS WITH ffmpeg's `avif` MUXER, never `image2`. The blob that used to
  * sit here was written by image2, which emits an eight-byte `av1C` — the AV1
@@ -350,37 +347,28 @@ export default function ScrollTour({ captions = [] }: Props) {
 
     // ---- what to fetch, and when -----------------------------------------
     //
-    // Three phases, in strict priority order. Only the first is unconditional:
+    // Three phases in strict priority order. Only the first is unconditional:
     //
     //   SPINE     every `spineStride`th frame of the SMALLEST tier, ordered
-    //             coarse-to-fine so even the spine's own first pass spans the
-    //             whole film. Requested immediately. On this film that is 92
-    //             frames at 1.7 KB — about 160 KB for complete end-to-end
-    //             coverage, less than the poster costs, so no scroll position
-    //             is ever without a real picture.
-    //   FILL      the frames between, at the same small tier, inside a window
-    //             that travels with the playhead.
-    //   UPGRADE   the display tier, near the playhead, and only while the
-    //             visitor is moving slowly enough for the difference to be
-    //             visible at all.
+    //             coarse-to-fine so the first pass already spans the whole
+    //             film. About 160 KB for end-to-end coverage, so no scroll
+    //             position is ever without a real picture.
+    //   FILL      the frames between, same tier, inside a window that travels
+    //             with the playhead.
+    //   UPGRADE   the display tier near the playhead, and only while the
+    //             visitor is moving slowly enough to see the difference.
     //
-    // FILL and UPGRADE wait for a first gesture. A tab opened and abandoned
-    // should not cost megabytes to abandon, and nothing but a scroll is
-    // evidence that anyone means to watch a thirty-second film.
+    // FILL and UPGRADE wait for a first gesture: a tab opened and abandoned
+    // should not cost megabytes to abandon.
     //
-    // The velocity stride is what makes a fast scroll survive, and it is the
-    // fix for the fault that started all of this. Density that cannot arrive
-    // in time is not just wasted, it is actively harmful: it fills the
-    // connection with frames the playhead has already passed, so the frames
-    // under the playhead queue behind them and the film appears to freeze and
-    // then snap. Fast scrolling wants frames SPARSE AND FAR; slow scrolling
-    // wants them DENSE AND NEAR. Same budget, opposite shape.
-    //
-    // So the stride is the ratio of two measured rates rather than a constant:
-    // how much film is passing under the playhead, over how much film this
-    // connection is actually delivering. Neither is guessable — a 5 Mbps link
-    // in Jaipur reaching a Singapore edge is not the link this was written on
-    // — so both are measured live and the stride follows them.
+    // The velocity stride is what makes a fast scroll survive. Density that
+    // cannot arrive in time is actively harmful — it fills the connection with
+    // frames the playhead has already passed, so the frames under the playhead
+    // queue behind them and the film freezes then snaps. Fast scrolling wants
+    // frames sparse and far, slow scrolling dense and near: same budget,
+    // opposite shape. So the stride is the ratio of two live measurements,
+    // film passing under the playhead over film this connection is delivering,
+    // rather than a constant that cannot know either.
     /** Frames at or just ahead of the playhead that outrank the sweep. */
     const URGENT = 24;
     /** Frames behind the playhead still worth an upgrade. */
@@ -390,7 +378,7 @@ export default function ScrollTour({ captions = [] }: Props) {
     /**
      * Requests in flight.
      *
-     * Higher than the eight-then-sixteen this used to ramp between, because the
+     * Deliberately high, because the
      * objects are now a twentieth of the size they were: at ~2 KB a frame the
      * limit is round trips, not bandwidth, and the only way to hide a round
      * trip is to have another request already in it. HTTP/2 multiplexes them
@@ -456,35 +444,16 @@ export default function ScrollTour({ captions = [] }: Props) {
      * has nothing left to wait for.
      */
     /**
-     * The same order again, for the display tier.
+     * The display tier, taken whole once the window around the playhead is
+     * served. Fetching it only where the visitor lingers leaves the film sharp
+     * through the opening and soft from the moment they start scrolling.
      *
-     * The film used to reach display quality only where the visitor STOPPED.
-     * Everywhere else it played out of the spine — 640px landscape, 400px
-     * portrait — and the report was exactly what that looks like: crystal clear
-     * through the opening, where anyone pauses to read the masthead, and soft
-     * from the moment they started scrolling and never recovered.
-     *
-     * Measured before this existed, scrolling steadily rather than in reading
-     * pauses, display frames ready when the playhead reached them:
-     *
-     *   25 Mbps   0 of 51
-     *   10 Mbps   1 of 51
-     *    4 Mbps   0 of 51
-     *   10 Mbps, pausing to read   50 of 51
-     *
-     * So the whole tier is taken now, after the window around the playhead has
-     * been served. It costs every visitor the full display tier rather than the
-     * part they lingered on, which is the price of the film being sharp all the
-     * way through.
-     *
-     * IN FILM ORDER, not coarse-to-fine. The spine is strided because its job
-     * is that every scroll position has SOMETHING within a few frames, as early
-     * as possible. This tier's job is the opposite: the visitor consumes the
-     * film forwards, so what matters is a contiguous run of sharp frames ahead
-     * of the playhead. Strided, the same bandwidth buys a thin scatter that
-     * leaves gaps everywhere; sequential, it buys a buffer the playhead can sit
-     * inside. A visitor who jumps somewhere else is covered by the window above
-     * rather than by this.
+     * IN FILM ORDER, not coarse-to-fine. The spine is strided so every scroll
+     * position has something within a few frames as early as possible; this
+     * tier's job is the opposite, a contiguous run of sharp frames ahead of
+     * the playhead. Strided, the same bandwidth buys a scatter with gaps
+     * everywhere; sequential, it buys a buffer the playhead sits inside. A
+     * visitor who jumps elsewhere is covered by the window above.
      */
     const bigPlan = Array.from({ length: count }, (_, i) => i);
     let bigAt = 0;
@@ -535,7 +504,7 @@ export default function ScrollTour({ captions = [] }: Props) {
     /**
      * Nothing in flight is stale any more, so nothing is cancelled.
      *
-     * This used to drop display-tier requests the playhead had left behind,
+     * Abandoning display-tier requests the playhead has left behind
      * which was right while that tier was only ever fetched in a window around
      * the visitor: a frame outside the window was bandwidth spent on a picture
      * nobody was going to see. Now the whole tier is taken — see `bigPlan` —
@@ -575,7 +544,7 @@ export default function ScrollTour({ captions = [] }: Props) {
        * never received a single display frame, at any connection speed.
        *
        * Not gated on a gesture either. The visitor spends the first few seconds
-       * on the opening frame reading the masthead, and the loader used to spend
+       * on the opening frame reading the masthead, and the loader would spend
        * them idle: measured, 3.5s on the opening produced 503 spine frames and
        * ZERO display frames, because `windowOpen` was still false. That is the
        * one stretch of time where bandwidth is free.
@@ -603,7 +572,7 @@ export default function ScrollTour({ captions = [] }: Props) {
 
       // ONCE THE SPINE COVERS THE FILM, SHARPEN WHAT IS ON SCREEN.
       //
-      // This used to sit below the sweep, and the sweep is the WHOLE small
+      // Above the sweep, because the sweep is the WHOLE small
       // tier — so a first visitor watched 503 spine frames land before a
       // single sharp one was even requested. Every one of those frames is
       // 640px enlarged to fill a 1600px draw, two and a half times up, and
@@ -1088,7 +1057,7 @@ export default function ScrollTour({ captions = [] }: Props) {
       // film before .906 pays for a filter pass.
       //
       // Composed with the blur `paint` asked for rather than assigned over it.
-      // Two writers on one property is how the ending used to erase the
+      // Two writers on one property would erase the
       // dissolve blur every frame it ran; one writer, both inputs, no ordering
       // to get wrong. Both halves are skipped entirely when neither is active,
       // so the ordinary case still pays for no filter at all.
@@ -1164,8 +1133,8 @@ export default function ScrollTour({ captions = [] }: Props) {
       // but the film is plainly not at the top, which is the same evidence.
       if (!windowOpen && p > 0.001) open();
 
-      // Straight from progress to a frame index. There is no longer a track
-      // indirection in front of this: the phone used to be served every second
+      // Straight from progress to a frame index, with no track indirection:
+      // the phone is served every second
       // frame of a film built for desktop, and the portrait cut is now built
       // at the density a phone should have, so the sequence a device fetches
       // is decided once at build time rather than sampled again at runtime.
