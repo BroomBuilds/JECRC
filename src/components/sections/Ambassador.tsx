@@ -6,15 +6,9 @@ import VideoDialog from "@/components/ui/VideoDialog";
  * A new chapter begins.
  *
  * The one warm band on the page: a bone ground rather than paper, so it reads
- * as a moment without needing a border or a card. The portrait slot degrades to
- * a branded frame when no licensed image is set, which keeps the section
- * shippable before the shoot assets arrive instead of leaving a hole.
- *
- * What was stripped, and why it is not coming back as a "nice to have": this
- * band used to carry a "Brand ambassador" eyebrow, a role line under the
- * portrait, a pull quote nobody had said, and a three-column note strip
- * (Announced / Represents / Campaign). Four separate devices around one short
- * piece of copy. The copy the group wrote says the thing on its own.
+ * as a moment without needing a border or a card. The portrait slot degrades
+ * to a branded frame when no image is set, so pulling the photograph never
+ * leaves a hole.
  */
 export default function Ambassador() {
   return (
@@ -28,22 +22,12 @@ export default function Ambassador() {
         <figure data-reveal="mask" className="relative">
           <div className="relative aspect-4/5 w-full overflow-hidden bg-linen">
             {AMBASSADOR.portrait ? (
-              /* `priority`, on an image most of a page below the fold.
-
-                 Counter-intuitive, and measured. Left lazy this did not even
-                 REQUEST until 2.7s — it waits for the viewport — and by then
-                 the tour's preloader is holding sixteen frames open on the
-                 same connection, so 53 KB that should move in about 110ms took
-                 1,054. Total, near four seconds after load on a 4G profile,
-                 which is longer than anyone spends deciding to keep scrolling.
-
-                 `priority` emits a preload in the document head, so the fetch
-                 starts while the HTML is still being parsed — before the tour
-                 effect has mounted and before there is any queue to sit behind.
-                 It costs one 53 KB request on a page that ships megabytes of
-                 film, and it is done long before the visitor arrives. The film
-                 poster above it keeps its own fetchPriority="high", so the LCP
-                 is not what pays for this. */
+              /* `priority` on a below-the-fold image, deliberately. Left lazy
+                 it does not request until the viewport reaches it, by which
+                 time the tour's preloader has the connection full and 53 KB
+                 takes a second. The preload gets it in before that queue
+                 exists. The film poster keeps its own fetchPriority="high", so
+                 the LCP does not pay for this. */
               <Image
                 src={AMBASSADOR.portrait}
                 alt={AMBASSADOR.portraitAlt}

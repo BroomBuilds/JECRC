@@ -1,26 +1,12 @@
 /**
- * The numbers, in one place.
+ * Every figure on the record band, as published by the group.
  *
- * This replaces three separate sections that were each showing a row of stats.
- * Three rows of stats is not three arguments, it is one argument told badly, so
- * everything the group publishes now sits in a single ledger.
+ * The season and the packages are off jecrcuniversity.edu.in/placements; the
+ * rest off the group's own pages. If a figure ever arrives from anywhere else,
+ * mark it where it sits.
  *
- * `scale` sets how much room a figure gets in the grid: `lead` figures run
- * full-bleed across the band, `mid` take a half.
- *
- * There used to be a third, `unit`, holding six more figures at small-print
- * size. Nothing rendered them. `FIGURES` is read by exactly one caller —
- * `buildGraph()` in lib/seo/schema.ts — and that filters to lead and mid, so
- * those six were values restating what `CONTEXT` and `SEASON.pay` already
- * hold, free to drift quietly out of step with both.
- *
- * Every figure in this file is now as the group publishes it — the season and
- * the packages off jecrcuniversity.edu.in/placements, the rest off the group's
- * own pages. There used to be an exception: four packages in `SEASON.pay` that
- * came from the brief rather than from the placement cell and were carrying a
- * warning to that effect. They have been replaced by the published ones, so
- * the warning is gone with them. If a figure arrives from anywhere other than
- * a page the university publishes, mark it where it sits.
+ * `scale` sets how much room a figure gets: `lead` runs full-bleed across the
+ * band, `mid` takes a half.
  */
 
 export type Figure = {
@@ -88,18 +74,11 @@ export const FIGURES: Figure[] = [
 ];
 
 /**
- * The season, as numbers a chart can use.
+ * The season as numbers a chart can use.
  *
- * `FIGURES` above is display copy — "2,104", "₹33", " LPA" — and it stays that
- * way because the SEO schema reads it. Anything drawn to scale needs the
- * values themselves, so they are stated once more here as numbers. Same
- * figures, different form: if one changes, change it in both.
- *
- * Everything in this block is now as jecrcuniversity.edu.in/placements
- * publishes it. It did not used to be: `pay.marks` carried four figures from
- * the brief — ₹16L average, ₹54L highest in India, ₹1.02 Cr international —
- * that the university's own page did not support and that were flagged here
- * for the placement cell to sign off. They never were. They are gone.
+ * `FIGURES` above is display copy and stays that way because the SEO schema
+ * reads it. Anything drawn to scale needs the values themselves, so they are
+ * stated once more here. Same figures, different form: change one, change both.
  */
 export const SEASON = {
   year: "2025 to 2026",
@@ -108,16 +87,8 @@ export const SEASON = {
   /** Of those, the ones from Fortune 500 companies. */
   fortune500: 856,
   /**
-   * 205, not "200+".
-   *
-   * The placements page says both. Its season tile — the row that also
-   * carries "2104+ Placements (2025-26)" and "230 Days! Placement Season
-   * Duration" — reads "205 Recruiters! / Top Corporate Partners", and that is
-   * the season figure. The "200+" appears twice elsewhere on the same page, in
-   * the T&P cell's standing claim ("200+ Recruiters Visit Annually") and in
-   * the 2025-26 headline sentence, both of which are the rounded version of
-   * this one. The exact number is the better claim and it is the university's
-   * own.
+   * 205, not "200+". The placements page prints both; 205 is the figure on
+   * its own 2025-26 season tile, and the rounded one appears elsewhere.
    */
   recruiters: "205",
   days: 230,
@@ -125,23 +96,10 @@ export const SEASON = {
   trainingHours: "500+",
 
   /**
-   * Packages, drawn from zero as a count of lakh.
-   *
-   * ---- why there is no axis ----
-   *
-   * This used to be three points pinned to one rail, with the highest package
-   * at 100% and everything else placed as a fraction of it. That construction
-   * only survives while the top and the bottom are the same order of
-   * magnitude.
-   *
-   * So there is no axis. Each package is drawn as what it is — a run of marks,
-   * one mark for every ₹1,00,000 — and the runs sit under each other.
-   * Zero-based by construction rather than by choice, and nothing normalised
-   * against anything.
-   *
-   * `lakh` is what gets drawn, `value` is what a reader sees. Short form —
-   * ₹33L, not ₹33,00,000: at a glance the lakh is the unit the amount is
-   * quoted in anyway, and the run beside it already carries the size.
+   * Packages, drawn from zero as a count of lakh — one mark per ₹1,00,000,
+   * runs stacked under each other. No axis: normalising against the highest
+   * package collapses everything else into the left margin once the spread is
+   * wide. `lakh` is drawn, `value` is what a reader sees.
    */
   pay: {
     unit: "a year",
@@ -155,13 +113,9 @@ export const SEASON = {
   },
 
   /**
-   * The same season broken out by discipline, as the placements page gives it.
-   *
-   * This is what the single "average" above cannot say: a ₹6 LPA group average
-   * across a university that teaches both B.Tech. CSE and hotel management is
-   * an average of two different job markets. Set small and tabular for the
-   * same reason `CONTEXT` is — it supports the headline figure rather than
-   * competing with it.
+   * The same season by discipline. A ₹6 LPA group average across a university
+   * teaching both B.Tech. CSE and hotel management is an average of two job
+   * markets, which the single figure above cannot say.
    */
   byDiscipline: [
     { label: "Technical", average: "₹6.45 LPA", highest: "₹33 LPA" },
@@ -172,16 +126,9 @@ export const SEASON = {
 } as const;
 
 /**
- * Everything that is true of the group rather than of one season.
- *
- * Set small and tabular on purpose. These are the figures that make the season
- * plausible — a place with 30,000 alumni and 29,643 on roll is a place that can
- * place 2,104 people — and a supporting fact blown up to display size stops
+ * True of the group rather than of one season. Set small and tabular: these
+ * make the season plausible, and a supporting fact at display size stops
  * supporting anything.
- *
- * Six rows, not eight. The two campus acreages were here and are not any more:
- * they are facts about real estate, and the question this block answers is
- * whether the season above is the shape of the place or a good year.
  */
 export const CONTEXT: { label: string; value: string }[] = [
   { label: "Alumni", value: "30,000+" },
@@ -193,35 +140,17 @@ export const CONTEXT: { label: string; value: string }[] = [
 ];
 
 /**
- * Named on the university's own placements page, with its own artwork.
+ * The recruiters named on the university's placements page, with its own
+ * artwork rather than a redrawn or icon-set version.
  *
- * The list used to be twenty-five names typed out from memory of that page and
- * set in the site's own face. Two problems with that: half of them are no
- * longer the companies the page shows, and a row of set type is a list a
- * visitor has to READ. A mark is recognised before it is read, which is the
- * only reason a recruiter strip is worth the space it takes.
+ * `scale` is optical, not arithmetic: set to one height a square mark reads
+ * about twice the size of a long wordmark, so the squarer a logo the shorter
+ * it is set — 0.6 for a tile, 0.78 for a stacked lockup, 1 for a wordmark.
  *
- * So these twenty-one are exactly who the placements page shows today, and the
- * artwork is the university's own — pulled from its media library rather than
- * redrawn or fetched from an icon set, so what appears here is what the
- * university already publishes. Each mark remains the trademark of its owner
- * and is used to identify who came to campus, which is what it is for.
- *
- * `scale` is optical, not arithmetic. Set to one height, a square mark reads
- * about twice the size of a long wordmark, so the squarer a logo is the
- * shorter it is set: 0.6 for a tile, 0.78 for a stacked lockup, 1 for a
- * wordmark. Without it Blinkit and Zomato bully the row.
- *
- * `f500` says the company is ranked on the Fortune 500 or the Fortune Global
- * 500, which is what puts its mark under the crimson half of the season's run
- * rather than the ink half. It is a fact about the company, not a compliment,
- * and the two are easy to confuse: Deloitte and PwC are the size of anything
- * on the list and are not ON it, because Fortune ranks companies that publish
- * revenue and both are private partnerships. HCLTech and Wipro are the same
- * story from the other side — both sit on the Fortune India 500 and neither is
- * currently on the Global 500. They are all in the second group, which is why
- * that group is captioned by its count and not by any word implying it is the
- * lesser one.
+ * `f500` says the company is on the Fortune 500 or Global 500, which is a fact
+ * about the company and not a compliment. Deloitte and PwC are private
+ * partnerships and so are not ranked; HCLTech and Wipro are on the India 500
+ * but not the Global 500.
  */
 export type Recruiter = { name: string; slug: string; scale: number; f500?: true };
 

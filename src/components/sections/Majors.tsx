@@ -8,32 +8,20 @@ import { ArrowUpRight } from "@/components/ui/Icons";
 /**
  * Find your programme.
  *
- * The list mechanic is the one from arts.vcu.edu, measured off the live page:
- * a black band where every row sits at opacity 0.2 and comes to 1 when it is
+ * A black band where every row sits at opacity 0.2 and comes to 1 when it is
  * active, each row owning a portrait figure pinned to its right that fades in
- * while the image inside it slides 100px. Two transforms on two elements, both
- * 0.4s: the frame arrives, the picture catches up. One element doing both reads
- * as a slide; two reads as a reveal.
+ * while the image inside it slides 100px. Two transforms on two elements: the
+ * frame arrives, the picture catches up. One element doing both reads as a
+ * slide; two reads as a reveal.
  *
- * ---- no accordion ----
- *
- * The rows used to open. Each one held the school's sentence, its award
- * families and six or seven of its programmes, and every one of those was a
- * copy of something on the school's own page — kept current there by the
- * people whose job that is, and going stale here the moment they change it.
- *
- * So a row is a link now. One click, one destination, nothing to open first.
- * The scraped copy has not been thrown away: it still lives in
- * content/schools.ts and is still read by `buildGraph()` in lib/seo/schema.ts,
- * where a description and an offer catalogue are worth having and where being
- * a few months behind the portal costs nothing.
+ * Each row links straight to the school's own page. The description and
+ * programme list in content/schools.ts are read only by the SEO graph.
  *
  * The dim is gated on `(hover: hover)` in CSS: on a touch device there is no
- * hover, so every row would sit at 0.2 forever and the list would read as
- * disabled.
+ * hover, so every row would sit at 0.2 forever and read as disabled.
  */
 
-/** Matched to the source: figure fade, image slide and row dim all share it. */
+/** Figure fade, image slide and row dim all share it. */
 const T = "400ms";
 
 export default function Majors() {

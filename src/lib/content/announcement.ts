@@ -29,19 +29,13 @@ export const ANNOUNCEMENT = {
     "Two more universities join JECRC. Names, cities and the first intake are announced shortly. Everything below fills in as each one is confirmed.",
   cta: { label: "Get told first", href: "#apply" },
   /**
-   * The medical college, which is the one part of what is next that is not a
-   * placeholder: it is designed, it is named on its own elevation, and there
-   * are renders of it. So it gets the pictures and the two universities keep
-   * the plates, rather than the whole band waiting on news nobody has yet.
+   * The medical college is the one part of "what is next" that is not a
+   * placeholder — it is designed and there are renders — so it gets the
+   * pictures while the two universities keep plain plates.
    *
-   * The eyebrow reads "Coming soon", on the group's instruction — it has
-   * been "Under construction" and then "Established 2026" before this, and
-   * the hospital now carries the same label everywhere it appears (the scroll
-   * tour's beat 04 included). No BED COUNT and no FIRST INTAKE goes in here
-   * until the group confirms them, and the renders stay labelled as
-   * architectural visualisations rather than photographs. `detail` below
-   * still says the building is drawn and under way, which is what is
-   * actually known.
+   * No bed count and no first intake until the group confirms them, and the
+   * renders stay labelled as architectural visualisations rather than
+   * photographs.
    */
   medical: {
     eyebrow: "Coming soon",

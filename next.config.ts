@@ -2,18 +2,17 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 /**
- * Host-agnostic on purpose: the deploy target is not settled, and the likely
- * one is Cloudflare.
+ * Deployed on Hostinger.
  *
  * - `images.unoptimized` keeps next/image working without a platform image
  *   service. Every image the page ships is WebP and already right-sized —
  *   `npm run media` is what makes that true — so the optimiser would have
  *   nothing left to do and would only add a hosting dependency. The four PNGs
- *   left at the root are favicons and the Open Graph card, which are read by
- *   other people's software and never go through next/image at all.
- * - `headers()` covers Node-served hosts. Cloudflare Pages and Workers read
- *   `public/_headers` instead, so the same rules are written there too. Keep
- *   the two in step.
+ *   at the root are favicons and the Open Graph card, read by other people's
+ *   software and never passed through next/image.
+ * - `headers()` below is what a Node host applies. Served as static files
+ *   instead, Apache and LiteSpeed read `public/.htaccess`, which carries the
+ *   same rules. Keep the two in step.
  */
 const nextConfig: NextConfig = {
   // Pinned, otherwise Turbopack walks up past the repo looking for a lockfile
@@ -32,10 +31,8 @@ const nextConfig: NextConfig = {
     //   cache-control: public, max-age=0, must-revalidate, public,
     //                  max-age=2592000, public, max-age=31536000, immutable
     //
-    // and browsers reading a duplicated max-age take the FIRST. Every frame of
-    // the film was therefore revalidated on every visit. Cloudflare Pages reads
-    // public/_headers and concatenates exactly the same way; the full write-up
-    // lives in that file.
+    // and browsers reading a duplicated max-age take the FIRST, so every frame
+    // of the film is revalidated on every visit.
     //
     // The fix is not ordering. It is writing Cache-Control EXACTLY ONCE per
     // request: the catch-all carries security headers and no Cache-Control, and
@@ -93,6 +90,7 @@ const nextConfig: NextConfig = {
       // the loose files sitting directly in /media; anything deeper needs its
       // own line, because a subtree match here would swallow the film.
       asset("/media/:file", MONTH),
+      asset("/media/schools/:path*", MONTH),
       asset("/media/stills/:path*", MONTH),
       asset("/media/medical/:path*", MONTH),
       asset("/media/recruiters/:path*", MONTH),

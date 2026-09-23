@@ -16,14 +16,11 @@ import { Plus } from "@/components/ui/Icons";
  * travel to the middle, then back to the left edge, then down; anchoring the
  * argument on one side and the answers on the other is one movement.
  *
- * The bubbles are the design from ref/faq.png: a question hugs its text, an
- * answer arrives underneath with the crest as the speaker, and the tail corner
- * is squared on each so the pair reads as a thread rather than two cards.
+ * A question hugs its text, the answer arrives underneath with the crest as
+ * the speaker, and the tail corner is squared on each so the pair reads as a
+ * thread rather than two cards.
  *
- * Both the bubble and the plus toggle the row. The plus used to be a decorative
- * span that looked exactly like the control it was not, and separately the
- * fixed apply bar was swallowing clicks along the bottom of the viewport, so
- * between the two of them the plus could look dead. Both are fixed.
+ * Both the bubble and the plus toggle the row.
  *
  * Open and close animates `grid-template-rows` from 0fr to 1fr rather than a
  * max-height guess, so the panel travels to its exact height and a long answer

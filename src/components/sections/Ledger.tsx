@@ -4,51 +4,26 @@ import { CONTEXT, LEDGER, RECRUITERS, SEASON } from "@/lib/content/numbers";
 /**
  * The record.
  *
- * ---- what this band is for ----
+ * Two sentences, drawn: 2,104 offers is about nine a day for most of a year,
+ * and four in ten came from a Fortune 500 company. So the band is the count at
+ * the size it deserves, and one run underneath it broken where the Fortune 500
+ * share ends.
  *
- * Not to be loud. A number set in 160px type is a claim, and a claim is not
- * evidence. But the opposite mistake is real too: the season drawn as two
- * thousand small squares was evidence nobody could take in, a grey texture that
- * asked to be counted and could not be. Both failures come from the same place,
- * which is deciding the FORM before deciding the argument.
- *
- * The argument is two sentences long. Two thousand one hundred and four offers
- * is about nine a day, every day, for most of a year. Four in ten of them came
- * from a Fortune 500 company. So the band is those two sentences, drawn: the
- * count at the size the count deserves, and one run underneath it broken where
- * the Fortune 500 share ends.
- *
- * ---- one language, twice ----
- *
- * The run here and the four runs in "What they paid" are the same object drawn
- * to different units — a length that starts at the left edge and stops where
- * the quantity stops, labelled at the point it stops. Nothing on this page has
- * to be read twice to be understood the second time. The squares were a second
- * vocabulary that meant the same thing as the first, and the section paid for
- * it in both bytes and attention.
+ * That run and the ones in "What they paid" are the same object in different
+ * units — a length from the left edge, labelled where it stops — so nothing
+ * here has to be learned twice.
  */
 
 /**
  * The season, split where the Fortune 500 share falls.
  *
- * ---- two columns, not one bar ----
+ * The split IS the layout: two columns whose flex-grow values are the two
+ * counts, each holding its own rule, count and recruiter marks. The proportion
+ * is stated by the widths, the rules and the figures at once, so nothing has
+ * to be carried across the page in a reader's head.
  *
- * A single bar cut at 40.7% told the ratio and then had nothing else to do
- * with the rest of the band: the counts hung underneath it on absolute
- * positions and the marks of the companies that made the offers were four
- * hundred pixels further down the page in a marquee, unconnected to either
- * number.
- *
- * So the split is the LAYOUT now. Two columns whose widths are 856 and 1,248
- * of flex-grow, which is to say the columns are the data — and each one holds
- * its own filled rule, its own count, and the marks of the companies that came
- * under that heading. The proportion is stated three times in the same object:
- * once by the widths, once by the rules, once by the figures. Nothing has to
- * be carried across the page in a reader's head.
- *
- * The marks are the point of the second half. "1,248 from everyone else" is a
- * remainder until you see that everyone else is Deloitte and PwC, at which
- * point it stops reading as the leftovers.
+ * The marks carry the second half — "1,248 from everyone else" is a remainder
+ * until you see who everyone else is.
  */
 function SeasonSplit() {
   const rest = SEASON.offers - SEASON.fortune500;
@@ -165,18 +140,12 @@ export default function Ledger() {
       </div>
 
       {/* ---- what they paid ----
-          Its own band, on bone, full bleed. As a hairline between two blocks of
-          type it was the smallest thing in the section and the most useful, and
-          the most decision-relevant fact on the page should not be the quietest
-          mark on it.
+          Its own band, on bone, full bleed: the most decision-relevant fact on
+          the page should not be the quietest mark on it.
 
-          The rail is gone. It was three points pinned to an axis whose top was
-          the highest package, and that construction only holds while the top
-          and the bottom are the same order of magnitude — put a crore-sized
-          offer on it and three of the four values collapse into the left
-          margin. What replaced it is not a smaller version of the same idea: it
-          is the money itself, one mark per ₹1,00,000, run out at true length
-          under each other. Zero-based by construction rather than by choice,
+          No axis. The money itself, one mark per ₹1,00,000, run out at true
+          length under each other — zero-based by construction rather than by
+          choice,
           nothing normalised against anything, and the sixfold spread it could
           not survive is now the thing it shows. Same object as the season's run
           in the band above, drawn to a different unit. */}

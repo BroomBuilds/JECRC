@@ -174,18 +174,12 @@ for (const f of list("public/media/recruiters", /\.png$/i))
   await toWebp(join("public/media/recruiters", f), { lossless: true });
 
 // ---- the brand marks --------------------------------------------------
-// Lossless. Flat colour, serif type on a hard edge, and the mark carries the
-// university's name at the top of every screen: this is the exact case lossy
+// Lossless: flat colour and serif type on a hard edge is the exact case lossy
 // WebP rings on.
 //
-// IN FROM `brand-src/`, OUT TO `public/brand/`. The PNGs are the working
-// format — what `brand:mono` and `brand:crest` read and write, and what the
-// published artwork arrives as — and they used to sit in `public/brand`
-// beside their own output. Everything in `public/` is deployed, so that was
-// 572 KB of intermediates shipped to every visitor's CDN edge for a set of
-// files the site never links. Nothing requests them, so it cost no visitor a
-// byte; it cost the deploy, and it made "which of these is the real asset?"
-// a question anyone touching the brand pipeline had to answer from the code.
+// In from `brand-src/`, out to `public/brand/`. The working PNGs live outside
+// `public/` because everything in `public/` deploys verbatim, and an
+// intermediate nothing links is bytes pushed to every CDN edge for nothing.
 const BRAND_LOSSY = new Set([
   "jecrc-crest-lg.png",
   "jecrc-lockup-university.png",

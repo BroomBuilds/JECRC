@@ -1,14 +1,8 @@
 /**
  * The navigation.
  *
- * The chrome from jecrcuniversity.edu.in, cut down. Their bar carries a full
- * site's information architecture because it fronts a full site; this is one
- * page, so a copy of that menu would be eleven links pointing at four places.
- *
- * What is left is the shape, not the contents: a red utility strip carrying the
- * social marks, and a white primary strip with a handful of in-page jumps and
- * the apply button. Everything else lives in the footer, where a directory
- * belongs.
+ * One page, so the bar carries only in-page jumps, the two outbound campus
+ * links and the apply button. The full directory lives in the footer.
  */
 
 export type NavItem = { label: string; href: string; external?: boolean };
