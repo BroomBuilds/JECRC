@@ -17,6 +17,7 @@
     "brand:ju": "node scripts/make-ju-mark.mjs",
     "brand:hospital": "node scripts/make-reversed-mark.mjs \"ref/hospital logo.png\" brand-src/jecrc-hospital-mark-reversed.png --hold 200,190,140",
     "brand:foundation": "node scripts/make-reversed-mark.mjs \"ref/JECRC Foundation Logo_.png\" brand-src/jecrc-foundation-mark-reversed.png",
+    "brand:reversed": "node scripts/make-reversed-mark.mjs brand-src/jecrc-lockup-university.png brand-src/jecrc-lockup-reversed.png",
     "brand:crest": "node scripts/make-crest.mjs",
     "brand:social": "node scripts/make-social.mjs",
     "brand:icons": "node scripts/make-icons.mjs",

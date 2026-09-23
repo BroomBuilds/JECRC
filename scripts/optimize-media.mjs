@@ -77,12 +77,16 @@ const list = (dir, re) =>
  * the pipeline lives, and re-encoding a .webp over itself then fails with
  * EPERM. A Buffer has no handle to still be holding.
  */
-async function toWebp(src, { lossless = false, quality = 80, width = null, outDir = null } = {}) {
+async function toWebp(
+  src,
+  { lossless = false, quality = 80, width = null, outDir = null, outName = null } = {}
+) {
   // Beside the input by default. `outDir` is for the brand marks, whose
   // working PNGs live outside `public/` so they are never deployed — see the
-  // brand block below.
-  const named = basename(src).replace(/\.(png|jpe?g|webp)$/i, ".webp");
-  const out = outDir ? join(outDir, named) : src.replace(/\.(png|jpe?g|webp)$/i, ".webp");
+  // brand block below. `outName` is for sources whose filename is not the name
+  // the site asks for, which is every school photograph.
+  const named = outName ?? basename(src).replace(/\.(png|jpe?g|avif|webp)$/i, ".webp");
+  const out = outDir ? join(outDir, named) : src.replace(/\.(png|jpe?g|avif|webp)$/i, ".webp");
   const a = statSync(src).size;
   const input = sharp(readFileSync(src));
 
@@ -121,6 +125,46 @@ for (const f of list("public/media", /\.jpe?g$/i)) await toWebp(join("public/med
 for (const f of list("public/media/stills", /\.jpe?g$/i))
   await toWebp(join("public/media/stills", f));
 
+// ---- the school photographs -------------------------------------------
+// The group's own artwork, which arrives in `ref/images` under human names
+// with spaces in them and in whatever format the phone or the stock site gave
+// it — mostly AVIF. This map is the only place those names meet the slugs
+// `content/schools.ts` asks for, so it doubles as the record of which picture
+// belongs to which school.
+//
+// `ref/` is gitignored, the same as the films the tour is built from: the
+// sources are working assets and the encoded `.webp` under `public/` is what
+// ships and what is committed. A missing source is skipped rather than being
+// an error, so a school whose photograph has not arrived keeps the one it has
+// — which is exactly the case for Economics.
+//
+// 1024px because the frame is about 512 CSS pixels wide, so that is 2x on a
+// retina screen. `withoutEnlargement` inside `toWebp` means a source smaller
+// than that is encoded at its own size rather than blown up. The 3:4 crop is
+// CSS, not done here, so the whole frame ships and the component chooses.
+// See public/media/schools/README.md.
+const SCHOOL_PHOTOS = {
+  "engineering and tech.jpg": "engineering-technology.webp",
+  "computer applications.avif": "computer-applications.webp",
+  "business.avif": "business.webp",
+  "sciences.avif": "sciences.webp",
+  "humanities.avif": "humanities-social-sciences.webp",
+  "law.avif": "law.webp",
+  "mass com.avif": "mass-communication.webp",
+  "design.avif": "design.webp",
+  "applied health.avif": "allied-health-sciences.webp",
+  "hospitality.avif": "hospitality.webp",
+};
+
+for (const [src, outName] of Object.entries(SCHOOL_PHOTOS))
+  if (existsSync(join("ref/images", src)))
+    await toWebp(join("ref/images", src), {
+      quality: 80,
+      width: 1024,
+      outDir: "public/media/schools",
+      outName,
+    });
+
 // ---- renders, resized down to the frame they land in ------------------
 for (const f of list("public/media/medical", /\.webp$/i))
   await toWebp(join("public/media/medical", f), { quality: 74, width: 1400 });
@@ -142,9 +186,29 @@ for (const f of list("public/media/recruiters", /\.png$/i))
 // files the site never links. Nothing requests them, so it cost no visitor a
 // byte; it cost the deploy, and it made "which of these is the real asset?"
 // a question anyone touching the brand pipeline had to answer from the code.
+const BRAND_LOSSY = new Set([
+  "jecrc-crest-lg.png",
+  "jecrc-lockup-university.png",
+  "jecrc-lockup-reversed.png",
+]);
+
 for (const f of list(BRAND_SRC, /\.png$/i))
-  if (f !== "jecrc-crest-lg.png")
+  if (!BRAND_LOSSY.has(f))
     await toWebp(join(BRAND_SRC, f), { lossless: true, outDir: BRAND_OUT });
+
+// ---- the university lockup --------------------------------------------
+// Lossy and resized, for the same reason the crest below is. The new artwork
+// is the full crest — dozens of hairline glyphs inside the shield, every one
+// of them antialiased — beside the wordmark, and lossless has nothing to
+// predict in that: 145 KB against 86 KB at q92, on a mark the navbar marks
+// `priority`.
+//
+// 700px because 222 CSS pixels is the widest this is ever drawn — `PLATE.mark`
+// in the navbar — so 700 is still over 3x on a retina screen and next/image
+// downscales from it anyway. The source stays at 1200 as the working master.
+for (const f of ["jecrc-lockup-university.png", "jecrc-lockup-reversed.png"])
+  if (existsSync(join(BRAND_SRC, f)))
+    await toWebp(join(BRAND_SRC, f), { quality: 92, width: 700, outDir: BRAND_OUT });
 
 // ---- the crest at ending size -----------------------------------------
 // Lossy, unlike the four marks in `brand:webp`. This one is not flat colour —

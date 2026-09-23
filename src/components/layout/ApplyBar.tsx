@@ -115,12 +115,20 @@ export default function ApplyBar() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="pointer-events-auto flex w-full max-w-[26rem] items-center gap-3 rounded-full border border-rule bg-paper py-2 pl-5 pr-2 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)] transition-colors duration-300 hover:border-crimson sm:w-auto sm:gap-4 sm:pl-6"
+        className="pointer-events-auto flex w-full max-w-[26rem] items-center gap-3 rounded-full border border-rule bg-paper py-2 pl-5 pr-2 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)] transition-colors duration-300 hover:border-crimson sm:w-auto sm:max-w-none sm:gap-4 sm:pl-6"
       >
         <span className="min-w-0 flex-1 text-left sm:flex-none">
-          <span className="u-eyebrow block truncate text-crimson sm:hidden">Admissions 2026</span>
-          <span className="hidden text-[14px] font-medium text-graphite sm:inline">
-            Admissions 2026 are open
+          {/* No year, and no claim that an intake is open.
+              jecrcuniversity.edu.in currently heads its own pages with
+              "Applications & Admissions closed For UG | PG | Lateral/Migration
+              | DEE for AY 2026-27", so a capsule asserting the opposite is a
+              statement this site cannot support. The routes below still work —
+              they go to the group's live application portals, which is where
+              the real state of the intake is — so the capsule says what
+              pressing it does instead of what the calendar is. */}
+          <span className="u-eyebrow block truncate text-crimson sm:hidden">Admissions</span>
+          <span className="hidden whitespace-nowrap text-[14px] font-medium text-graphite sm:inline">
+            Admissions and enquiries
           </span>
         </span>
         <span className="u-eyebrow flex shrink-0 items-center gap-2 rounded-full bg-crimson px-5 py-3 text-paper">

@@ -1,15 +1,20 @@
 import Image from "next/image";
 import { AMBASSADOR } from "@/lib/content/ambassador";
-import { Eyebrow } from "@/components/ui/Section";
 import VideoDialog from "@/components/ui/VideoDialog";
 
 /**
- * Brand ambassador.
+ * A new chapter begins.
  *
  * The one warm band on the page: a bone ground rather than paper, so it reads
  * as a moment without needing a border or a card. The portrait slot degrades to
  * a branded frame when no licensed image is set, which keeps the section
  * shippable before the shoot assets arrive instead of leaving a hole.
+ *
+ * What was stripped, and why it is not coming back as a "nice to have": this
+ * band used to carry a "Brand ambassador" eyebrow, a role line under the
+ * portrait, a pull quote nobody had said, and a three-column note strip
+ * (Announced / Represents / Campaign). Four separate devices around one short
+ * piece of copy. The copy the group wrote says the thing on its own.
  */
 export default function Ambassador() {
   return (
@@ -24,14 +29,14 @@ export default function Ambassador() {
           <div className="relative aspect-4/5 w-full overflow-hidden bg-linen">
             {AMBASSADOR.portrait ? (
               /* `priority`, on an image most of a page below the fold.
-                 
+
                  Counter-intuitive, and measured. Left lazy this did not even
                  REQUEST until 2.7s — it waits for the viewport — and by then
                  the tour's preloader is holding sixteen frames open on the
                  same connection, so 53 KB that should move in about 110ms took
                  1,054. Total, near four seconds after load on a 4G profile,
                  which is longer than anyone spends deciding to keep scrolling.
-                 
+
                  `priority` emits a preload in the document head, so the fetch
                  starts while the HTML is still being parsed — before the tour
                  effect has mounted and before there is any queue to sit behind.
@@ -58,80 +63,57 @@ export default function Ambassador() {
               </div>
             )}
           </div>
-          <figcaption className="mt-5 flex items-baseline justify-between gap-4 border-t border-rule pt-4">
+          {/* The name, and nothing beside it. The role line that used to sit
+              opposite was the last of the ambassador furniture. */}
+          <figcaption className="mt-5 border-t border-rule pt-4">
             <span className="u-grotesk text-[1.15rem] text-ink">{AMBASSADOR.name}</span>
-            <span className="text-[13px] text-quiet">{AMBASSADOR.role}</span>
           </figcaption>
         </figure>
 
         {/* ---- copy ---- */}
         <div>
-          <div data-reveal>
-            <Eyebrow>{AMBASSADOR.eyebrow}</Eyebrow>
-          </div>
-
+          {/* Two lines, one heading. The second is the greeting and carries
+              the colour, the same relationship the film's title cards use —
+              so it is a `<span>` inside the h2 rather than a second heading
+              that would put an empty level in the outline. */}
           <h2
             data-reveal
-            style={{ "--reveal-delay": "70ms" } as React.CSSProperties}
-            className="u-display mt-5 pb-[0.12em] text-[2rem] text-ink sm:mt-6 sm:text-[2.9rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
+            className="u-display pb-[0.12em] text-[2rem] text-ink sm:text-[2.9rem] lg:text-[clamp(3.25rem,4.4vw,4.75rem)]"
           >
-            {AMBASSADOR.name}
-            {/* One line, always. It is a six-word phrase and breaking it puts "story"
-                alone on a line under the name, which reads as a mistake rather
-                than a line break. Held on one line by sizing it to the column
-                rather than by nowrap alone: nowrap at the name's display size
-                would simply overflow.
-
-                The phone tier is deliberately a shade under where it could
-                sit. "now part of the JECRC story" is a character longer than
-                the "is part of" it replaced, and at 7vw the line measured
-                EXACTLY the column's width at 320, 390 and 430 — one line, but
-                with nothing spare, which on a nowrap line is one metric change
-                away from overflowing. 6.7vw buys ~15px back and is not a
-                visible difference. */}
-            <span className="u-display-strong mt-1 block whitespace-nowrap text-[min(6.7vw,1.85rem)] text-crimson sm:text-[min(5.3vw,2.55rem)] lg:text-[min(3.35vw,3.65rem)]">
-              now part of the JECRC story
+            {AMBASSADOR.title}
+            <span className="u-display-strong mt-1 block text-[min(7vw,1.9rem)] leading-[1.15] text-crimson sm:text-[min(5.3vw,2.55rem)] lg:text-[min(3.35vw,3.65rem)]">
+              {AMBASSADOR.subtitle}
             </span>
           </h2>
 
+          {AMBASSADOR.body.map((para, i) => (
+            <p
+              key={i}
+              data-reveal
+              style={{ "--reveal-delay": `${140 + i * 60}ms` } as React.CSSProperties}
+              className="mt-6 max-w-[52ch] text-[15.5px] leading-[1.75] text-graphite md:mt-7 md:text-[17px]"
+            >
+              {para}
+            </p>
+          ))}
+
+          {/* The sign-off is the one line in the section that is an invitation
+              rather than a description, so it is set apart from the paragraphs
+              it ends rather than becoming the fourth of them. */}
           <p
             data-reveal
-            style={{ "--reveal-delay": "140ms" } as React.CSSProperties}
-            className="mt-6 max-w-[52ch] text-[15.5px] leading-[1.75] text-graphite md:mt-8 md:text-[17px]"
+            style={{ "--reveal-delay": "340ms" } as React.CSSProperties}
+            className="u-display-strong mt-8 border-l-2 border-crimson pl-5 text-[1.3rem] leading-[1.35] text-ink sm:text-[1.6rem] md:mt-10 md:pl-6 md:text-[2.15rem]"
           >
-            {AMBASSADOR.body}
+            {AMBASSADOR.signoff}
           </p>
-
-          <blockquote
-            data-reveal
-            style={{ "--reveal-delay": "200ms" } as React.CSSProperties}
-            className="mt-8 border-l-2 border-crimson pl-5 md:mt-10 md:pl-6"
-          >
-            <p className="u-display-strong text-[1.3rem] leading-[1.35] text-ink sm:text-[1.6rem] md:text-[2.15rem]">
-              {AMBASSADOR.quote}
-            </p>
-            <cite className="u-eyebrow mt-4 block not-italic text-quiet">{AMBASSADOR.quoteBy}</cite>
-          </blockquote>
-
-          <dl
-            data-reveal
-            style={{ "--reveal-delay": "260ms" } as React.CSSProperties}
-            className="mt-10 grid gap-6 border-t border-rule pt-7 sm:grid-cols-3"
-          >
-            {AMBASSADOR.notes.map((n) => (
-              <div key={n.label}>
-                <dt className="u-eyebrow text-quiet">{n.label}</dt>
-                <dd className="mt-2 text-[15px] font-medium leading-snug text-ink">{n.value}</dd>
-              </div>
-            ))}
-          </dl>
 
           {/* The announcement plays here rather than sending the visitor to
               YouTube and losing them. VideoDialog is the only client component
               in this section, so the rest stays server-rendered. */}
           <div
             data-reveal
-            style={{ "--reveal-delay": "320ms" } as React.CSSProperties}
+            style={{ "--reveal-delay": "400ms" } as React.CSSProperties}
             className="mt-10"
           >
             <VideoDialog
@@ -139,7 +121,7 @@ export default function Ambassador() {
               label={AMBASSADOR.watchLabel}
               title={AMBASSADOR.watchTitle}
               href={AMBASSADOR.watchHref}
-              eyebrow={AMBASSADOR.eyebrow}
+              eyebrow={AMBASSADOR.title}
             />
           </div>
         </div>

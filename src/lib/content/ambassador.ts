@@ -1,18 +1,26 @@
 /**
- * Brand ambassador.
+ * A new chapter begins.
+ *
+ * The section used to be built as a brand-ambassador card: an eyebrow reading
+ * "Brand ambassador", a role line, a pull quote the university had not
+ * attributed to anyone, and three notes (announced, represents, campaign). All
+ * of it is gone. What is here now is the copy the group supplied, and nothing
+ * that was written around it.
  *
  * `portrait` stays optional: the section renders a branded frame when it is
  * unset, so pulling the image never leaves a hole. The one in place is JECRC's
  * own published campaign photograph, not a press agency frame.
- *
- * No line here is attributed to Vikrant Massey. The pull quote is the
- * university's own framing of the partnership; if an approved quote from him
- * arrives, move it into `quote` and change `quoteBy`.
  */
 export const AMBASSADOR = {
-  eyebrow: "Brand ambassador",
+  /** The two header lines, in order. */
+  title: "A New Chapter Begins",
+  subtitle: "Welcome to the JECRC Family",
   name: "Vikrant Massey",
-  role: "Actor · Now part of the JECRC story",
+  /**
+   * Kept for the SEO graph, which dates the Person node. Nothing on the page
+   * reads it any more — the "Announced / Represents / Campaign" notes that
+   * used to are gone with the rest of the ambassador furniture.
+   */
   announced: "April 2026",
   /**
    * Published by JECRC on their own application portal
@@ -20,7 +28,7 @@ export const AMBASSADOR = {
    * Replace with the campaign master when the shoot assets arrive.
    */
   portrait: "/brand/vikrant-massey.webp" as string | undefined,
-  portraitAlt: "Vikrant Massey, brand ambassador for JECRC University",
+  portraitAlt: "Vikrant Massey at JECRC University",
   /**
    * A 16 by 20 crop of the portrait itself, inline, about 250 bytes.
    *
@@ -35,15 +43,16 @@ export const AMBASSADOR = {
    */
   portraitBlur:
     "data:image/webp;base64,UklGRqYAAABXRUJQVlA4IJoAAABQBACdASoQABQAPt1apkyopSOiMAgBEBuJZACdMoMzGCG3t6teRIl6RGwAANsJywIPi1KCdl8cUpGWfPhtxfgNxk+VpPp4L/IOtboasu/R78mg8OF8zlcM6euB+pJACVBioOW6ldksbDcFeuex3Qg+cw+fvEiOvKh5i5Rk4PE1lwSk17L23MRGHGpvy9FfiqtkGIjoBFZqwAAA",
-  body:
-    "An actor who built a career the long way round: small parts, then better parts, then the ones nobody else could have played. The partnership works because it is the same arc the university asks of its students. Start with the work, stay with the work, and let the recognition arrive second.",
-  quote: "Dream big. Stay grounded. Build your world.",
-  quoteBy: "The spirit of the partnership",
-  notes: [
-    { label: "Announced", value: "April 2026" },
-    { label: "Represents", value: "Jaipur and Alwar NCR campuses" },
-    { label: "Campaign", value: "Build Your World" },
+  /**
+   * The group's copy, verbatim, as four paragraphs. The last is the sign-off
+   * and is set apart on the page.
+   */
+  body: [
+    "From ordinary beginnings to extraordinary journeys, Vikrant Massey's story reflects the spirit we nurture at JECRC — to dream big, stay authentic, and keep moving forward.",
+    "Known for his versatility, authenticity and powerful storytelling, Vikrant joins the JECRC Group of Institutions as its new face, inspiring a new generation to believe in their stories and bring them to life.",
+    "At JECRC, we believe every student has a story waiting to unfold. And this new chapter is about inspiring many more of them.",
   ],
+  signoff: "Come, Build Your World with Us.",
   /** JECRC's own upload. `watchVideoId` drives the in-page player; `watchHref`
       is the escape hatch for anyone who would rather watch it on YouTube. */
   watchVideoId: "5JrMq6z2tNg",
