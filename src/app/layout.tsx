@@ -58,7 +58,7 @@ const cinzel = Cinzel({
 
 const TITLE = "JECRC, Build Your World";
 const DESCRIPTION =
-  "JECRC University Jaipur, JECRC University Alwar NCR and JECRC Foundation. Eleven schools, 26,000 students, 2,104 offers from 200 recruiters, and 34,000 alumni across 35 countries. Applications for 2026 to 2027 are open.";
+  "JECRC University Jaipur, JECRC University Alwar NCR and JECRC Foundation. Eleven schools, 29,643 students, 2,104 offers from 200 recruiters, and 30,000+ alumni across 35 countries. Apply through the group's own admissions portals.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

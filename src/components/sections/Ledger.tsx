@@ -156,8 +156,8 @@ export default function Ledger() {
         <div className="mt-12 md:mt-16 lg:flex lg:items-end lg:gap-10 xl:gap-14">
           <p className="u-season-total u-rec-tab">{SEASON.offers.toLocaleString("en-IN")}</p>
           <p className="u-rec-rate mt-5 max-w-[26ch] lg:mt-0 lg:max-w-[30ch] lg:pb-3">
-            offers, which is about <b>nine a day</b> across the season&rsquo;s {SEASON.days} days
-            of campus recruitment.
+            offers, which is about <b>nine a day</b> from {SEASON.recruiters} recruiters, across
+            the season&rsquo;s {SEASON.days} days of campus recruitment.
           </p>
         </div>
 
@@ -248,6 +248,53 @@ export default function Ledger() {
             ))}
           </ul>
 
+          {/* ---- the same season, by discipline ----
+              A ₹6 LPA average across a university that teaches both B.Tech.
+              CSE and hotel management is an average of two job markets, and
+              the run above cannot say so. Set small and tabular for the same
+              reason `CONTEXT` is: it supports the headline figure rather than
+              competing with it. */}
+          <table className="mt-12 w-full max-w-[40rem] border-collapse text-left md:mt-16">
+            <caption className="u-eyebrow mb-4 text-left text-quiet">
+              By discipline, {SEASON.year}
+            </caption>
+            <thead>
+              <tr className="border-b border-rule">
+                <th scope="col" className="py-2.5 text-[13px] font-medium text-quiet">
+                  Discipline
+                </th>
+                <th scope="col" className="py-2.5 text-right text-[13px] font-medium text-quiet">
+                  Average
+                </th>
+                <th scope="col" className="py-2.5 text-right text-[13px] font-medium text-quiet">
+                  Highest
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {SEASON.byDiscipline.map((d) => (
+                <tr key={d.label} className="border-b border-rule">
+                  <th
+                    scope="row"
+                    className="py-3.5 text-[14.5px] font-normal text-graphite"
+                  >
+                    {d.label}
+                  </th>
+                  <td className="u-rec-tab py-3.5 text-right text-[15px] font-semibold text-ink">
+                    {d.average}
+                  </td>
+                  <td className="u-rec-tab py-3.5 text-right text-[15px] font-semibold text-ink">
+                    {d.highest}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <p className="mt-6 max-w-[40rem] text-[13px] leading-[1.65] text-quiet">
+            {SEASON.trainingHours} hours of campus recruitment training and industry mentorship
+            sit behind these, run by the Training and Placement Cell across both campuses.
+          </p>
         </div>
       </div>
 
@@ -346,7 +393,7 @@ export default function Ledger() {
         <p className="mt-10 max-w-[70ch] text-[13px] leading-[1.65] text-quiet">
           Recruiters as named on the university placements page, each mark the trademark of its
           owner. Placement figures are for the {SEASON.year} season, group totals across both
-          campuses.
+          campuses, as published at jecrcuniversity.edu.in/placements.
         </p>
       </div>
     </section>

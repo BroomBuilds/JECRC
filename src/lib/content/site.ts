@@ -20,10 +20,11 @@ export const BRAND = {
   foundedYear: 2000,
   copyrightYear: 2026,
   /**
-   * Heads the scroll tour's opening frame under the group name. Given by the
-   * group as an exact roll rather than a rounded one, which is why it is not
-   * the "26,000+" that NUMBERS carries — that figure is the two universities
-   * only, this one is the whole group. Update both when the group does.
+   * Heads the scroll tour's opening frame under the group name, and is the
+   * same figure `CONTEXT` in content/numbers.ts carries as "Students
+   * enrolled": the whole group, given as an exact roll rather than a rounded
+   * one. The per-campus counts in content/universities.ts are a different
+   * figure and are NOT derived from this. Update both when the group does.
    */
   enrolled: "29,643",
   /**
@@ -36,25 +37,51 @@ export const BRAND = {
   alumni: "30,000+",
 } as const;
 
+/**
+ * Every number and address here is published by the group, and was re-checked
+ * against the live properties. What changed when it was:
+ *
+ *   admissionsPhone  was +91 97733 68851, which appears nowhere on
+ *                    jecrcuniversity.edu.in. The number the university prints
+ *                    in its own header and on its contact page is the
+ *                    toll-free one.
+ *   altPhone         was +91 91166 42285, also unfindable. This is the mobile
+ *                    the contact page lists beside `admission@jecrcu.edu.in`.
+ *   email            was info@jecrcu.edu.in, which the university does not
+ *                    publish. The admissions address it does publish is this.
+ *
+ * The NCR pair below was checked the same way and was already right. Its site
+ * is a client-rendered app, so the server HTML is empty and it has to be read
+ * with a real browser — do that rather than concluding the details are gone.
+ */
 export const CONTACT = {
-  admissionsPhone: "+91 97733 68851",
-  admissionsPhoneHref: "tel:+919773368851",
-  altPhone: "+91 91166 42285",
-  altPhoneHref: "tel:+919116642285",
+  admissionsPhone: "1800 120 5616",
+  admissionsPhoneHref: "tel:18001205616",
+  altPhone: "+91 98294 68152",
+  altPhoneHref: "tel:+919829468152",
   ncrPhone: "1800 410 5616",
   ncrPhoneHref: "tel:18004105616",
-  email: "info@jecrcu.edu.in",
-  emailHref: "mailto:info@jecrcu.edu.in",
+  email: "admission@jecrcu.edu.in",
+  emailHref: "mailto:admission@jecrcu.edu.in",
   ncrEmail: "director.admission.ncr@jecrcu.edu.in",
   ncrEmailHref: "mailto:director.admission.ncr@jecrcu.edu.in",
   note: "Admissions desk closed on Sunday",
 } as const;
 
+/**
+ * The accounts the university links from its own footer.
+ *
+ * YouTube was `@JECRCUniversityJaipur` and returned a 404 — a dead link in the
+ * footer of a live site. The channel the university actually links is the
+ * legacy `user/` one. LinkedIn was a vanity slug; the ID form below is what
+ * the university publishes, and LinkedIn answers bots with a 999 either way,
+ * so the one they print is the one to trust.
+ */
 export const SOCIAL = [
   { label: "Facebook", href: "https://www.facebook.com/jecrcuniversity" },
   { label: "Instagram", href: "https://www.instagram.com/jecrcuniversity" },
-  { label: "LinkedIn", href: "https://www.linkedin.com/school/jecrcuniversity" },
-  { label: "YouTube", href: "https://www.youtube.com/@JECRCUniversityJaipur" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/school/2782627/" },
+  { label: "YouTube", href: "https://www.youtube.com/user/jecrcuvideo" },
   { label: "X", href: "https://x.com/jecrcuniversity" },
 ] as const;
 
@@ -68,8 +95,34 @@ export const SOCIAL = [
  * over the film's first beat, so this is not a rounding error.
  */
 export const LOGO = {
-  /** Red artwork on a white plate. For light surfaces only. */
-  lockup: "/brand/jecrc-lockup.webp",
+  /**
+   * The university lockup: red crest, "JECRC UNIVERSITY" and "BUILD YOUR
+   * WORLD" in graphite, on transparent.
+   *
+   * This replaced the two-up plate below — university crest and medical
+   * college crest side by side on a white banner — which is still the group's
+   * artwork and is still what `brand:mono` and `brand:crest` derive from, so
+   * it stays on disk under `lockupTwoUp`. Nothing links it today.
+   *
+   * Transparent, not plated: it now sits on the navbar's own paper rather
+   * than carrying a white rectangle onto it.
+   */
+  lockup: "/brand/jecrc-lockup-university.webp",
+  /**
+   * The same lockup reversed to white, by `npm run brand:reversed`.
+   *
+   * What the navbar actually uses. The mark is red-and-graphite artwork drawn
+   * for white paper, and the bar's crest pendant is crimson — see the block
+   * above `PLATE` in Navbar.tsx for why it is crimson rather than a white
+   * plate. `lockup` above is the positive, kept for light grounds and for the
+   * SEO graph's `logo`, where a mark on transparent white would be invisible.
+   */
+  lockupReversed: "/brand/jecrc-lockup-reversed.webp",
+  /**
+   * The published two-up plate, kept as the source everything mono and red is
+   * derived from. Not linked by any page.
+   */
+  lockupTwoUp: "/brand/jecrc-lockup.webp",
   /** White artwork on transparent, derived by `npm run brand:mono`. For dark ones. */
   lockupMono: "/brand/jecrc-lockup-mono.webp",
   /**

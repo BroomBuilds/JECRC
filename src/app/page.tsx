@@ -4,7 +4,7 @@ import ApplyBar from "@/components/layout/ApplyBar";
 import ScrollTour from "@/components/sections/ScrollTour";
 import ScratchReveal from "@/components/sections/ScratchReveal";
 import Ambassador from "@/components/sections/Ambassador";
-import ComingSoon from "@/components/sections/ComingSoon";
+// import ComingSoon from "@/components/sections/ComingSoon";
 import Majors from "@/components/sections/Majors";
 import Ledger from "@/components/sections/Ledger";
 import Faq from "@/components/sections/Faq";
@@ -28,7 +28,7 @@ const SCRATCH_IMAGE_PORTRAIT = "/media/scratch-bg-portrait.webp";
  *   scratch     the promise, and the only place the visitor plays with it
  *   schools     what you would study that you could not study elsewhere
  *   numbers     what it is worth
- *   coming soon what is next, once the case for today is made
+ *   coming soon what is next, once the case for today is made (held back)
  *   faq         the objections
  *
  * The ask is not a section. It rides along as a capsule pinned to the bottom
@@ -66,7 +66,11 @@ export default function HomePage() {
         <ScratchReveal image={SCRATCH_IMAGE} imagePortrait={SCRATCH_IMAGE_PORTRAIT} />
         <Majors />
         <Ledger />
-        <ComingSoon />
+        {/* Held back at the client's request, not deleted. The section and its
+            content (`ComingSoon.tsx`, the medical renders in
+            public/media/medical, `LOGO.hospitalMarkReversed`) are all still
+            here — put the import and this line back to bring it in. */}
+        {/* <ComingSoon /> */}
         <Faq />
       </main>
       <Footer />

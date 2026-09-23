@@ -12,12 +12,12 @@ export const FAQS = [
     a: "Three. JECRC University's flagship campus sits on thirty-two acres at Sitapura, Jaipur. JECRC University's NCR campus covers 32.89 acres in the Matsya Industrial Area, Alwar, inside the National Capital Region. JECRC Foundation, the Jaipur Engineering College and Research Centre, is the group's founding engineering college in Jaipur.",
   },
   {
-    q: "How do I apply to JECRC University for 2026-27?",
-    a: "Applications for 2026-27 are open. Apply to the Jaipur campus at jecrcuapplication.jecrcuniversity.edu.in and to the Alwar NCR campus at jecruncrapplication.jecrcuncr.edu.in. The online form takes about ten minutes, after which an admissions representative makes contact to complete the process. The admissions desk is reachable on +91 97733 68851 and is closed on Sundays.",
+    q: "How do I apply to JECRC University?",
+    a: "Applications are handled on the group's own portals, and each campus publishes the state of its current intake there. Apply to the Jaipur campus at jecrcuapplication.jecrcuniversity.edu.in and to the Alwar NCR campus at jecruncrapplication.jecrcuncr.edu.in. The online form takes about ten minutes, after which an admissions representative makes contact to complete the process. The Jaipur admissions desk is reachable toll-free on 1800 120 5616 or at admission@jecrcu.edu.in, the Alwar NCR desk on 1800 410 5616, and both are closed on Sundays.",
   },
   {
     q: "What are JECRC University's placement figures?",
-    a: "For the 2025-26 season JECRC University recorded 2,104 or more offers from 200 or more recruiters, including 856 offers from Fortune 500 companies. The highest package was 33 lakh per annum, the average 6 lakh per annum, and the average across the top thirty percent of the cohort 10.7 lakh per annum. The placement season ran 230 days. Group-wide, more than 12,000 placements were made over the last five years.",
+    a: "For the 2025-26 season JECRC University recorded 2,104 or more offers from 205 recruiters, including 856 offers from Fortune 500 companies. The highest package was 33 lakh per annum, the average 6 lakh per annum, and the average across the top thirty percent of the cohort 10.7 lakh per annum. By discipline the averages were 6.45 lakh for technical programmes, 7 lakh for management, 5 lakh for mechanical, civil and electronics engineering, and 4 lakh for skill-based programmes. The placement season ran 230 days and was supported by more than 500 hours of campus recruitment training. Group-wide, more than 12,000 placements were made over the last five years.",
   },
   {
     q: "Which companies recruit from JECRC?",

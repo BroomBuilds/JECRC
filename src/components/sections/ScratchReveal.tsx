@@ -675,9 +675,16 @@ export default function ScratchReveal({
             </span>
           </p>
 
+          {/* Two sentences, two weights. The first is the claim and the second
+              is the invitation, and they were one paragraph until the copy
+              arrived written as two lines — so they are set as two, the second
+              smaller and closing on the line the whole campaign is named for. */}
           <p className="u-display mt-5 max-w-[30ch] text-[6.4vw] leading-[1.15] text-ink [text-shadow:0_0_6px_#fff,0_0_15px_#fff,0_1px_30px_rgba(255,255,255,0.9)] pointer-coarse:[text-shadow:0_0_5px_#fff,0_0_10px_#fff,0_0_20px_rgba(255,255,255,0.95)] sm:text-[4.6vw] md:mt-6 md:leading-[1.06] lg:max-w-[24ch] lg:text-[clamp(2.5rem,3.8vw,3.75rem)]">
-            Twenty-six years of building people who build things. Find the campus, the school and
-            the year that fits.
+            26 Years. Thousands of Stories. One Legacy of Building Futures.
+          </p>
+
+          <p className="u-display-strong mt-4 max-w-[34ch] text-[4.6vw] leading-[1.25] text-crimson [text-shadow:0_0_6px_#fff,0_0_15px_#fff,0_1px_30px_rgba(255,255,255,0.9)] pointer-coarse:[text-shadow:0_0_5px_#fff,0_0_10px_#fff,0_0_20px_rgba(255,255,255,0.95)] sm:text-[3.2vw] md:mt-5 lg:max-w-[30ch] lg:text-[clamp(1.6rem,2.3vw,2.25rem)]">
+            Find your programme. Find your place. Build Your World.
           </p>
 
           {/* Stacked and full width on a phone, with the first campus carrying

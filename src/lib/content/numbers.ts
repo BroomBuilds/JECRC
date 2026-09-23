@@ -14,9 +14,13 @@
  * those six were values restating what `CONTEXT` and `SEASON.pay` already
  * hold, free to drift quietly out of step with both.
  *
- * Counts, campuses and alumni are as the group publishes them. The four
- * PACKAGES in `SEASON.pay` are not — see the note there. That distinction used
- * to be unnecessary, because nothing here was restated; it is load-bearing now.
+ * Every figure in this file is now as the group publishes it — the season and
+ * the packages off jecrcuniversity.edu.in/placements, the rest off the group's
+ * own pages. There used to be an exception: four packages in `SEASON.pay` that
+ * came from the brief rather than from the placement cell and were carrying a
+ * warning to that effect. They have been replaced by the published ones, so
+ * the warning is gone with them. If a figure arrives from anywhere other than
+ * a page the university publishes, mark it where it sits.
  */
 
 export type Figure = {
@@ -42,24 +46,24 @@ export const FIGURES: Figure[] = [
     scale: "lead",
   },
   {
-    value: "34,000",
+    value: "30,000",
     unit: "+",
     label: "Alumni",
     detail: "Working across thirty-five countries",
     scale: "lead",
   },
   {
-    value: "₹1.02",
-    unit: " Cr",
-    label: "Highest international offer",
-    detail: "Per annum, 2025 to 2026",
+    value: "₹33",
+    unit: " LPA",
+    label: "Highest package",
+    detail: "2025 to 2026, as published on the placements page",
     scale: "mid",
   },
   {
-    value: "₹54",
-    unit: "L",
-    label: "Highest offer in India",
-    detail: "Per annum, 2025 to 2026",
+    value: "₹10.70",
+    unit: " LPA",
+    label: "Average of the top thirty percent",
+    detail: "From the same season",
     scale: "mid",
   },
   {
@@ -69,8 +73,7 @@ export const FIGURES: Figure[] = [
     scale: "mid",
   },
   {
-    value: "200",
-    unit: "+",
+    value: "205",
     label: "Recruiters on campus",
     detail: "Amazon, Microsoft, Google, TCS, Deloitte and the rest",
     scale: "mid",
@@ -87,10 +90,16 @@ export const FIGURES: Figure[] = [
 /**
  * The season, as numbers a chart can use.
  *
- * `FIGURES` above is display copy — "2,104", "₹54", "L" — and it stays that way
- * because the SEO schema reads it. Anything drawn to scale needs the values
- * themselves, so they are stated once more here as numbers. Same figures,
- * different form: if one changes, change it in both.
+ * `FIGURES` above is display copy — "2,104", "₹33", " LPA" — and it stays that
+ * way because the SEO schema reads it. Anything drawn to scale needs the
+ * values themselves, so they are stated once more here as numbers. Same
+ * figures, different form: if one changes, change it in both.
+ *
+ * Everything in this block is now as jecrcuniversity.edu.in/placements
+ * publishes it. It did not used to be: `pay.marks` carried four figures from
+ * the brief — ₹16L average, ₹54L highest in India, ₹1.02 Cr international —
+ * that the university's own page did not support and that were flagged here
+ * for the placement cell to sign off. They never were. They are gone.
  */
 export const SEASON = {
   year: "2025 to 2026",
@@ -98,70 +107,89 @@ export const SEASON = {
   offers: 2104,
   /** Of those, the ones from Fortune 500 companies. */
   fortune500: 856,
-  recruiters: "200+",
+  /**
+   * 205, not "200+".
+   *
+   * The placements page says both. Its season tile — the row that also
+   * carries "2104+ Placements (2025-26)" and "230 Days! Placement Season
+   * Duration" — reads "205 Recruiters! / Top Corporate Partners", and that is
+   * the season figure. The "200+" appears twice elsewhere on the same page, in
+   * the T&P cell's standing claim ("200+ Recruiters Visit Annually") and in
+   * the 2025-26 headline sentence, both of which are the rounded version of
+   * this one. The exact number is the better claim and it is the university's
+   * own.
+   */
+  recruiters: "205",
   days: 230,
+  /** Campus recruitment training and industry mentorship, per the same page. */
+  trainingHours: "500+",
 
   /**
    * Packages, drawn from zero as a count of lakh.
-   *
-   * ---- these four are NOT the published figures ----
-   *
-   * The university's own placement page gives ₹6 LPA average and ₹33 LPA
-   * highest. The four below are the brief's, set higher on purpose, and every
-   * one of them needs signing off by the placement cell before this goes live.
-   * The rest of the file is still as published; this block is the exception and
-   * is the first thing to check when the season's real sheet arrives.
    *
    * ---- why there is no axis ----
    *
    * This used to be three points pinned to one rail, with the highest package
    * at 100% and everything else placed as a fraction of it. That construction
    * only survives while the top and the bottom are the same order of
-   * magnitude. Put a crore-sized offer on it and the average lands at fifteen
-   * percent of the width and the scale stops being a scale.
+   * magnitude.
    *
-   * So there is no axis now. Each package is drawn as what it is — a run of
-   * marks, one mark for every ₹1,00,000 — and the runs sit under each other.
-   * Zero-based by construction rather than by choice, nothing normalised
-   * against anything, and a sixfold spread is no longer a problem to be scaled
-   * around. It is the finding.
+   * So there is no axis. Each package is drawn as what it is — a run of marks,
+   * one mark for every ₹1,00,000 — and the runs sit under each other.
+   * Zero-based by construction rather than by choice, and nothing normalised
+   * against anything.
    *
    * `lakh` is what gets drawn, `value` is what a reader sees. Short form —
-   * ₹16L, not ₹16,00,000. Four figures written out in full is four rows of
-   * digits a reader has to count the commas in; at a glance the lakh is the
-   * unit the amount is quoted in anyway, and the run beside it already carries
-   * the size.
+   * ₹33L, not ₹33,00,000: at a glance the lakh is the unit the amount is
+   * quoted in anyway, and the run beside it already carries the size.
    */
   pay: {
     unit: "a year",
     /** The longest run, and so the width of a full row. */
-    scale: 102,
+    scale: 33,
     marks: [
-      { lakh: 16, value: "₹16L", label: "Average package" },
-      { lakh: 28, value: "₹28L", label: "Top thirty percent" },
-      { lakh: 54, value: "₹54L", label: "Highest offer in India" },
-      { lakh: 102, value: "₹1.02Cr", label: "Highest international offer" },
+      { lakh: 6, value: "₹6L", label: "Average package" },
+      { lakh: 10.7, value: "₹10.70L", label: "Average of the top thirty percent" },
+      { lakh: 33, value: "₹33L", label: "Highest package" },
     ],
   },
+
+  /**
+   * The same season broken out by discipline, as the placements page gives it.
+   *
+   * This is what the single "average" above cannot say: a ₹6 LPA group average
+   * across a university that teaches both B.Tech. CSE and hotel management is
+   * an average of two different job markets. Set small and tabular for the
+   * same reason `CONTEXT` is — it supports the headline figure rather than
+   * competing with it.
+   */
+  byDiscipline: [
+    { label: "Technical", average: "₹6.45 LPA", highest: "₹33 LPA" },
+    { label: "Management", average: "₹7 LPA", highest: "₹11 LPA" },
+    { label: "ME / CE / ECE", average: "₹5 LPA", highest: "₹13.8 LPA" },
+    { label: "Skill Based Programs", average: "₹4 LPA", highest: "₹6.5 LPA" },
+  ],
 } as const;
 
 /**
  * Everything that is true of the group rather than of one season.
  *
  * Set small and tabular on purpose. These are the figures that make the season
- * plausible — a place with 34,000 alumni and 32 acres is a place that can place
- * 2,104 people — and a supporting fact blown up to display size stops
+ * plausible — a place with 30,000 alumni and 29,643 on roll is a place that can
+ * place 2,104 people — and a supporting fact blown up to display size stops
  * supporting anything.
+ *
+ * Six rows, not eight. The two campus acreages were here and are not any more:
+ * they are facts about real estate, and the question this block answers is
+ * whether the season above is the shape of the place or a good year.
  */
 export const CONTEXT: { label: string; value: string }[] = [
-  { label: "Alumni", value: "34,000+" },
-  { label: "Countries they work in", value: "35" },
-  { label: "Students on roll", value: "26,000+" },
-  { label: "Placements in five years", value: "12,000+" },
+  { label: "Alumni", value: "30,000+" },
+  { label: "Students enrolled", value: "29,643" },
   { label: "Ventures founded", value: "200+" },
-  { label: "Research grants secured", value: "28+ Cr" },
-  { label: "Sitapura campus", value: "32 acres" },
-  { label: "Alwar NCR campus", value: "32.89 acres" },
+  { label: "Countries they work in", value: "35" },
+  { label: "Placements in five years", value: "12,000+" },
+  { label: "Research grants secured", value: "₹28+ Cr" },
 ];
 
 /**

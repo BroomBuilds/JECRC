@@ -2,7 +2,7 @@ import { BRAND, CONTACT, LOGO, SITE_URL, SOCIAL } from "@/lib/content/site";
 import { INSTITUTIONS } from "@/lib/content/universities";
 import { FAQS } from "@/lib/content/faq";
 import { AMBASSADOR } from "@/lib/content/ambassador";
-import { PROGRAMMES } from "@/lib/content/schools";
+import { SCHOOLS } from "@/lib/content/schools";
 import { FIGURES } from "@/lib/content/numbers";
 
 /**
@@ -80,29 +80,34 @@ const campusNode = (i: (typeof INSTITUTIONS)[number]) => ({
 });
 
 /**
- * One node per featured degree. `provider` carries the university; `educational
- * CredentialAwarded` carries the award as the portal words it; the partner goes
- * in as a second provider, which is the only honest way to say "co-designed
- * with" in this vocabulary.
+ * One node per school.
+ *
+ * This used to be one node per featured degree, because the page used to list
+ * degrees. It lists the eleven schools now, and a school is an organisation
+ * rather than a programme — so each one is an `EducationalOrganization` under
+ * the Jaipur campus, carrying its own page as `url` and its representative
+ * awards as an offer catalogue. The awards are named only; nothing here
+ * invents a credential the university has not published.
  */
-const programmeNode = (p: (typeof PROGRAMMES)[number]) => ({
-  "@type": "EducationalOccupationalProgram",
-  "@id": id(`programme-${p.slug}`),
-  name: p.name,
-  description: p.why,
-  educationalCredentialAwarded: p.award,
-  programType: "Undergraduate",
-  educationalProgramMode: "full-time",
-  occupationalCategory: p.school,
-  provider: [
-    { "@id": id("jaipur") },
-    ...(p.partner ? [{ "@type": "Organization", name: p.partner }] : []),
-  ],
-  offers: {
-    "@type": "Offer",
-    category: "Admission",
-    url: "https://jecrcuapplication.jecrcuniversity.edu.in/application-form",
-    availability: "https://schema.org/InStock",
+const schoolNode = (s: (typeof SCHOOLS)[number]) => ({
+  "@type": "EducationalOrganization",
+  "@id": id(`school-${s.slug}`),
+  name: s.full,
+  description: s.lead,
+  url: s.href,
+  parentOrganization: { "@id": id("jaipur") },
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: `Programmes at ${s.full}`,
+    itemListElement: s.programmes.map((name) => ({
+      "@type": "Offer",
+      category: "Admission",
+      itemOffered: {
+        "@type": "EducationalOccupationalProgram",
+        name,
+        provider: { "@id": id("jaipur") },
+      },
+    })),
   },
 });
 
@@ -144,7 +149,7 @@ export function buildGraph() {
         email: CONTACT.email,
         sameAs: SOCIAL.map((s) => s.href),
         subOrganization: INSTITUTIONS.map((i) => ({ "@id": id(i.id) })),
-        alumni: { "@type": "QuantitativeValue", value: 34000 },
+        alumni: { "@type": "QuantitativeValue", value: 30000 },
         contactPoint: [
           {
             "@type": "ContactPoint",
@@ -164,7 +169,7 @@ export function buildGraph() {
             availableLanguage: ["en", "hi"],
           },
         ],
-        hasCredential: PROGRAMMES.map((p) => ({ "@id": id(`programme-${p.slug}`) })),
+        department: SCHOOLS.map((s) => ({ "@id": id(`school-${s.slug}`) })),
         // The published record, as machine-readable claims rather than as
         // sentences a model has to parse out of the page.
         additionalProperty: lead.map((f) => ({
@@ -176,7 +181,7 @@ export function buildGraph() {
       },
 
       ...INSTITUTIONS.map(campusNode),
-      ...PROGRAMMES.map(programmeNode),
+      ...SCHOOLS.map(schoolNode),
 
       {
         "@type": "Person",
