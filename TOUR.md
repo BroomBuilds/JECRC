@@ -624,9 +624,9 @@ invisible headline.
 
 Worth its own section, because it was live for months and defeated everything above.
 
-`public/_headers` and the `headers()` block in `next.config.ts` both used to say that where
-two rules match one request, **the later one wins**. Neither platform works that way. Both
-**append**, so every frame came back as:
+`public/.htaccess` and the `headers()` block in `next.config.mjs` both used to say that
+where two rules match one request, **the later one wins**. Neither works that way when
+rules append, so every frame came back as:
 
 ```
 cache-control: public, max-age=0, must-revalidate, public, max-age=2592000,

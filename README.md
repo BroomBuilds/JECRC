@@ -28,7 +28,7 @@ Live at **www.jecrcinstitutions.com**, hosted on Hostinger.
 
 ## Running it
 
-Node 20 or newer.
+**Node 20.9 or newer** — pinned in `engines`. Next 16 will not run on 18.
 
 ```bash
 npm install
@@ -107,13 +107,17 @@ repo.**
 Every route is prerendered at build time — there is no per-request rendering,
 no database and no API route.
 
+> **If the build fails with a message about a `<hash>.next.config` file**, the
+> host is on a Node older than 20.9. That file is a temporary artefact, not
+> something in the repo — deleting it changes nothing. Raise the Node version.
+
 ### Node.js hosting (recommended)
 
 hPanel → **Website → Node.js**. Point it at the repo, then:
 
 | Setting | Value |
 | --- | --- |
-| Node version | 20 or newer |
+| Node version | **20.9 or newer** (18 will fail) |
 | Install command | `npm ci` |
 | Build command | `npm run build` |
 | Start command | `npm run start` |
@@ -130,15 +134,15 @@ every `@id` in the structured data. The same value is the fallback in
 `content/site.ts`, so a build without it still resolves — but set it, and point
 it at the preview domain on any staging deployment.
 
-On this path the `headers()` block in `next.config.ts` applies and
+On this path the `headers()` block in `next.config.mjs` applies and
 `public/.htaccess` is ignored.
 
 ### Shared hosting (static upload)
 
-If the plan has no Node runtime, add one line to `next.config.ts`:
+If the plan has no Node runtime, add one line to `next.config.mjs`:
 
-```ts
-const nextConfig: NextConfig = {
+```js
+const nextConfig = {
   output: "export",
   // …everything else unchanged
 };

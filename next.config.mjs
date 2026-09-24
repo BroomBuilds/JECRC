@@ -1,8 +1,14 @@
 import path from "node:path";
-import type { NextConfig } from "next";
 
 /**
  * Deployed on Hostinger.
+ *
+ * Plain `.mjs`, not `.ts`, on purpose. A TypeScript config has to be compiled
+ * to a temporary file and imported back before anything else can run, and on a
+ * host whose Node is older than Next needs — or whose project root is not
+ * writable — that import fails with a message about a `<hash>.next.config`
+ * file that does not exist in the repo. This file needs no build step, so that
+ * failure cannot happen.
  *
  * - `images.unoptimized` keeps next/image working without a platform image
  *   service. Every image the page ships is WebP and already right-sized —
@@ -14,7 +20,8 @@ import type { NextConfig } from "next";
  *   instead, Apache and LiteSpeed read `public/.htaccess`, which carries the
  *   same rules. Keep the two in step.
  */
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Pinned, otherwise Turbopack walks up past the repo looking for a lockfile
   // and picks one out of the home directory.
   turbopack: { root: path.resolve(".") },
@@ -40,7 +47,7 @@ const nextConfig: NextConfig = {
     // `:file` matches one segment, `:path*` matches a whole subtree — which is
     // why the loose files in /media are matched by the former and the film,
     // living deeper, is not.
-    const asset = (source: string, value: string) => ({
+    const asset = (source, value) => ({
       source,
       headers: [{ key: "Cache-Control", value }],
     });
